@@ -1,0 +1,65 @@
+= AIRS Data Compression
+:toc: macro
+
+The AIRS Data Compression is a specialised compression library designed for the AIRS instrument aboard the Ariel space telescope.
+This library implements optimised compression algorithms tailored to the instrument's scientific data processing.
+
+[CAUTION]
+.API unstable
+====
+The API interface is currently in development and may change in future versions.
+====
+
+toc::[]
+
+== Features
+* Optimised for AIRS scientific data
+* Support for multiple compression configurations
+* Flexible single-pass and multi-pass compression APIs
+* Error handling with detailed error codes
+* Zero dynamic memory allocation
+** Predictable memory usage
+** No internal `malloc()` calls
+
+
+== Getting Started
+
+=== Installation
+See the xref:INSTALL.adoc[Installation Guide] for detailed setup instructions.
+
+=== Quick Start
+[source,bash]
+----
+# Clone the repository
+git clone https://github.com/uviespace/airs-compression.git
+
+# Build using Meson
+meson setup build
+cd build
+ninja
+----
+
+=== Examples
+For quick implementation guidance, explore our collection of example code in the link:examples/[`examples`] directory.
+
+== Documentation
+
+=== Usage Documentation
+* xref:INSTALL.adoc[`INSTALL.adoc`] - Installation Guide
+* link:lib/cmp.h[`lib/cmp.h`] - Public Compression API
+* link:examples/[`examples` directory] - Compression Usage Examples
+
+=== Technical Details
+* link:lib/cmp_errors.h[`lib/cmp_errors.h`] - Error codes Reference
+* Compression Data Format Documentation - Coming soon
+
+== Contact
+* *Issues*: Please link:https://github.com/uviespace/airs-compression/issues/new[open an issue] for bug reports or feature requests.
+* *Questions*: For general questions, reach out to the maintainer.
+
+=== Contact Information
+* *Maintainer*: Dominik Loidolt
+* *e-mail*: mailto:dominik.loidolt@univie.ac.at[,Question about AIRS Data Compression]
+
+== License
+This project is licensed under the GNU General Public License v2.0. See the link:LICENSE[] file for complete details.

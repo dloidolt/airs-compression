@@ -1,0 +1,127 @@
+= Installation Guide
+:toc:
+
+== Prerequisites
+
+=== Install Python 3.7+ and Git
+
+If you're on Linux, you probably already have these.
+On macOS and Windows, you can use the https://www.python.org/downloads[official Python installer].
+Different options to install Git can be found https://git-scm.com/downloads[here].
+
+=== Install Ninja
+
+You should get `ninja` using your
+https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages[package manager]
+or download the https://github.com/ninja-build/ninja/releases[official release]
+and put the `ninja` binary in your PATH.
+
+=== Install Meson
+
+Meson 0.63 or newer is required to build the different targets.
+You can get meson through your package manager or by using pip:
+
+[source,bash]
+----
+pip3 install --user meson
+----
+
+=== Check if All Dependencies are Installed
+
+To double-check if all dependencies are included in your `PATH`, run the following commands:
+
+[source,bash]
+----
+git --version
+python3 --version
+meson --version
+ninja --version
+----
+
+=== Get the Source Code
+
+Use the git version control system to get a copy of the source code.
+
+[source,bash]
+----
+git clone https://github.com/uviespace/airs-compression.git
+cd airs-compression
+----
+
+== Build the Compression Library
+
+=== Build the Compression Library for Debugging
+
+First, we create the `build` directory. Everything we build will be inside this directory.
+
+[source,bash]
+----
+meson setup build
+----
+
+We change to the build directory and build the compression library:
+
+[source,bash]
+----
+cd build
+ninja lib/libcmp.a
+----
+
+Now you should find the compression library `cmplib.a` in the `lib` folder of
+the build directory.
+
+// === Release Build
+
+// If you want to create an optimized release version, we can create a build directory for it:
+
+// [source,bash]
+// ----
+// meson setup build_release --buildtype=release
+// cd build_release
+// meson compile cmplib.a
+// ----
+
+== Testing
+
+=== External dependencies
+
+To run the unit tests you need a https://www.ruby-lang.org/en/documentation/installation[ruby interpreter].
+
+=== Run tests
+
+[source,bash]
+----
+# First, cd in a build directory
+cd <name of the build directory>
+
+# Run all test
+meson test
+
+# List all available tests
+meson test --list
+
+# Run a single test
+meson test <testname>
+
+# Run a test under GDB
+meson test --gdb <testname>
+----
+
+=== Producing a coverage report
+Ensure that either `gcovr` or `lcov` is installed.
+
+[source,bash]
+----
+# Enable coverage
+cd <name of the build directory>
+meson configure -Db_coverage=true
+
+# Generate the coverage report
+meson test  # or run the program you are interested in
+ninja coverage-html
+
+# If needed reset the coverage data
+ninja clean-gcda
+----
+
+Find the report in the `meson-logs/coveragereport` subdirectory.
