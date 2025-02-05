@@ -25,8 +25,8 @@
 #ifndef CMP_ERR_PRIVATE_H
 #define CMP_ERR_PRIVATE_H
 
-
 #include "../cmp_errors.h"
+
 
 /** prepends "CMP_ERR_" to the given name */
 #define CMP_ERROR_ENUM_PREFIX(name) CMP_ERR_##name
@@ -37,6 +37,22 @@
  * unsigned 32-bit integer error code
  */
 #define CMP_ERROR(name) ((uint32_t)-CMP_ERROR_ENUM_PREFIX(name))
+
+
+/**
+ * @brief tells if a internal result is an error code
+ *
+ * Intended for internal use only.
+ *
+ * @param code	return value to check
+ *
+ * @returns non-zero if the code is an error
+ */
+
+static inline unsigned int cmp_is_error_int(uint32_t code)
+{
+	return code > CMP_ERROR(MAX_CODE);
+}
 
 
 #endif /* CMP_ERR_PRIVATE_H */

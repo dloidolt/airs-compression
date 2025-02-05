@@ -11,34 +11,44 @@ cc = meson.get_compiler('c')
 use_debug = get_option('debug')
 
 # Compiler flags
- cc_flags = []
+cc_flags = []
+non_testing_flags = []
 if use_debug
   debug_flags = [
-    '-Wstrict-aliasing',
-    '-Wcast-align',
-    '-Wcast-qual' ,
+    # more information at https://github.com/Cyan4973/Writing_Safer_C_code/blob/master/4_compiler_warnings.md
     '-Wconversion',
-    # '-Wredundant-decls',
-    '-Wundef',
+    '-Wcast-qual' ,
+    '-Wstrict-aliasing=1',
+    '-Wcast-align',
+    '-Wpointer-arith',
+    '-Winit-self',
     '-Wshadow',
+    '-Wswitch-enum',
+    '-Wstrict-prototypes',
+    '-Wformat=2',
+    '-Wfloat-equal',
+    '-Wundef',
+    '-Wvla',
     '-Wdeclaration-after-statement',
     '-Wstrict-prototypes',
-    '-Wpointer-arith',
-    '-Wvla',
-    '-Wformat=2',
-    '-Winit-self',
-    '-Wfloat-equal',
     '-Wwrite-strings',
     '-Wold-style-definition',
     '-Waggregate-return',
-    # '-Wmissing-declarations',
     '-Wmissing-include-dirs',
     '-Wundef',
-    # '-Wstrict-prototypes',
+    '-Wdouble-promotion',
+    '-Wstrict-overflow=2',
+    '-Wformat-truncation',
     '-Wdocumentation'
-
   ]
   cc_flags += cc.get_supported_arguments(debug_flags)
+
+  # the test runner generator does not generate header files, which is why we
+  # do not use these flags for tests
+  non_testing_flags = [
+    '-Wmissing-declarations',
+    '-Wredundant-decls',
+    ]
 endif
 add_project_arguments(cc_flags, language : 'c')
 

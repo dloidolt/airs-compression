@@ -57,7 +57,7 @@
 /** minor part of the version ID */
 #define CMP_VERSION_MINOR    1
 /** release part of the version ID */
-#define CMP_VERSION_RELEASE  0
+#define CMP_VERSION_RELEASE  1
 
 /**
  * @brief complete version number

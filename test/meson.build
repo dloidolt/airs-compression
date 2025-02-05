@@ -43,7 +43,6 @@ unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
 # use the test runner generator script
 gen_test_runner = subproject('unity').get_variable('gen_test_runner')
 
-# test_args = '-Wno-missing-declarations' # The test runner generator does not generate header files
 fs = import('fs')
 
 test_src = files(
