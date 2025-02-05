@@ -49,6 +49,7 @@ fs = import('fs')
 test_src = files(
   'test_cmp.c',
   'test_header.c',
+  'test_cmp_errors.c',
   'test_buildsetup.c')
 
 
@@ -60,14 +61,14 @@ if ruby.found()
     test_runner = gen_test_runner.process(test_file)
     test_exe = executable(test_name,
       test_file, test_runner, src_common, src_compress,
-      include_directories: inc,
+      include_directories: [cmp_inc, common_inc, compress_inc],
       c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
       dependencies : [unity_dep])
 
-    test('Units tests for ' + test_name.split('_')[1],
+    test(test_name.replace('test_', '') + ' units tests',
       test_exe,
       env : test_env)
-endforeach
+  endforeach
 else
    message('ruby not found! Install ruby to run unit tests.')
 endif

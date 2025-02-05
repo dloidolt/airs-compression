@@ -22,7 +22,7 @@
 
 #include <unity.h>
 
-/* #include <header.h> */
+#include <header.h>
 #include <cmp_errors.h>
 #include <cmp.h>
 

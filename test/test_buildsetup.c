@@ -23,7 +23,7 @@
 #include <errno.h>
 
 #include <unity.h>
-#include "../lib/cmp.h"
+#include <cmp.h>
 
 #ifndef CMP_MESON_BUILD_ROOT
 #  define CMP_MESON_BUILD_ROOT "."

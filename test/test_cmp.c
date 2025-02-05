@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief AIRS data compression tests
+ * @brief Data Compression Tests
  */
 
 
@@ -25,7 +25,7 @@
 
 #include <cmp.h>
 #include <cmp_errors.h>
-/* #include <header.h> */
+#include <header.h>
 
 
 /* a global context for uncompressed mode which is fresh created for every test */
@@ -233,24 +233,3 @@ void test_deinitialise_NULL_context_gracefully(void)
 {
 	cmp_deinitialise(NULL);
 }
-
-
-#include "../lib/common//err_private.h" /* FIXME */
-void test_cmp_is_error(void)
-{
-	TEST_ASSERT_FALSE(cmp_is_error(0));
-	TEST_ASSERT_FALSE(cmp_is_error(CMP_ERROR(MAX_CODE))); /* This error code is not used for a error */
-
-	TEST_ASSERT_TRUE(cmp_is_error(CMP_ERROR(MAX_CODE)+1));
-	TEST_ASSERT_TRUE(cmp_is_error(-1U));
-}
-
-
-void test_cmp_get_error_code(void)
-{
-	TEST_ASSERT_EQUAL(CMP_ERR_NO_ERROR, cmp_get_error_code(0));
-	TEST_ASSERT_EQUAL(CMP_ERR_NO_ERROR, cmp_get_error_code(CMP_ERROR(MAX_CODE)));
-	TEST_ASSERT_EQUAL(CMP_ERR_GENERIC, cmp_get_error_code(CMP_ERROR(GENERIC)));
-}
-
-
