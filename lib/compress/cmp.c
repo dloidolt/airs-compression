@@ -25,6 +25,12 @@
 #include "../common/header.h"
 
 
+unsigned int cmp_is_error(uint32_t code)
+{
+	return cmp_is_error_int(code);
+}
+
+
 uint32_t cmp_compress_bound(uint32_t num_bufs, uint32_t buf_size)
 {
 	return CMP_HDR_SIZE + num_bufs * buf_size;
@@ -47,12 +53,12 @@ uint32_t cmp_compress16(void *dst, uint32_t dst_capacity,
 	struct cmp_context ctx;
 	uint32_t cmp_size = cmp_initialise(&ctx, dst, dst_capacity, params,
 					   work_buf, work_buf_size);
-	if (cmp_is_error(cmp_size))
+	if (cmp_is_error_int(cmp_size))
 		return cmp_size;
 
 	for (i = 0; i < num_src_bufs; i++) {
 		cmp_size = cmp_feed16(&ctx, src_bufs[i] ,src_buf_size);
-		if (cmp_is_error(cmp_size))
+		if (cmp_is_error_int(cmp_size))
 			return cmp_size;
 	}
 
@@ -110,7 +116,7 @@ uint32_t cmp_feed16(struct cmp_context *ctx, const uint16_t *src, uint32_t size)
 	ctx->hdr.cmp_size += size; /* TODO: overflow */
 	ctx->hdr.original_size += size; /* TODO: overflow */
 	cmp_hdr_serialize(ctx->dst, ctx->hdr.cmp_size, &ctx->hdr);
-	/* if (cmp_is_error(s)) */
+	/* if (cmp_is_error_int(s)) */
 	/* 	return */
 
 	return ctx->hdr.cmp_size;
@@ -126,7 +132,7 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 	ctx->hdr.cmp_size = CMP_HDR_SIZE;
 	ctx->hdr.original_size = 0;
 	cmp_hdr_serialize(ctx->dst, ctx->hdr.cmp_size, &ctx->hdr);
-	/* if (cmp_is_error(s)) */
+	/* if (cmp_is_error_int(s)) */
 	/* 	return */
 
 	return CMP_HDR_SIZE;

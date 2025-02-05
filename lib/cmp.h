@@ -49,7 +49,6 @@
 
 /* ======   Dependency   ====== */
 #include <stdint.h>
-#include "cmp_errors.h"
 #include "common/header.h"
 
 /* ======   Version Information  ====== */
@@ -58,7 +57,7 @@
 /** minor part of the version ID */
 #define CMP_VERSION_MINOR    1
 /** release part of the version ID */
-#define CMP_VERSION_RELEASE  0
+#define CMP_VERSION_RELEASE  1
 
 /**
  * @brief complete version number
@@ -90,6 +89,17 @@ struct cmp_params {
 
 /* ======   Helper Functions   ====== */
 /**
+ * @brief tells if a result is an error code
+ *
+ * @param code	return value to check
+ *
+ * @returns non-zero if the code is an error
+ */
+
+unsigned int cmp_is_error(uint32_t code);
+
+
+/**
  * @brief get the maximum compressed size in a worst-case scenario
  *
  * In this scenario the input data are not compressible. This function is
@@ -117,28 +127,6 @@ uint32_t cmp_compress_bound(uint32_t num_bufs, uint32_t buf_size);
  */
 
 uint32_t cmp_cal_work_buf_size(uint32_t buf_size);
-
-
-/**
- * @brief tells if a result is an error code
- *
- * @param code	return value to check
- *
- * @returns non-zero if the code is an error
- */
-
-unsigned int cmp_is_error(uint32_t code);
-
-
-/**
- * @brief convert a function result into an error code
- *
- * @param code	return value to get the error code
- *
- * @returns an unique error code for this error
- */
-
-enum cmp_error cmp_get_error_code(uint32_t code);
 
 
 /* ======   Single-pass Compression API  ====== */
@@ -256,33 +244,6 @@ uint32_t cmp_reset(struct cmp_context *ctx);
  */
 
 void cmp_deinitialise(struct cmp_context *ctx);
-
-
-/* ======  Utility Functions  ====== */
-/**
- * @brief provides a readable string from a compression return value,
- *	useful for debugging
- *
- * @param code	compression return value to describe
- *
- * @returns a pointer to a string literal that describes the error code.
- */
-
-const char *cmp_get_error_message(uint32_t code);
-
-
-/**
- * @brief get a string describing an error code
- *
- * Returns the same as cmp_get_error_message() function but for the error code
- * instead of the return value code.
- *
- * @param code	the error code to describe, obtain with cmp_get_error_code()
- *
- * @returns a pointer to a string literal that describes the error code.
- */
-
-const char *cmp_get_error_string(enum cmp_error code);
 
 
 #endif /* CMP_H */

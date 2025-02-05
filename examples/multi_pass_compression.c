@@ -20,8 +20,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <cmp.h>
+#include <cmp_errors.h>
 
 
 /**
@@ -66,7 +68,7 @@ int example_multi_pass_compression(void)
 	 */
 	dst_capacity = cmp_compress_bound(MAX_NUM_ADDING, DATA_SIZE);
 	if (cmp_is_error(dst_capacity)) {
-		fprintf(stderr, "Error calculating destination buffer size: %s. (Error Code: %d)\n",
+		fprintf(stderr, "Error calculating destination buffer size: %s. (Error Code: %u)\n",
 			cmp_get_error_message(dst_capacity), cmp_get_error_code(dst_capacity));
 		return -1;
 	}
@@ -86,7 +88,7 @@ int example_multi_pass_compression(void)
 	 */
 	work_buf_size = cmp_cal_work_buf_size(DATA_SIZE);
 	if (cmp_is_error(work_buf_size)) {
-		fprintf(stderr, "Error calculating working buffer size: %s. (Error Code: %d)\n",
+		fprintf(stderr, "Error calculating working buffer size: %s. (Error Code: %u)\n",
 			cmp_get_error_message(work_buf_size), cmp_get_error_code(work_buf_size));
 		free(dst);
 		return -1;
@@ -107,7 +109,7 @@ int example_multi_pass_compression(void)
 	 */
 	cmp_size = cmp_initialise(&ctx, dst, dst_capacity, &params, work_buf, work_buf_size);
 	if (cmp_is_error(cmp_size)) {
-		fprintf(stderr, "Compression initialisation failed: %s. (Error Code: %d)\n",
+		fprintf(stderr, "Compression initialisation failed: %s. (Error Code: %u)\n",
 			cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
 		free(dst);
 		free(work_buf);
@@ -125,7 +127,7 @@ int example_multi_pass_compression(void)
 
 		cmp_size = cmp_feed16(&ctx, data1, sizeof(data1));
 		if (cmp_is_error(cmp_size)) { /* check compression result */
-			fprintf(stderr, "First data compression failed: %s. (Error Code: %d)\n",
+			fprintf(stderr, "First data compression failed: %s. (Error Code: %u)\n",
 				cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
 			free(dst);
 			free(work_buf);
@@ -141,7 +143,7 @@ int example_multi_pass_compression(void)
 
 		cmp_size = cmp_feed16(&ctx, data2, sizeof(data2));
 		if (cmp_is_error(cmp_size)) {
-			fprintf(stderr, "Second data compression failed: %s. (Error Code: %d)\n",
+			fprintf(stderr, "Second data compression failed: %s. (Error Code: %u)\n",
 				cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
 			free(dst);
 			free(work_buf);
@@ -162,7 +164,7 @@ int example_multi_pass_compression(void)
 	{
 		uint32_t i;
 
-		printf("Compressed Data (Size: %u):\n", cmp_size);
+		printf("Compressed Data (Size: %" PRIu32 "):\n", cmp_size);
 		for (i = 0; i < cmp_size; i++)
 			printf("%02X%s", dst[i], ((i + 1) % 32 == 0) ? "\n" : " ");
 		printf("\n");
@@ -177,7 +179,7 @@ int example_multi_pass_compression(void)
 
 	cmp_size = cmp_reset(&ctx);
 	if (cmp_is_error(cmp_size)) {
-		fprintf(stderr, "Context reset failed: %s. (Error Code: %d)\n",
+		fprintf(stderr, "Context reset failed: %s. (Error Code: %u)\n",
 			cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
 		free(dst);
 		free(work_buf);

@@ -22,15 +22,9 @@
 #include "err_private.h"
 
 
-unsigned int cmp_is_error(uint32_t code)
-{
-	return code > CMP_ERROR(MAX_CODE);
-}
-
-
 enum cmp_error cmp_get_error_code(uint32_t code)
 {
-	if (!cmp_is_error(code))
+	if (!cmp_is_error_int(code))
 		return CMP_ERR_NO_ERROR;
 	return (enum cmp_error)(0-code);
 }
