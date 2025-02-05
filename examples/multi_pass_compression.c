@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include <cmp.h>
+#include <cmp_errors.h>
 
 
 /**
