@@ -1,0 +1,63 @@
+= Command Line Interface for AIRSPACE
+:toc: macro
+
+`*airspace*` - Command-line interface (CLI) for decompressing and compressing
+AIRS science data.
+
+toc::[]
+
+== Installation
+To get started with the AIRSPACE CLI, run the following commands in the project
+root:
+
+[source,bash]
+----
+# Run this in the project root
+meson setup build_release --buildtype=release
+cd build_release
+meson compile programs/airsapce
+
+# And voila! The AIRSPACE CLI tool is now ready to use.
+./programs/airsapce --help
+----
+
+For detailed build instructions, see the xref:../INSTALL.adoc[Installation Guide].
+
+== Usage
+Here's a quick rundown of the available options:
+
+[source,bash]
+----
+Usage: ./programs/airsapce [OPTIONS...] [FILE... | -] [-o OUTPUT]
+(De)compress AIRS science data FILE(s).
+
+With no FILE, or when FILE is -, read standard input.
+
+Options:
+  -c, --compress    Compress input files
+  -o OUTPUT         Write output to OUTPUT
+  -q, --quiet       Decrease verbosity
+  -v, --verbose     Increase verbosity
+  --[no]color       Print color codes in output
+  -V, --version     Display version
+  -h, --help        Display this help
+----
+
+== Examples
+Here are a few examples to get you started.
+
+*Compressing Files:*
+
+[source,bash]
+----
+airspace -c file1.dat file2.dat -o output.air
+----
+
+*Decompressing Files (Coming Soon!):*
+
+[source,bash]
+----
+airspace output.air -o file1.dat file2.dat
+----
+
+Happy (de)compressing! 🚀
