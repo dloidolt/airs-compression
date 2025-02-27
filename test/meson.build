@@ -76,3 +76,21 @@ if ruby.found()
 else
    message('Ruby not found. Tests that require Ruby will be disabled.')
 endif
+
+
+cli_tests = files([
+  'cli_basic_test.py',
+  'cli_compression_test.py'
+  ])
+
+foreach test : cli_tests
+  test_name = fs.name(test).split('.')[0]
+
+  # test('CLI Basic Test',
+  test(test_name,
+    find_program(test),
+    args : ['--cli', airsapcecli.full_path(),
+            '--test-root',  meson.current_build_dir()],
+    depends : airsapcecli,
+    env : test_env)
+endforeach
