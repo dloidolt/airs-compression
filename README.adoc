@@ -1,10 +1,13 @@
 ifdef::env-github[]
-:caution-caption:  :warning:
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :warning:
+:warning-caption: :warning:
 endif::[]
 
 = AIRS Data Compression
 :toc: macro
-:toc-placement!:
 
 The AIRS Data Compression is a specialised compression library designed for the AIRS instrument aboard the Ariel space telescope.
 This library implements optimised compression algorithms tailored to the instrument's scientific data processing.

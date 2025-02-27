@@ -2,22 +2,22 @@
 :toc:
 
 == Prerequisites
+Before you begin, ensure you have the following tools and dependencies installed.
 
 === Install Python 3.7+ and Git
-
-If you're on Linux, you probably already have these.
+On Linux, Python and Git are typically pre-installed.
 On macOS and Windows, you can use the https://www.python.org/downloads[official Python installer].
 Different options to install Git can be found https://git-scm.com/downloads[here].
 
 === Install Ninja
-
-You should get `ninja` using your
-https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages[package manager]
+Ninja is a small build system with a focus on speed.
+You should get Ninja using your https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages[package manager]
 or download the https://github.com/ninja-build/ninja/releases[official release]
-and put the `ninja` binary in your PATH.
+and put the `ninja` binary in your `PATH`.
 
 === Install Meson
-
+Meson is an open source build system based on ninja meant to be both extremely
+fast and, even more importantly, as user-friendly as possible.
 Meson 0.63 or newer is required to build the different targets.
 You can get meson through your package manager or by using pip:
 
@@ -26,8 +26,7 @@ You can get meson through your package manager or by using pip:
 pip3 install --user meson
 ----
 
-=== Check if All Dependencies are Installed
-
+=== Verify Dependencies
 To double-check if all dependencies are included in your `PATH`, run the following commands:
 
 [source,bash]
@@ -37,55 +36,95 @@ python3 --version
 meson --version
 ninja --version
 ----
+Ensure that each command returns a version number as expected.
 
 === Get the Source Code
-
 Use the git version control system to get a copy of the source code.
 
 [source,bash]
 ----
-git clone https://github.com/uviespace/airs-compression.git
-cd airs-compression
+git clone https://github.com/uviespace/airs-compression.git airspace
+cd airspace
 ----
 
-== Build the Compression Library
 
-=== Build the Compression Library for Debugging
+== Setup the Build Environment
+For every setup a separate directory is created for different build
+configurations to keep things organized.
+Everything we build will be inside this directory.
 
-First, we create the `build` directory. Everything we build will be inside this directory.
+=== Debug Build Environment
+Create a `build_debug` directory for debugging purposes, with no optimisations
+and all warnings enabled:
 
 [source,bash]
 ----
-meson setup build
+meson setup build_debug
+cd build_debug
 ----
 
-We change to the build directory and build the compression library:
+=== Release Build Environment
+Setup a build directory optimized for release:
 
 [source,bash]
 ----
-cd build
+meson setup build_release --buildtype=release
+cd build_release
+----
+
+=== Configure Build Environment
+Meson allows you to configure various build options.
+Use `meson configure` to list all available options, and meson configure
+`-D<option>` to set specific options.
+Here's an example enabling Address and Undefined Behavior Sanitizers:
+
+[source,bash]
+----
+# First, cd in a build directory
+cd <name of the build directory>
+meson configure -Db_sanitize=address,undefined
+----
+For more information on sanitizers, visit the
+https://clang.llvm.org/docs/AddressSanitizer.html[LLVM AddressSanitizer documentation].
+
+
+== Build Different Targets
+Once you have set up a build directory, you need to change to it (if you have
+not already done so) and then build the software.
+
+=== Build the Compression Library
+To build the compression library, run:
+
+[source,bash]
+----
 ninja lib/libcmp.a
 ----
+The resulting library `cmplib.a` will be located in the `lib` folder of your build directory.
 
-Now you should find the compression library `cmplib.a` in the `lib` folder of
-the build directory.
+=== Build the AIRSPACE CLI
+To build the xref:programms/README.adoc[CLI utility], run:
 
-// === Release Build
+[source,bash]
+----
+ninja programs/airsapce
+----
+The `airspace` binary will be located in the `programs` folder of your build directory.
 
-// If you want to create an optimized release version, we can create a build directory for it:
+=== Build All Targets
+To build all targets, simply run:
 
-// [source,bash]
-// ----
-// meson setup build_release --buildtype=release
-// cd build_release
-// meson compile cmplib.a
-// ----
+[source,bash]
+----
+ninja
+----
+
 
 == Testing
 
 === External dependencies
-
-To run the unit tests you need a https://www.ruby-lang.org/en/documentation/installation[ruby interpreter].
+To run the unit tests you need a
+https://www.ruby-lang.org/en/documentation/installation[Ruby interpreter], to
+generate the test runners.
 
 === Run tests
 
