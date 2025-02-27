@@ -14,7 +14,9 @@ def extract_version(header_file):
                 continue
             raise Exception("Unable to find " + part + " version string")
 
-    return version_parts
+    return (
+        f"{version_parts['MAJOR']}.{version_parts['MINOR']}.{version_parts['RELEASE']}"
+    )
 
 
 def main():
@@ -24,8 +26,11 @@ def main():
     parser.add_argument("file", help="path to lib/cmp.h")
     args = parser.parse_args()
     version = extract_version(args.file)
-    print(f"{version['MAJOR']}.{version['MINOR']}.{version['RELEASE']}")
+    print(version)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        print("unknown")

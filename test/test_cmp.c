@@ -106,13 +106,16 @@ void test_invalid_compression_initialisation_no_parameters(void)
 void test_initial_data_processing_in_uncompressed_mode(void)
 {
 	struct cmp_context ctx;
-	struct cmp_params par = {.mode = CMP_MODE_UNCOMPRESSED};
+	struct cmp_params par = {0};
 	struct cmp_hdr hdr;
 	const uint16_t data[2] = {0x0001, 0x0203};
 	/* uncompressed data should be in big endian */
 	const uint8_t cmp_data_exp[sizeof(data)] = {0x00, 0x01, 0x02, 0x03};
 	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
-	uint32_t cmp_size = cmp_initialise(&ctx, dst, sizeof(dst), &par, NULL, 0);
+	uint32_t cmp_size;
+
+	par.mode = CMP_MODE_UNCOMPRESSED;
+	cmp_size = cmp_initialise(&ctx, dst, sizeof(dst), &par, NULL, 0);
 
 	TEST_ASSERT_FALSE(cmp_is_error(cmp_size));
 

@@ -15,10 +15,9 @@
  */
 
 #include <stdlib.h>
-#include <limits.h>
 
-#include "log.h"
 #include "util.h"
+#include "log.h"
 
 /**
  * Holds a logging configuration

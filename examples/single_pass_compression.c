@@ -58,7 +58,11 @@ int example_single_pass_compression(void)
 	uint16_t buffer2[SAMPLES_PER_BUFFER] = {0xCA75, 0xCAFE, 0xC0DE};
 
 	/* Create an array of buffer pointers */
-	const uint16_t *src_buffers[] = {buffer1, buffer2};
+	const uint16_t *src_buffers[NUM_BUFFERS];
+
+	src_buffers[0] = buffer1;
+	src_buffers[1] = buffer2;
+
 
 	/*
 	 * Configure Compression Parameters
