@@ -61,5 +61,6 @@ if ['windows', 'cygwin'].contains(host_machine.system()) and cc.get_id() == 'gcc
 endif
 
 subdir('lib')
+subdir('programs')
 subdir('examples')
 subdir('test')

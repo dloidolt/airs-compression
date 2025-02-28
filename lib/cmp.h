@@ -59,6 +59,11 @@
 /** release part of the version ID */
 #define CMP_VERSION_RELEASE  1
 
+#define CMP_LIB_VERSION CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE
+#define CMP_QUOTE(str) #str
+#define CMP_EXPAND_AND_QUOTE(str) CMP_QUOTE(str)
+#define CMP_VERSION_STRING CMP_EXPAND_AND_QUOTE(CMP_LIB_VERSION)
+
 /**
  * @brief complete version number
  */
