@@ -20,7 +20,6 @@
 #include "log.h"
 #include "util.h"
 
-
 /**
  * Holds a logging configuration
  */
@@ -32,7 +31,8 @@ struct log_state {
 /**
  * This global variable holds the current configuration for logging.
  */
-struct log_state g_log_state = {LOG_LEVEL_DEFAULT, LOG_COLOR_DEFAULT};
+struct log_state g_log_state = { LOG_LEVEL_DEFAULT, LOG_COLOR_DEFAULT };
+
 
 void log_setup_color(void)
 {

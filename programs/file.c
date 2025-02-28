@@ -228,8 +228,7 @@ int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_size)
 	error = file_load(filename, buffer, buffer_size);
 	if (!error) {
 		if (buffer_size % sizeof(*buffer)) {
-			LOG_ERROR("%s: file size not a multiple of %lu",
-				  filename, sizeof(*buffer));
+			LOG_ERROR("%s: file size not a multiple of %lu", filename, sizeof(*buffer));
 			return -1;
 		}
 

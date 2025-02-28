@@ -38,9 +38,9 @@
 #  define AIRSPACE_VERSION "v" CMP_VERSION_STRING
 #endif
 #define AUTHOR "Dominik Loidolt"
-#define AIRSPACE_WELCOME_MESSAGE "*** %s (%d-bit) %s, by %s ***\n", \
-	PROGRAM_NAME, (int)(sizeof(size_t) * 8), AIRSPACE_VERSION, AUTHOR
-
+#define AIRSPACE_WELCOME_MESSAGE                                     \
+	"*** %s (%d-bit) %s, by %s ***\n", PROGRAM_NAME,             \
+		(int)(sizeof(size_t) * 8),  AIRSPACE_VERSION, AUTHOR
 
 /* Operation modes */
 enum operation_mode { MODE_COMPRESS, MODE_DECOMPRESS };
@@ -126,7 +126,7 @@ static const char **allocate_and_build_file_list(char **file_names, int n_file_n
 
 	return list;
 
-	fail:
+fail:
 	free(list);
 	return NULL;
 }
@@ -173,10 +173,8 @@ static int compress_files(const char *output_file, char **file_names, int n_file
 	}
 	work_buffer = malloc_safe(work_size);
 
-
-	compressed_size = cmp_initialise(&ctx, dst_buffer, dst_capacity,
-					 compression_params, work_buffer,
-					 work_size);
+	compressed_size = cmp_initialise(&ctx, dst_buffer, dst_capacity, compression_params,
+					 work_buffer, work_size);
 	if (cmp_is_error(compressed_size)) {
 		LOG_ERROR_CMP(compressed_size, "Compression initialization failed");
 		goto fail;
@@ -220,11 +218,9 @@ static int is_reading_from_console(char **files, int input_file_count)
 	return 0;
 }
 
-
 static void print_usage(FILE *stream, const char *program_name)
 {
-	LOG_F(stream, "Usage: %s [OPTIONS...] [FILE... | -] [-o OUTPUT]\n",
-	      program_name);
+	LOG_F(stream, "Usage: %s [OPTIONS...] [FILE... | -] [-o OUTPUT]\n", program_name);
 	LOG_F(stream, "(De)compress AIRS science data FILE(s).\n\n");
 	LOG_F(stream, "With no FILE, or when FILE is -, read standard input.\n");
 	LOG_F(stream, "\nOptions:\n");
@@ -278,7 +274,7 @@ int main(int argc, char *argv[])
 	/* Set defaults */
 	enum operation_mode mode = MODE_DECOMPRESS;
 	const char *output_file = STD_OUT_MARK;
-	struct cmp_params compression_params = {0};
+	struct cmp_params compression_params = { 0 };
 	const char *program_name;
 
 	assert(argv);
@@ -301,10 +297,10 @@ int main(int argc, char *argv[])
 			log_decrease_verbosity();
 			break;
 		case COLOR_OPT:
-				log_set_color(LOG_COLOR_ENABLED);
+			log_set_color(LOG_COLOR_ENABLED);
 			break;
 		case NO_COLOR_OPT:
-				log_set_color(LOG_COLOR_DISABLED);
+			log_set_color(LOG_COLOR_DISABLED);
 			break;
 		case 'V':
 			print_version();
@@ -324,7 +320,7 @@ int main(int argc, char *argv[])
 	argv += optind;
 	argc -= optind;
 
-	LOG_PLAIN(LOG_LEVEL_DEBUG,AIRSPACE_WELCOME_MESSAGE);
+	LOG_PLAIN(LOG_LEVEL_DEBUG, AIRSPACE_WELCOME_MESSAGE);
 
 	/* Check inputs arguments */
 	if (is_reading_from_console(argv, argc) && UTIL_IS_CONSOLE(stdin)) {
