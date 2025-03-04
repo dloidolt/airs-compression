@@ -52,11 +52,11 @@ if ruby.found()
   # use the test runner generator script
   gen_test_runner = subproject('unity').get_variable('gen_test_runner')
 
-  unit_test_src = files(
+  unit_test_src = files([
     'test_cmp.c',
     'test_header.c',
     'test_cmp_errors.c',
-    'test_buildsetup.c')
+    'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
     test_name = fs.name(test_file).split('.')[0]

@@ -27,6 +27,22 @@
 #include "log.h"
 #include "byteorder.h"
 
+#define UNUSED(arg) ((void)(arg))
+
+#if defined(MSDOS) || defined(OS2) || defined(_WIN32)
+#  include <fcntl.h>   /* _O_BINARY */
+#  include <io.h>      /* _setmode, _fileno, _get_osfhandle */
+#  if !defined(__DJGPP__)
+#    include <windows.h> /* DeviceIoControl, HANDLE, FSCTL_SET_SPARSE */
+#    include <winioctl.h> /* FSCTL_SET_SPARSE */
+#    define SET_BINARY_MODE(file) { int const unused = _setmode(_fileno(file), _O_BINARY); (void)unused; }
+#  else
+#    define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
+#  endif
+#else
+#  define SET_BINARY_MODE(file) UNUSED(file)
+#endif
+
 
 /**
  * @brief open a file
@@ -345,22 +361,37 @@ int file_save(const char *filename, const void *buffer, size_t size)
 {
 	FILE *fp;
 	size_t written;
-	int error = 0;
+	int write_err = 0;
 
 	assert(filename);
 	assert(buffer);
 
-	fp = file_open(filename, "wb");
-	if (fp == NULL)
-		return -1;
+	if (!strcmp(filename, STD_OUT_MARK)) {
+		LOG_DEBUG("Using stdout as output");
+		fp = stdout;
+		SET_BINARY_MODE(stdout);
+	} else {
+		if (strcmp(filename, NULL_MARK)) {
+			/* Check if destination file already exists */
+			fp = fopen(filename, "rb");
+			if (fp) {
+				fclose(fp);
+				LOG_ERROR("'%s' already exists\n", filename);
+				return -1;
+			}
+		}
+		fp = file_open(filename, "wb");
+		if (!fp)
+			return -1;
+	}
 	written = fwrite(buffer, 1, size, fp);
 	if (written != size) {
 		LOG_ERROR_WITH_ERRNO("Error writing '%s':", filename);
-		error = -1;
+		write_err = -1;
 	}
 
-	if (file_close(fp, filename) && !error)
+	if (file_close(fp, filename) && !write_err)
 		LOG_WARNING("File '%s' saved successfully but close failed", filename);
 
-	return error;
+	return write_err;
 }

@@ -181,7 +181,7 @@ static int compress_files(const char *output_file, char **file_names, int n_file
 	}
 
 	for (i = 0; i < input_file_count; i++) {
-		LOG_PLAIN(LOG_LEVEL_INFO, "Compressing %s", input_files[i]);
+		LOG_PLAIN(LOG_LEVEL_INFO, "Compressing %s\n", input_files[i]);
 		if (file_load_be16(input_files[i], input_buffer, file_size))
 			goto fail;
 
@@ -193,7 +193,8 @@ static int compress_files(const char *output_file, char **file_names, int n_file
 		}
 	}
 
-	ret = file_save(output_file, dst_buffer, compressed_size);
+	if (!file_save(output_file, dst_buffer, compressed_size))
+		ret = EXIT_SUCCESS;
 
 fail:
 	free(input_files);
