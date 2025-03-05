@@ -16,7 +16,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -26,6 +26,22 @@
 #include "file.h"
 #include "log.h"
 #include "byteorder.h"
+
+#define UNUSED(arg) ((void)(arg))
+
+#if defined(MSDOS) || defined(OS2) || defined(_WIN32)
+#  include <fcntl.h>   /* _O_BINARY */
+#  include <io.h>      /* _setmode, _fileno, _get_osfhandle */
+#  if !defined(__DJGPP__)
+#    include <windows.h> /* DeviceIoControl, HANDLE, FSCTL_SET_SPARSE */
+#    include <winioctl.h> /* FSCTL_SET_SPARSE */
+#    define SET_BINARY_MODE(file) { int const unused = _setmode(_fileno(file), _O_BINARY); (void)unused; }
+#  else
+#    define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
+#  endif
+#else
+#  define SET_BINARY_MODE(file) UNUSED(file)
+#endif
 
 
 /**
@@ -84,9 +100,91 @@ static int file_close(FILE *fp, const char *filename)
 
 
 /**
+ * @brief read stdin into a static allocated buffer
+ *
+ * @param blob		blob to put the stdin content
+ * @param blob_size	blob size
+ *
+ * @returns 0 on success or -1 on error
+ */
+
+static int file_read_stdin(void *blob, size_t *blob_size)
+{
+	static uint8_t *buffer;
+	static size_t buffer_size;
+
+	size_t buffer_capacity = 4096;  /* Start with 4KB */
+
+	assert(blob_size);
+
+	if (!buffer) {
+		*blob_size = 0;
+
+		buffer = malloc(buffer_capacity);
+		if (!buffer) {
+			LOG_ERROR_WITH_ERRNO("Failed to allocate memory for stdin buffer");
+			return -1;
+		}
+
+		/* Read stdin in chunks */
+		while (1) {
+			size_t bytes_read;
+
+			bytes_read = fread(buffer + buffer_size, 1, buffer_capacity - buffer_size, stdin);
+			buffer_size += bytes_read;
+
+			if (buffer_size != buffer_capacity)
+				break;
+
+			{ /* Buffer is full, expand it */
+				size_t new_capacity = buffer_capacity * 2;
+				void *new_buffer = realloc(buffer, new_capacity);
+
+				if (!new_buffer) {
+					free(buffer);
+					LOG_ERROR_WITH_ERRNO("Failed to reallocate memory for stdin");
+					buffer_size = 0;
+					return -1;
+				}
+
+				buffer = new_buffer;
+				buffer_capacity = new_capacity;
+			}
+		}
+
+		if (ferror(stdin)) {
+			free(buffer);
+			LOG_ERROR("Error reading from stdin");
+			buffer_size = 0;
+			return -1;
+		}
+
+		/* Trim buffer to exact size if needed */
+		if (buffer_size < buffer_capacity) {
+			void *trimmed_buffer = realloc(buffer, buffer_size);
+
+			if (trimmed_buffer)  /* It's okay if trimming fails */
+				buffer = trimmed_buffer;
+		}
+	}
+
+	/* Return the results */
+	if (blob) {
+		if (buffer_size > *blob_size) {
+			*blob_size = 0;
+			return -1;
+		}
+		memcpy(blob, buffer, buffer_size);
+	}
+	*blob_size = buffer_size;
+	return buffer_size == 0;
+}
+
+
+/**
  * @brief get the size of a file
  *
- * @param filename	name of a) file to check
+ * @param filename	name of a file to check
  * @param file_size	pointer to a variable where the file size will be stored
  *
  *
@@ -108,23 +206,28 @@ static int file_get_size(const char *filename, size_t *file_size)
 	if (!fp)
 		return -1;
 
-	error = fstat(fileno(fp), &st);
-	if (file_close(fp, filename))
-		return -1;
+	if (fp == stdin) {
+		if (file_read_stdin(NULL, file_size))
+			return -1;
+	} else {
+		error = fstat(fileno(fp), &st);
+		if (file_close(fp, filename))
+			return -1;
 
-	if (error) {
-		LOG_ERROR_WITH_ERRNO("Can't get size of '%s'", filename);
-		return -1;
-	}
+		if (error) {
+			LOG_ERROR_WITH_ERRNO("Can't get size of '%s'", filename);
+			return -1;
+		}
 
-	/* 1. st_size should be non-negative,
-	 * 2. if off_t -> size_t type conversion results in a discrepancy, the
-	 *    file size is too large for type size_t.
-	 */
-	*file_size = (size_t)st.st_size;
-	if ((st.st_size < 0) || (st.st_size != (off_t)*file_size)) {
-		LOG_ERROR("'%s' is too large", filename);
-		return -1;
+		/* 1. st_size should be non-negative,
+		 * 2. if off_t -> size_t type conversion results in a discrepancy, the
+		 *    file size is too large for type size_t.
+		 */
+		*file_size = (size_t)st.st_size;
+		if ((st.st_size < 0) || (st.st_size != (off_t)*file_size)) {
+			LOG_ERROR("'%s' is too large", filename);
+			return -1;
+		}
 	}
 
 	if (*file_size == 0) {
@@ -191,6 +294,9 @@ static int file_load(const char *filename, void *buffer, size_t buffer_size)
 	if (!fp)
 		return -1;
 
+	if (fp == stdin)
+		return file_read_stdin(buffer, &buffer_size);
+
 	read_size = fread(buffer, 1, buffer_size, fp);
 	close_error = file_close(fp, filename);
 	if (read_size != buffer_size) {
@@ -255,22 +361,37 @@ int file_save(const char *filename, const void *buffer, size_t size)
 {
 	FILE *fp;
 	size_t written;
-	int error = 0;
+	int write_err = 0;
 
 	assert(filename);
 	assert(buffer);
 
-	fp = file_open(filename, "wb");
-	if (fp == NULL)
-		return -1;
+	if (!strcmp(filename, STD_OUT_MARK)) {
+		LOG_DEBUG("Using stdout as output");
+		fp = stdout;
+		SET_BINARY_MODE(stdout);
+	} else {
+		if (strcmp(filename, NULL_MARK)) {
+			/* Check if destination file already exists */
+			fp = fopen(filename, "rb");
+			if (fp) {
+				fclose(fp);
+				LOG_ERROR("'%s' already exists\n", filename);
+				return -1;
+			}
+		}
+		fp = file_open(filename, "wb");
+		if (!fp)
+			return -1;
+	}
 	written = fwrite(buffer, 1, size, fp);
 	if (written != size) {
 		LOG_ERROR_WITH_ERRNO("Error writing '%s':", filename);
-		error = -1;
+		write_err = -1;
 	}
 
-	if (file_close(fp, filename) && !error)
+	if (file_close(fp, filename) && !write_err)
 		LOG_WARNING("File '%s' saved successfully but close failed", filename);
 
-	return error;
+	return write_err;
 }
