@@ -102,7 +102,7 @@ ninja lib/libcmp.a
 The resulting library `cmplib.a` will be located in the `lib` folder of your build directory.
 
 === Build the AIRSPACE CLI
-To build the xref:programms/README.adoc[CLI utility], run:
+To build the xref:programs/README.adoc[CLI utility], run:
 
 [source,bash]
 ----

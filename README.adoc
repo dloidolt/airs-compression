@@ -9,8 +9,11 @@ endif::[]
 = AIRS Data Compression
 :toc: macro
 
-The AIRS Data Compression is a specialised compression library designed for the AIRS instrument aboard the Ariel space telescope.
-This library implements optimised compression algorithms tailored to the instrument's scientific data processing.
+*AIRS* **P**ort**A**ble **C**ompression **E**ngine (*AIRSPACE*) is a
+specialised compression library designed for the AIRS instrument aboard the
+Ariel space telescope.
+This library implements optimised compression algorithms tailored to the
+instrument's scientific data processing.
 
 [CAUTION]
 .API unstable
@@ -24,11 +27,12 @@ toc::[]
 * Optimised for AIRS scientific data
 * Support for multiple compression configurations
 * Flexible single-pass and multi-pass compression APIs
-* Error handling with detailed error codes
-* Zero dynamic memory allocation
+* Comprehensive error handling with detailed error codes
+* Portable implementation:
+** Library has been written in ANSI C{empty}footnote:[With some GCC extension: like inline]
+** Zero dynamic memory allocation (no internal `malloc()` calls)
 ** Predictable memory usage
-** No internal `malloc()` calls
-
+* Command line utility
 
 == Getting Started
 
@@ -39,30 +43,42 @@ See the xref:INSTALL.adoc[Installation Guide] for detailed setup instructions.
 [source,bash]
 ----
 # Clone the repository
-git clone https://github.com/uviespace/airs-compression.git
+git clone https://github.com/uviespace/airs-compression.git airspace
+cd airspace
 
 # Build using Meson
 meson setup build
 cd build
 ninja
+
+# Results:
+#  - Library: lib/libcmp.a          # Use when linking your applications
+#  - Executable: programs/airspace  # Run to compress/decompress files
 ----
 
 === Examples
-For quick implementation guidance, explore our collection of example code in the link:examples/[`examples`] directory.
+For quick implementation guidance, explore our collection of example code in
+the link:examples/[`examples`] directory.
+
+=== Command Line Interface
+A command-line utility is available for compressing and decompressing AIRS data files.
+See the xref:programs/README.adoc[CLI documentation] for details.
 
 == Documentation
 
 === Usage Documentation
 * xref:INSTALL.adoc[`INSTALL.adoc`] - Installation Guide
 * link:lib/cmp.h[`lib/cmp.h`] - Public Compression API
-* link:examples/[`examples` directory] - Compression Usage Examples
+* link:examples/[`examples/` directory] - Compression Usage Examples
+* xref:programs/README.adoc[`programs/README.adoc`] - CLI utility README
 
 === Technical Details
 * link:lib/cmp_errors.h[`lib/cmp_errors.h`] - Error codes Reference
 * Compression Data Format Documentation - Coming soon
 
 == Contact
-* *Issues*: Please link:https://github.com/uviespace/airs-compression/issues/new[open an issue] for bug reports or feature requests.
+* *Issues*: Please link:https://github.com/uviespace/airs-compression/issues/new[open an issue]
+	for bug reports or feature requests.
 * *Questions*: For general questions, reach out to the maintainer.
 
 === Contact Information
@@ -70,4 +86,5 @@ For quick implementation guidance, explore our collection of example code in the
 * *e-mail*: mailto:dominik.loidolt@univie.ac.at[,Question about AIRS Data Compression]
 
 == License
-This project is licensed under the GNU General Public License v2.0. See the link:LICENSE[] file for complete details.
+This project is licensed under the GNU General Public License v2.0. See the
+link:LICENSE[] file for complete details.

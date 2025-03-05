@@ -49,7 +49,7 @@
  * @returns non-zero if the code is an error
  */
 
-static inline unsigned int cmp_is_error_int(uint32_t code)
+static __inline unsigned int cmp_is_error_int(uint32_t code)
 {
 	return code > CMP_ERROR(MAX_CODE);
 }
