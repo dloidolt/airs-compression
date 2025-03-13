@@ -72,7 +72,6 @@ uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *h
 	s = serialize_u24(dst8, hdr->original_size);
 	if (cmp_is_error_int(s))
 		return s;
-	dst8 += s;
 
 	return CMP_HDR_SIZE;
 }
