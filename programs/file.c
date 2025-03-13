@@ -26,6 +26,9 @@
 #include "file.h"
 #include "log.h"
 #include "byteorder.h"
+#include "../lib/cmp.h"
+#include "../lib/common/header.h"
+#include "../lib/common/err_private.h"
 
 #define UNUSED(arg) ((void)(arg))
 
@@ -194,7 +197,6 @@ static int file_read_stdin(void *blob, size_t *blob_size)
 static int file_get_size(const char *filename, size_t *file_size)
 {
 	FILE *fp;
-	int error;
 	struct stat st;
 
 	assert(filename);
@@ -210,7 +212,8 @@ static int file_get_size(const char *filename, size_t *file_size)
 		if (file_read_stdin(NULL, file_size))
 			return -1;
 	} else {
-		error = fstat(fileno(fp), &st);
+		int const error = fstat(fileno(fp), &st);
+
 		if (file_close(fp, filename))
 			return -1;
 
@@ -323,7 +326,7 @@ static int file_load(const char *filename, void *buffer, size_t buffer_size)
  * @returns 0 on success or negative on error
  */
 
-int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_size)
+static int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_size)
 {
 	size_t i;
 	int error;
@@ -357,7 +360,7 @@ int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_size)
  * @return 0 on success, -1 on error
  */
 
-int file_save(const char *filename, const void *buffer, size_t size)
+static int file_save(const char *filename, const void *buffer, size_t size)
 {
 	FILE *fp;
 	size_t written;
@@ -367,7 +370,6 @@ int file_save(const char *filename, const void *buffer, size_t size)
 	assert(buffer);
 
 	if (!strcmp(filename, STD_OUT_MARK)) {
-		LOG_DEBUG("Using stdout as output");
 		fp = stdout;
 		SET_BINARY_MODE(stdout);
 	} else {
@@ -394,4 +396,78 @@ int file_save(const char *filename, const void *buffer, size_t size)
 		LOG_WARNING("File '%s' saved successfully but close failed", filename);
 
 	return write_err;
+}
+
+
+/**
+ * @brief compresses a source file and saves the compressed data to a destination file
+ *
+ * This function reads the contents of a source file, compresses the data,
+ * and writes the compressed data to a destination file. It uses a specified
+ * compression context for the operation and manages all memory allocation
+ * internally.
+ *
+ * @param ctx		pointer to a compression context initialised using `cmp_initialise()`
+ * @param dst_filename	name of the destination file where compressed data will be saved
+ * @param src_filename	name of the source file to be compressed
+ *
+ * @returns the size of the compressed data written to the destination file on
+ *	success or an error code, which can be checked with `cmp_is_error()`
+ *
+ */
+
+uint32_t file_compress(struct cmp_context *ctx, const char *dst_filename,
+		       const char *src_filename)
+{
+	uint32_t return_val = CMP_ERROR(GENERIC);
+
+	uint32_t src_size;
+	uint32_t dst_capacity;
+	uint32_t dst_size;
+
+	void *src_buf = NULL;
+	void *dst_buf = NULL;
+
+	assert(ctx);
+	assert(dst_filename);
+	assert(src_filename);
+
+	if (file_get_size_u32(src_filename, &src_size))
+		goto fail;
+	src_buf = malloc(src_size);
+	if (!src_buf) {
+		LOG_ERROR_WITH_ERRNO("Memory allocation failed for '%s':", src_filename);
+		goto fail;
+	}
+	if (file_load_be16(src_filename, src_buf, src_size))
+		goto fail;
+
+	dst_capacity = cmp_compress_bound(src_size);
+	if (cmp_is_error(dst_capacity)) {
+		LOG_WARNING("Can't calculating compressed data buffer size, use maximum size");
+		dst_capacity = CMP_MAX_CMP_SIZE;
+	}
+	dst_buf = malloc(dst_capacity);
+	if (!dst_buf) {
+		LOG_ERROR_WITH_ERRNO("Memory allocation failed for compressed data buffer");
+		goto fail;
+	}
+
+	dst_size = cmp_compress_u16(ctx, dst_buf, dst_capacity, src_buf, src_size);
+	if (cmp_is_error(dst_size)) {
+		LOG_ERROR_CMP(dst_size, "Compression failed for %s", src_filename);
+		return_val = dst_size;
+		goto fail;
+	}
+
+	if (file_save(dst_filename, dst_buf, dst_size))
+		goto fail; /* printing log message is already done */
+
+	return_val = dst_size;
+
+fail:
+	free(src_buf);
+	free(dst_buf);
+
+	return return_val;
 }

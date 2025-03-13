@@ -80,14 +80,14 @@ void test_hdr_serialize_returns_error_when_parmertes_are_to_big(void)
 	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
 
 	hdr.version = UINT16_MAX;
-	hdr.cmp_size = MAX_CMP_SIZE+1;
+	hdr.cmp_size = CMP_MAX_CMP_SIZE+1;
 
 	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
 
 	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
 
-	hdr.cmp_size = MAX_CMP_SIZE;
-	hdr.original_size = MAX_ORIGINAL_SIZE+1;
+	hdr.cmp_size = CMP_MAX_CMP_SIZE;
+	hdr.original_size = CMP_MAX_ORIGINAL_SIZE+1;
 
 	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
 
