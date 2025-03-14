@@ -16,15 +16,15 @@
  * @brief Data Compression Tests
  */
 
-#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <unity.h>
 
-#include <cmp.h>
-#include <cmp_errors.h>
-#include <header.h>
+#include "../lib/cmp.h"
+#include "../lib/cmp_errors.h"
+#include "../lib/common/header.h"
 
 /*==== Compression lib test macros/functions ====*/
 /* Compression return code assert macros */

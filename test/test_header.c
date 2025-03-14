@@ -16,15 +16,14 @@
  * @brief data compression header tests
  */
 
-#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
 #include <unity.h>
 
-#include <header.h>
-#include <cmp_errors.h>
-#include <cmp.h>
+#include "../lib/common/header.h"
+#include "../lib/cmp_errors.h"
+#include "../lib/cmp.h"
 
 
 void test_serialize_header(void)

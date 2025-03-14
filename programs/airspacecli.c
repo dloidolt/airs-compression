@@ -16,15 +16,13 @@
  * @brief AIRSPACE CLI - A tool for (de)compressing AIRS science data
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 #include <getopt.h>
 #include <limits.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../lib/cmp.h"
 #include "file.h"

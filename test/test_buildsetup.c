@@ -22,7 +22,8 @@
 #include <string.h>
 
 #include <unity.h>
-#include <cmp.h>
+
+#include "../lib/cmp.h"
 
 #ifndef CMP_MESON_BUILD_ROOT
 #  define CMP_MESON_BUILD_ROOT "."
@@ -37,12 +38,13 @@ void test_vesion_matches(void)
 	};
 	char file_path[256] = {0};
 	char content[CONTENT_SIZE] = {0};
-	const char* version_key = "\"version\": \"";
+	const char *version_key = "\"version\": \"";
 
 	FILE *fp;
 	size_t ret;
 
 	int read = snprintf(file_path, sizeof(file_path), "%s/meson-info/intro-projectinfo.json", CMP_MESON_BUILD_ROOT);
+
 	TEST_ASSERT_NOT_EQUAL(0, read);
 	TEST_ASSERT_LESS_THAN(sizeof(file_path), read);
 

@@ -22,6 +22,7 @@
 #include "../cmp.h"
 #include "../common/err_private.h"
 #include "../common/header.h"
+#include "cmp_errors.h"
 
 
 unsigned int cmp_is_error(uint32_t code)

@@ -16,13 +16,11 @@
  * @brief data compression error tests
  */
 
-
-#include <stdint.h>
-
 #include <unity.h>
 
-#include <cmp.h>
-#include <err_private.h>
+#include "../lib/cmp.h"
+#include "../lib/cmp_errors.h"
+#include "../lib/common/err_private.h"
 
 
 void test_cmp_is_error(void)
