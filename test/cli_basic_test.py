@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 
 import clitest
-from clitest import RETURN_FAILURE, CliTest, assertCli
+from clitest import RETURN_FAILURE, CliTest
 from get_library_version import extract_version
 
 CMP_H_PATH = Path(__file__).resolve().parent.joinpath("../lib/cmp.h")

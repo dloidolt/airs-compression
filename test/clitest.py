@@ -25,7 +25,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import List, Optional, Union
 
 SCRATCH_DIR_NAME = "scratch"
 
@@ -58,7 +58,7 @@ class CliTest:
             A CompletedProcess object containing execution results.
         """
         if self.cli_path is None:
-            raise FileNotFoundError(f"No CLI executable specified")
+            raise FileNotFoundError("No CLI executable specified")
 
         if not self.cli_path.exists():
             raise FileNotFoundError(f"CLI executable not found at {self.cli_path}")
@@ -92,7 +92,8 @@ class CliTest:
             - Sets the current working directory for run_cli to this new directory.
 
         Args:
-            name: A string representing the name of the directory to create inside the scratch directory.
+            name: A string representing the name of the directory to create inside the scratch
+                  directory.
 
         Returns:
             Path: A fresh, empty directory path for the current test case.
@@ -156,7 +157,7 @@ def assertCli(
             else:
                 arguments_converted.append(arg)
 
-        return shlex.join(arguments_converted)
+        return shlex.join(arguments_converted) + "\n"
 
     error_context = "Command:\n" + create_command_string(result.args)
 
@@ -165,27 +166,17 @@ def assertCli(
     if isinstance(result.stderr, bytes) and not isinstance(stderr_exp, bytes):
         stderr_exp = stderr_exp.encode()
 
-    if stdout_match_mode == "exact":
-        stdout_assertion = self.assertEqual
-    elif stdout_match_mode == "contains":
-        stdout_assertion = self.assertIn
-    else:
-        raise ValueError(f"Invalid stdout_match_mode: {stdout_match_mode}")
-
     if stderr_match_mode == "exact":
         stderr_assertion = self.assertEqual
     elif stderr_match_mode == "contains":
         stderr_assertion = self.assertIn
+    elif stderr_match_mode == "ignore":
+
+        def stderr_assertion(*args, **kwargs):
+            pass  # No action for 'ignore' mode
+
     else:
         raise ValueError(f"Invalid stderr_match_mode: {stderr_match_mode}")
-
-    stdout_assertion(
-        stdout_exp,
-        result.stdout,
-        f"stdout mismatch\n{error_context}"
-        f"Expected : {repr(stdout_exp)} ({stdout_match_mode})\n"
-        f"Actual:   {repr(result.stdout)}",
-    )
 
     stderr_assertion(
         stderr_exp,
@@ -193,6 +184,26 @@ def assertCli(
         f"stderr mismatch\n{error_context}"
         f"Expected: {repr(stderr_exp)} ({stderr_match_mode})\n"
         f"Actual:   {repr(result.stderr)}",
+    )
+
+    if stdout_match_mode == "exact":
+        stdout_assertion = self.assertEqual
+    elif stdout_match_mode == "contains":
+        stdout_assertion = self.assertIn
+    elif stdout_match_mode == "ignore":
+
+        def stdout_assertion(*args, **kwargs):
+            pass  # No action for 'ignore' mode
+
+    else:
+        raise ValueError(f"Invalid stdout_match_mode: {stdout_match_mode}")
+
+    stdout_assertion(
+        stdout_exp,
+        result.stdout,
+        f"stdout mismatch\n{error_context}"
+        f"Expected : {repr(stdout_exp)} ({stdout_match_mode})\n"
+        f"Actual:   {repr(result.stdout)}",
     )
 
     self.assertEqual(

@@ -26,12 +26,10 @@ toc::[]
 == Features
 * Optimised for AIRS scientific data
 * Support for multiple compression configurations
-* Flexible single-pass and multi-pass compression APIs
 * Comprehensive error handling with detailed error codes
-* Portable implementation:
-** Library has been written in ANSI C{empty}footnote:[With some GCC extension: like inline]
+* Portable:
+** Written in ANSI C{empty}footnote:[With some extension: like inline]
 ** Zero dynamic memory allocation (no internal `malloc()` calls)
-** Predictable memory usage
 * Command line utility
 
 == Getting Started

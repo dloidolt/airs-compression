@@ -71,11 +71,33 @@ if ['windows', 'cygwin'].contains(host_machine.system()) and compiler.get_id() =
   add_global_link_arguments('-static', language: 'c')
 endif
 
+
+asciidoctor = find_program('asciidoctor', required: false)
+asciidoc_files = files([
+  'README.adoc',
+  'INSTALL.adoc'
+])
+
+if asciidoctor.found()
+  html_files = []
+  foreach f : asciidoc_files
+    html_files += fs.replace_suffix(f, '.html')
+  endforeach
+  custom_target(
+    input : asciidoc_files,
+    output : html_files,
+    command : [asciidoctor, '--destination-dir=@OUTDIR@', '@INPUT@']
+  )
+endif
+
+
 subdir('lib')
 subdir('programs')
 subdir('examples')
 subdir('test')
 
+
 summary({
   'Ruby found': ruby.found(),
+  'Asciidoctor found': asciidoctor.found(),
 }, section: 'Auto-detected features')

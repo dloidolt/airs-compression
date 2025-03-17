@@ -58,7 +58,7 @@ void log_setup_color(void)
 		return;
 	}
 
-	if (UTIL_IS_CONSOLE(LOG_STREAM))
+	if (util_is_console(LOG_STREAM))
 		g_log_state.color_status = LOG_COLOR_ENABLED;
 	else
 		g_log_state.color_status = LOG_COLOR_DISABLED;

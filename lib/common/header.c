@@ -22,6 +22,7 @@
 
 #include "header.h"
 #include "err_private.h"
+#include "cmp_errors.h"
 
 /** maximum value for a 24-bit unsigned integer */
 #define CMP_UINT24_MAX 0xFFFFFF
@@ -65,7 +66,7 @@ uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *h
 	(void)dst_size;
 	/* CMP_ASSERT(hdr != NULL) */
 	/* if (!hdr) */
-	/* 	return CMP_HDR_SIZE; */
+	/*	return CMP_HDR_SIZE; */
 
 	s = serialize_u16(dst8, hdr->version);
 	if (cmp_is_error_int(s))

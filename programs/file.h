@@ -20,14 +20,15 @@
 #define FILE_H
 
 #include <stdint.h>
-#include <stddef.h>
+#include "../lib/cmp.h"
 
 #define STD_OUT_MARK "//*-stdout-*//"
 #define STD_IN_MARK "//*-stdin-*//"
 #define NULL_MARK "/dev/null"
 
 int file_get_size_u32(const char *filename, uint32_t *file_size32);
-int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_size);
-int file_save(const char *filename, const void *buffer, size_t size);
+
+uint32_t file_compress(struct cmp_context *ctx, const char *dst_filename, const
+		       char *src_filename);
 
 #endif /* FILE_H */
