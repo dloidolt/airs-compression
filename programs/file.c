@@ -1,17 +1,10 @@
-/*
- * @file   file.c
+/**
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
+ * @brief Handles file I/O implementation
  */
 
 #include <stdint.h>
@@ -29,7 +22,26 @@
 #include "../lib/common/header.h"
 #include "../lib/common/err_private.h"
 
+
+/**
+ * @brief macro to explicitly mark unused function arguments or variables
+ *
+ * @param arg	argument or variable to be marked as unused.
+ */
+
 #define UNUSED(arg) ((void)(arg))
+
+
+/**
+ * @brief configures binary mode for file streams on supported platforms
+ *
+ * This preprocessor directive ensures compatibility across multiple platforms
+ * by defining `SET_BINARY_MODE`, which sets a given file stream to binary mode
+ * if the platform requires it. This is typically necessary for Windows systems
+ * when dealing with binary file I/O.
+ *
+ * @param file	file stream to set to binary mode
+ */
 
 #if defined(MSDOS) || defined(OS2) || defined(_WIN32)
 #  include <fcntl.h>   /* _O_BINARY */

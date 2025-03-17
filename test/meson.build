@@ -64,7 +64,7 @@ if ruby.found()
     test_runner = gen_test_runner.process(test_file)
     test_exe = executable(test_name,
       test_file, test_runner, src_common, src_compress,
-      include_directories : [cmp_inc, common_inc, compress_inc],
+      include_directories : inc_cmp,
       c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
       dependencies : [unity_dep])
 

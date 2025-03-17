@@ -1,19 +1,10 @@
-/*
- * @file   util.h
+/**
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief collection of utility functions
+ * @brief Collection of utility functions
  */
 
 #ifndef UTIL_H
@@ -53,11 +44,16 @@ void util_force_stdin_consol(void);
 void util_force_stdout_consol(void);
 
 
+/**
+ * @brief represents a human-readable formatted value
+ */
+
 struct hr_fmt {
-	double value;
-	int precision;
-	const char *suffix;
+	double value;        /**< Numeric value */
+	int precision;       /**< Precision for displaying the value */
+	const char *suffix;  /**< Unit suffix (e.g., "KB", "MB") */
 };
+
 
 /**
  * @brief converts a size in bytes into a human-readable format

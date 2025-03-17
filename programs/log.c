@@ -1,17 +1,10 @@
 /**
- * @file   log.c
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
+ * @brief Logging functionality implementation
  */
 
 #include <stdlib.h>
@@ -20,17 +13,12 @@
 #include "log.h"
 
 /**
- * Holds a logging configuration
+ * This global variable holds the current configuration for logging
  */
-struct log_state {
+static struct log_state {
 	enum log_level current_level;
 	enum log_color_status color_status;
-};
-
-/**
- * This global variable holds the current configuration for logging.
- */
-struct log_state g_log_state = { LOG_LEVEL_DEFAULT, LOG_COLOR_DEFAULT };
+} g_log_state = { LOG_LEVEL_DEFAULT, LOG_COLOR_DEFAULT };
 
 
 void log_setup_color(void)

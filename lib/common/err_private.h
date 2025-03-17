@@ -1,24 +1,16 @@
 /**
- * @file   err_private.h
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief Internal Error Handling Macros
+ * @brief Internal error handling
  *
  * This header provides macro utilities for creating and managing error codes
  * within the compression library's internal implementation
  *
- * @warning This is a private header and should NOT be included directly by external code.
+ * @warning This is a private header and should NOT be included directly by
+ *	external code.
  */
 
 
