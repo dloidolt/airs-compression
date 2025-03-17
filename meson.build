@@ -95,8 +95,11 @@ subdir('lib')
 subdir('programs')
 subdir('examples')
 subdir('test')
+subdir('docs')
 
 summary({
   'Ruby found' : ruby.found(),
   'Asciidoctor found' : asciidoctor.found(),
+  'Doxygen found' : doxygen.found(),
+  'dot found' : dot.found(),
 }, section : 'Auto-detected features')
