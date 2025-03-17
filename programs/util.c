@@ -1,21 +1,12 @@
-/*
- * @file   util.c
+/**
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
+ * @brief Utility functions implementation
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief collection of utility functions
- *
- * Inspired by the Zstandard open-source project, see zstd/programs/util.c.
+ * @see Inspired by the Zstandard open-source project, see zstd/programs/util.c.
  */
 
 #include <stdint.h>
@@ -30,8 +21,11 @@
  */
 #define UTIL_IS_CONSOLE(stdStream) isatty(fileno(stdStream))
 
-int g_force_stdin_console;
-int g_force_stdout_console;
+/**  Flag to force stdin as a console */
+static int g_force_stdin_console;
+
+/**  Flag to force stdout as a console */
+static int g_force_stdout_console;
 
 
 void util_force_stdin_consol(void)

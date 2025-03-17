@@ -1,19 +1,11 @@
 /**
- * @file   simple_compression.c
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
+ * @brief AIRS simple data compression example
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief AIRS data compression examples
  * This example shows how to use the compression library step by step.
  */
 
@@ -30,7 +22,7 @@
  * @brief demonstrate compression API usage
  */
 
-int simple_compression(void)
+static int simple_compression(void)
 {
 	/* Define constants for our example */
 	enum {

@@ -1,17 +1,8 @@
 /**
- * @file   airspacecli.c
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
- *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
+ * @copyright GPL-2.0
  *
  * @brief AIRSPACE CLI - A tool for (de)compressing AIRS science data
  */
@@ -40,7 +31,7 @@
 	"*** %s (%d-bit) %s, by %s ***\n", PROGRAM_NAME, (int)(sizeof(size_t) * 8), \
 		AIRSPACE_VERSION, AUTHOR
 
-/* Operation modes */
+/** Operation modes */
 enum operation_mode { MODE_COMPRESS, MODE_DECOMPRESS };
 
 
@@ -286,6 +277,15 @@ static void print_version(void)
 		LOG_STDOUT(AIRSPACE_WELCOME_MESSAGE);
 }
 
+
+/**
+ * @brief entry point for the AIRSPACE CLI tool
+ *
+ * @param argc	number of command-line arguments.
+ * @param argv	array of command-line arguments.
+ *
+ * @returns EXIT_SUCCESS on success, EXIT_FAILURE on error
+ */
 
 int main(int argc, char *argv[])
 {

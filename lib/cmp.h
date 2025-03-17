@@ -1,37 +1,26 @@
 /**
- * @file   cmp.h
+ * @mainpage  AIRS PortAble Compression Engine (AIRSPACE)
+ * Please see @ref cmp.h for the compression API documentation.
+ *
+ * @file cmp.h
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
+ * @brief Data Compression API
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
+ * - Setup: Initialise context with cmp_initialise()
+ * - Process: Compress data using cmp_compress_u16()
+ * - Reset compression context using cmp_reset()
+ * - Clean-up: Optionally destroy context with cmp_deinitialise()
  *
- *
- * @brief AIRS data compression
- *
- * Compression API:
- *    - Setup: Initialise context with cmp_initialise()
- *    - Process: Compress data using cmp_compress_u16()
- *    - Reset compression context using cmp_reset()
- *    - Clean-up: Optionally destroy context with cmp_deinitialise()
- *
- * @see @dir examples directory for usage examples
+ * @see @ref examples/ directory for usage examples
  *
  * @warning The interface is not frozen yet and may change in future versions.
- *    Changes may include:
- *       - Additional compression modes
- *       - New compression parameters
- *       - Change/Extended API functionality
- *
- * The definition of the error codes and related functions can be found in
- * @ref lib/cmp_errors.h
+ * Changes may include:
+ *    - Additional compression modes
+ *    - New compression parameters
+ *    - Change/Extended API functionality
  */
 
 #ifndef CMP_H
@@ -43,16 +32,13 @@
 /* ====== Utility Macros  ====== */
 /** Convert a token to a string literal */
 #define CMP_QUOTE(str) #str
-/**  Expand a macro and convert the result to a string literal */
+/** Expand a macro and convert the result to a string literal */
 #define CMP_EXPAND_AND_QUOTE(str) CMP_QUOTE(str)
 
-/* ======   Version Information  ====== */
-/** major part of the version ID */
-#define CMP_VERSION_MAJOR    0
-/** minor part of the version ID */
-#define CMP_VERSION_MINOR    2
-/** release part of the version ID */
-#define CMP_VERSION_RELEASE  0
+/* ====== Version Information ====== */
+#define CMP_VERSION_MAJOR    0 /**< major part of the version ID */
+#define CMP_VERSION_MINOR    2 /**< minor part of the version ID */
+#define CMP_VERSION_RELEASE  0 /**< release part of the version ID */
 
 /**
  * @brief complete version number
@@ -65,7 +51,7 @@
 #define CMP_VERSION_STRING CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
 
 
-/* ======   Parameter Selection   ====== */
+/* ====== Parameter Selection ====== */
 /**
  * @brief available compression modes
  * @note additional compression modes will follow
@@ -99,11 +85,11 @@ struct cmp_params {
  */
 
 struct cmp_context {
-	void *unused;
+	void *unused; /**< unused value */
 };
 
 
-/* ======   Helper Functions   ====== */
+/* ====== Compression Helper Functions ====== */
 /**
  * @brief tells if a result is an error code
  *

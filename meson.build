@@ -1,5 +1,5 @@
 project('AIRSPACE', 'c',
-  meson_version : '>=0.59.0',
+  meson_version : '>=0.60.0',
   version : run_command(find_program('python3'),
     'test/get_library_version.py', 'lib/cmp.h',
      check : true).stdout().strip(),
@@ -95,9 +95,11 @@ subdir('lib')
 subdir('programs')
 subdir('examples')
 subdir('test')
-
+subdir('docs')
 
 summary({
-  'Ruby found': ruby.found(),
-  'Asciidoctor found': asciidoctor.found(),
-}, section: 'Auto-detected features')
+  'Ruby found' : ruby.found(),
+  'Asciidoctor found' : asciidoctor.found(),
+  'Doxygen found' : doxygen.found(),
+  'dot found' : dot.found(),
+}, section : 'Auto-detected features')

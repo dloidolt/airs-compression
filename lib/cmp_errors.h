@@ -1,25 +1,16 @@
 /**
- * @file   cmp_errors.h
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief AIRS data compression error code definition
+ * @brief Compression error codes definitions
  *
  * @warning The interface is not frozen yet and may change in future versions.
- *    Changes may include:
- *       - Change error names
- *       - Change error values
- *       - Change/Extended API functionality
+ * Changes may include:
+ *    - Change error names
+ *    - Change error values
+ *    - Change/Extended API functionality
  */
 
 #ifndef CMP_ERRORS_H

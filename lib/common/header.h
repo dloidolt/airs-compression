@@ -1,22 +1,11 @@
 /**
- * @file   header.h
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
+ * @copyright GPL-2.0
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief Compression Header Management for AIRS Data Compression
- *
- * This header defines the standard structure and utilities for handling
- * compression metadata in the AIRS compression system.
+ * @brief Compression header structure and functions
  */
 
 #ifndef CMP_HEADER_H

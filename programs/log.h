@@ -1,19 +1,10 @@
 /**
- * @file   log.h
+ * @file
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2025
+ * @copyright GPL-2.0
  *
- * @copyright GPLv2
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * @brief Logging function for various log levels with color support.
+ * @brief Logging functions for various log levels with color support.
  *
  * A flexible logging interface with configurable verbosity levels and optional
  * color support for terminal output. It is designed to be lightweight and easy
@@ -54,13 +45,13 @@ enum log_level {
 enum log_color_status { LOG_COLOR_DISABLED = 0, LOG_COLOR_ENABLED };
 #define LOG_COLOR_DEFAULT LOG_COLOR_DISABLED
 
-#define COLOR_ERROR   (log_get_color() ? "\033[1;31m" : "")
-#define COLOR_WARNING (log_get_color() ? "\033[1;33m" : "")
-#define COLOR_INFO    (log_get_color() ? "\033[1;34m" : "")
-#define COLOR_GRAY    (log_get_color() ? "\033[1;30m" : "")
-#define COLOR_DEBUG   COLOR_GRAY
-#define COLOR_TRACE   COLOR_GRAY
-#define COLOR_RESET   (log_get_color() ? "\033[0m" : "")
+#define LOG_COLOR_ERROR   (log_get_color() ? "\033[1;31m" : "")
+#define LOG_COLOR_WARNING (log_get_color() ? "\033[1;33m" : "")
+#define LOG_COLOR_INFO    (log_get_color() ? "\033[1;34m" : "")
+#define LOG_COLOR_GRAY    (log_get_color() ? "\033[1;30m" : "")
+#define LOG_COLOR_DEBUG   LOG_COLOR_GRAY
+#define LOG_COLOR_TRACE   LOG_COLOR_GRAY
+#define LOG_COLOR_RESET   (log_get_color() ? "\033[0m" : "")
 
 
 __extension__
@@ -78,7 +69,7 @@ __extension__
 #define LOG_PREFIX(level, level_name, color, ...)                        \
 	do {                                                             \
 		LOG_PLAIN(level, "%s: %s%s%s: ", LOG_PREFIX_NAME,        \
-			  (color), (level_name), COLOR_RESET);           \
+			  (color), (level_name), LOG_COLOR_RESET);           \
 		if (log_get_level() >= LOG_LEVEL_MAX)                    \
 			LOG_PLAIN(level, "%s:%d: ", __FILE__, __LINE__); \
 		LOG_PLAIN(level, __VA_ARGS__);                           \
@@ -91,11 +82,11 @@ __extension__
 	} while (0)
 
 /* Logging functions for various log levels with color support. */
-#define LOG_ERROR(...)   LOG_MSG(LOG_LEVEL_ERROR, "error", COLOR_ERROR, __VA_ARGS__)
-#define LOG_WARNING(...) LOG_MSG(LOG_LEVEL_WARNING, "warning", COLOR_WARNING, __VA_ARGS__)
-#define LOG_INFO(...)    LOG_MSG(LOG_LEVEL_WARNING, "info", COLOR_WARNING, __VA_ARGS__)
-#define LOG_DEBUG(...)   LOG_MSG(LOG_LEVEL_DEBUG, "debug", COLOR_GRAY, __VA_ARGS__)
-#define LOG_TRACE(...)   LOG_MSG(LOG_LEVEL_MAX, "trace", COLOR_TRACE, __VA_ARGS__)
+#define LOG_ERROR(...)   LOG_MSG(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__)
+#define LOG_WARNING(...) LOG_MSG(LOG_LEVEL_WARNING, "warning", LOG_COLOR_WARNING, __VA_ARGS__)
+#define LOG_INFO(...)    LOG_MSG(LOG_LEVEL_WARNING, "info", LOG_COLOR_WARNING, __VA_ARGS__)
+#define LOG_DEBUG(...)   LOG_MSG(LOG_LEVEL_DEBUG, "debug", LOG_COLOR_GRAY, __VA_ARGS__)
+#define LOG_TRACE(...)   LOG_MSG(LOG_LEVEL_MAX, "trace", LOG_COLOR_TRACE, __VA_ARGS__)
 
 /**
  * @brief logs an error message with errno information
@@ -103,7 +94,7 @@ __extension__
  */
 #define LOG_ERROR_WITH_ERRNO(...)                                               \
 	do {                                                                    \
-		LOG_PREFIX(LOG_LEVEL_ERROR, "error", COLOR_ERROR, __VA_ARGS__); \
+		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__); \
 		LOG_PLAIN(LOG_LEVEL_ERROR, ": %s (os error: %d)\n",             \
 			  strerror(errno), errno);                              \
 	} while (0)
@@ -115,7 +106,7 @@ __extension__
  */
 #define LOG_ERROR_CMP(cmp_ret_val, ...)                                         \
 	do {                                                                    \
-		LOG_PREFIX(LOG_LEVEL_ERROR, "error", COLOR_ERROR, __VA_ARGS__); \
+		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__); \
 		LOG_PLAIN(LOG_LEVEL_ERROR, "%s (error: %d)\n",                  \
 			  cmp_get_error_message(cmp_ret_val),                   \
 			  cmp_get_error_code(cmp_ret_val));                     \
