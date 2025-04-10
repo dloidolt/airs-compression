@@ -13,7 +13,6 @@
 
 #include "header.h"
 #include "err_private.h"
-#include "cmp_errors.h"
 
 /** maximum value for a 24-bit unsigned integer */
 #define CMP_UINT24_MAX 0xFFFFFF
@@ -50,6 +49,17 @@ static uint32_t serialize_u16(uint8_t *dst, uint32_t value)
 }
 
 
+static uint32_t serialize_u8(uint8_t *dst, uint32_t value)
+{
+	if (value > UINT8_MAX)
+		return CMP_ERROR(INT_HDR);
+
+	dst[0] = (uint8_t)value;
+
+	return 1;
+}
+
+
 uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *hdr)
 {
 	uint8_t *dst8 = dst;
@@ -72,8 +82,19 @@ uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *h
 	s = serialize_u24(dst8, hdr->original_size);
 	if (cmp_is_error_int(s))
 		return s;
+	dst8 += s;
 
-	return CMP_HDR_SIZE;
+	s = serialize_u8(dst8, hdr->mode);
+	if (cmp_is_error_int(s))
+		return s;
+	dst8 += s;
+
+	s = serialize_u8(dst8, hdr->preprocess);
+	if (cmp_is_error_int(s))
+		return s;
+	dst8 += s;
+
+	return (uint32_t)(dst8 - (uint8_t *)dst);
 }
 
 
@@ -118,7 +139,9 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 
 	pos = deserialize_u16(pos, &hdr->version);
 	pos = deserialize_u24(pos, &hdr->cmp_size);
-	deserialize_u24(pos, &hdr->original_size);
+	pos = deserialize_u24(pos, &hdr->original_size);
+	hdr->mode = *pos++;
+	hdr->preprocess = *pos++;
 
-	return CMP_HDR_SIZE;
+	return (uint32_t)(pos - (const uint8_t *)src);
 }

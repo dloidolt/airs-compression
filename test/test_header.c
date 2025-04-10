@@ -28,6 +28,8 @@ void test_serialize_header(void)
 	hdr.version = 0x0001;
 	hdr.cmp_size = 0x020304;
 	hdr.original_size = 0x050607;
+	hdr.mode = 0x08;
+	hdr.preprocess = 0x09;
 
 	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
 
@@ -53,7 +55,11 @@ void test_deserialize_header(void)
 
 	TEST_ASSERT_FALSE(cmp_is_error(hdr_size));
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE, hdr_size);
-	TEST_ASSERT_EQUAL(hdr.version, 0x0001);
+	TEST_ASSERT_EQUAL_HEX(hdr.version, 0x0001);
+	TEST_ASSERT_EQUAL_HEX(hdr.cmp_size, 0x020304);
+	TEST_ASSERT_EQUAL_HEX(hdr.original_size, 0x050607);
+	TEST_ASSERT_EQUAL_HEX(hdr.mode, 0x08);
+	TEST_ASSERT_EQUAL_HEX(hdr.preprocess, 0x09);
 }
 
 
@@ -82,4 +88,24 @@ void test_hdr_serialize_returns_error_when_parmertes_are_to_big(void)
 	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
 
 	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+
+	hdr.original_size = CMP_MAX_ORIGINAL_SIZE;
+	hdr.mode = UINT8_MAX + 1;
+
+	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+
+	hdr.mode = UINT8_MAX;
+	hdr.preprocess = UINT8_MAX + 1;
+
+	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+
+	hdr.preprocess = UINT8_MAX;
+
+	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL(CMP_ERR_NO_ERROR, cmp_get_error_code(hdr_size));
 }

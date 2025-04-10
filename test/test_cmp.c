@@ -9,72 +9,15 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 
 #include <unity.h>
+#include "test_common.h"
 
 #include "../lib/cmp.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/common/header.h"
 
-/*==== Compression lib test macros/functions ====*/
-/* Compression return code assert macros */
-#define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code)                       \
-	TEST_ASSERT_EQUAL_INT_MESSAGE(expected_CMP_ERROR, cmp_get_error_code(cmp_ret_code), \
-				      gen_cmp_error_message(expected_CMP_ERROR,             \
-							    cmp_get_error_code(cmp_ret_code)))
 
-#define TEST_ASSERT_CMP_SUCCESS(cmp_ret_code) \
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_NO_ERROR, cmp_ret_code)
-
-#define TEST_ASSERT_CMP_FAILURE(cmp_ret_code) TEST_ASSERT_TRUE(cmp_is_error(cmp_ret_code))
-
-
-static const char *cmp_error_enum_to_str(enum cmp_error error)
-{
-	switch (error) {
-	case CMP_ERR_NO_ERROR:
-		return "CMP_ERR_NO_ERROR";
-	case CMP_ERR_GENERIC:
-		return "CMP_ERR_GENERIC";
-	case CMP_ERR_PARAMS_INVALID:
-		return "CMP_ERR_PARAMS_INVALID";
-	case CMP_ERR_CONTEXT_INVALID:
-		return "CMP_ERR_CONTEXT_INVALID";
-	case CMP_ERR_WORK_BUF_NULL:
-		return "CMP_ERR_WORK_BUF_NULL";
-	case CMP_ERR_WORK_BUF_TOO_SMALL:
-		return "CMP_ERR_WORK_BUF_TOO_SMALL";
-	case CMP_ERR_DST_NULL:
-		return "CMP_ERR_DST_NULL";
-	case CMP_ERR_SRC_NULL:
-		return "CMP_ERR_SRC_NULL";
-	case CMP_ERR_SRC_SIZE_WRONG:
-		return "CMP_ERR_SRC_SIZE_WRONG";
-	case CMP_ERR_DST_TOO_SMALL:
-		return "CMP_ERR_DST_TOO_SMALL";
-	case CMP_ERR_INT_HDR:
-		return "CMP_ERR_INT_HDR";
-	case CMP_ERR_MAX_CODE:
-	default:
-		TEST_FAIL_MESSAGE("Missing error name");
-		return "Unknown error";
-	}
-}
-
-
-static const char *gen_cmp_error_message(enum cmp_error expected, enum cmp_error actual)
-{
-	enum{ CMP_TEST_MESSAGE_BUF_SIZE = 128 };
-	static char message[CMP_TEST_MESSAGE_BUF_SIZE];
-
-	snprintf(message, sizeof(message), "Expected %s Was %s.", cmp_error_enum_to_str(expected),
-		 cmp_error_enum_to_str(actual));
-	return message;
-}
-
-
-/*==== Tests ====*/
 /* Global variables */
 static struct cmp_context g_ctx_uncompressed;
 static const uint16_t g_src[2] = { 0x0001, 0x0203 };
@@ -88,6 +31,7 @@ void setUp(void)
 	uint32_t return_val;
 
 	par_uncompressed.mode = CMP_MODE_UNCOMPRESSED;
+	par_uncompressed.preprocess = CMP_PREPROCESS_NONE;
 	/* we do not need a working buffer for CMP_MODE_UNCOMPRESSED */
 	return_val = cmp_initialise(&g_ctx_uncompressed, &par_uncompressed, NULL, 0);
 	TEST_ASSERT_CMP_SUCCESS(return_val);
@@ -147,6 +91,22 @@ void test_invalid_compression_initialisation_no_parameters(void)
 }
 
 
+void test_invalid_preprocess_initialization(void)
+{
+	struct cmp_params par = { 0 };
+	struct cmp_context ctx;
+	uint32_t return_val;
+
+	par.mode = CMP_MODE_UNCOMPRESSED;
+	par.preprocess = 0xFFFF;
+
+	memset(&ctx, 0xFF, sizeof(ctx));
+	return_val = cmp_initialise(&ctx, &par, NULL, 0);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_val);
+}
+
+
 void test_compression_in_uncompressed_mode(void)
 {
 	const uint16_t data[2] = { 0x0001, 0x0203 };
@@ -165,6 +125,8 @@ void test_compression_in_uncompressed_mode(void)
 	TEST_ASSERT_EQUAL(CMP_VERSION_NUMBER, hdr.version);
 	TEST_ASSERT_EQUAL(cmp_size, hdr.cmp_size);
 	TEST_ASSERT_EQUAL(sizeof(data), hdr.original_size);
+	TEST_ASSERT_EQUAL(CMP_MODE_UNCOMPRESSED, hdr.mode);
+	TEST_ASSERT_EQUAL(CMP_PREPROCESS_NONE, hdr.preprocess);
 }
 
 
@@ -262,6 +224,44 @@ void test_deinitialise_a_compression_context(void)
 	cmp_deinitialise(&g_ctx_uncompressed);
 
 	TEST_ASSERT_EQUAL_MEMORY(&g_ctx_uncompressed, &zero_ctx, sizeof(g_ctx_uncompressed));
+}
+
+
+void test_detect_missing_work_buffer(void)
+{
+	struct cmp_params params = { 0 };
+	struct cmp_context ctx;
+	uint32_t return_value;
+
+	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.preprocess = CMP_PREPROCESS_IWT;
+
+	return_value = cmp_initialise(&ctx, &params, NULL, 0);
+
+	TEST_ASSERT_CMP_FAILURE(return_value);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_NULL, return_value);
+}
+
+
+void test_compression_detecst_to_small_work_buffer(void)
+{
+	struct cmp_params params = { 0 };
+	const uint16_t data[] = { 0, 0, 0};
+	uint8_t work_buf[sizeof(data)-1];
+	struct cmp_context ctx;
+	uint32_t dst_size, work_buf_size;
+	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
+
+	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.preprocess = CMP_PREPROCESS_IWT;
+	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(data));
+	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
+
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), data, sizeof(data));
+
+	TEST_ASSERT_CMP_FAILURE(dst_size);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, dst_size);
 }
 
 

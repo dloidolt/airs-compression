@@ -63,14 +63,31 @@ enum cmp_mode {
 
 
 /**
+ * @brief Preprocessing techniques for compression
+ * @note additional compression modes will follow
+ *
+ * This enum defines the available preprocessing methods that can be applied
+ * before encoding. Preprocessing techniques aim to improve compression
+ * efficiency.
+ */
+
+enum cmp_preprocessing {
+	CMP_PREPROCESS_NONE, /**< No preprocessing is applied to the data */
+	CMP_PREPROCESS_DIFF, /**< Differences between neighbouring values are computed */
+	CMP_PREPROCESS_IWT   /**< Integer Wavelet Transform preprocessing */
+};
+
+
+/**
  * @brief contains the parameters used for compression.
  *
  * @warning number and names of the compression parameters are TBD
  */
 
 struct cmp_params {
-	enum cmp_mode mode;		/**< Compression mode */
-	uint32_t compression_par;	/**< Compression parameter */
+	enum cmp_mode mode;                /**< Compression mode */
+	enum cmp_preprocessing preprocess; /**< Preprocessing before encoding */
+	uint32_t compression_par;          /**< Compression parameter */
 };
 
 
@@ -85,7 +102,9 @@ struct cmp_params {
  */
 
 struct cmp_context {
-	void *unused; /**< unused value */
+	struct cmp_params params; /**< Compression parameters used in the current context */
+	void *work_buf;           /**< Pointer to the working buffer */
+	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
 };
 
 

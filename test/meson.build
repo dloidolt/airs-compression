@@ -56,6 +56,7 @@ if ruby.found()
     'test_cmp.c',
     'test_header.c',
     'test_cmp_errors.c',
+    'test_preprocessing.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src

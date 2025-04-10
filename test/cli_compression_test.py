@@ -15,7 +15,7 @@ from pathlib import Path
 import clitest
 from clitest import RETURN_FAILURE, CliTest
 
-CMP_HDR_SIZE = 8
+CMP_HDR_SIZE = 10
 DATA_FILE1 = bytes.fromhex("0001 0002")
 DATA_FILE2 = bytes.fromhex("0003 0004")
 
