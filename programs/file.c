@@ -24,15 +24,6 @@
 
 
 /**
- * @brief macro to explicitly mark unused function arguments or variables
- *
- * @param arg	argument or variable to be marked as unused.
- */
-
-#define UNUSED(arg) ((void)(arg))
-
-
-/**
  * @brief configures binary mode for file streams on supported platforms
  *
  * This preprocessor directive ensures compatibility across multiple platforms
@@ -54,7 +45,7 @@
 #    define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
 #  endif
 #else
-#  define SET_BINARY_MODE(file) UNUSED(file)
+#  define SET_BINARY_MODE(file) ((void)(file))
 #endif
 
 

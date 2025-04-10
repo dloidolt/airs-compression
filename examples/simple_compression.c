@@ -40,6 +40,7 @@ static int simple_compression(void)
 	uint32_t work_buf_size; /* Size of working buffer */
 
 	uint32_t cmp_size; /* Actual size of compressed data */
+	uint32_t return_value;
 
 
 	/*
@@ -82,10 +83,10 @@ static int simple_compression(void)
 	 * Step 3: Initialise Compression Context
 	 * We need the compression context later in order to compress data.
 	 */
-	cmp_size = cmp_initialise(&ctx, &params, work_buf, work_buf_size);
-	if (cmp_is_error(cmp_size)) {
+	return_value = cmp_initialise(&ctx, &params, work_buf, work_buf_size);
+	if (cmp_is_error(return_value)) {
 		fprintf(stderr, "Compression initialisation failed: %s. (Error Code: %u)\n",
-			cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
+			cmp_get_error_message(return_value), cmp_get_error_code(return_value));
 		free(dst);
 		free(work_buf);
 		return -1;
