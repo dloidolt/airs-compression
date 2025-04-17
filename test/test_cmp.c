@@ -31,7 +31,7 @@ void setUp(void)
 	uint32_t return_val;
 
 	par_uncompressed.mode = CMP_MODE_UNCOMPRESSED;
-	par_uncompressed.preprocess = CMP_PREPROCESS_NONE;
+	par_uncompressed.primary_preprocessing = CMP_PREPROCESS_NONE;
 	/* we do not need a working buffer for CMP_MODE_UNCOMPRESSED */
 	return_val = cmp_initialise(&g_ctx_uncompressed, &par_uncompressed, NULL, 0);
 	TEST_ASSERT_CMP_SUCCESS(return_val);
@@ -40,16 +40,98 @@ void setUp(void)
 }
 
 
-void test_no_work_buf_needed_for_uncompressed_mode(void)
+void test_no_work_buf_needed_for_none_precosseing(void)
 {
 	struct cmp_params par_uncompressed = { 0 };
 	uint32_t work_buf_size;
 
-	par_uncompressed.mode = CMP_MODE_UNCOMPRESSED;
+	par_uncompressed.primary_preprocessing = CMP_PREPROCESS_NONE;
 
 	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
 
 	TEST_ASSERT_EQUAL(0, work_buf_size);
+}
+
+
+void test_calculate_work_buf_size_for_iwt_correctly(void)
+{
+	struct cmp_params par = { 0 };
+	uint32_t work_buf_size;
+
+	par.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+
+	TEST_ASSERT_EQUAL(42, work_buf_size);
+}
+
+
+void test_calculate_work_buf_size_for_model_preprocess_correctly(void)
+{
+	struct cmp_params par = { 0 };
+	uint32_t work_buf_size;
+
+	par.primary_preprocessing = CMP_PREPROCESS_NONE;
+	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	par.max_secondary_passes = 1;
+
+	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+
+	TEST_ASSERT_CMP_SUCCESS(work_buf_size);
+	TEST_ASSERT_EQUAL(42, work_buf_size);
+}
+
+
+void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(void)
+{
+	struct cmp_params par = { 0 };
+	uint32_t work_buf_size;
+
+	par.primary_preprocessing = CMP_PREPROCESS_NONE;
+	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	par.max_secondary_passes = 0;
+
+	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+
+	TEST_ASSERT_CMP_SUCCESS(work_buf_size);
+	TEST_ASSERT_EQUAL(0, work_buf_size);
+}
+
+
+void test_work_buf_size_calculation_detects_missing_parmeters_struct(void)
+{
+	uint32_t work_buf_size;
+
+	work_buf_size = cmp_cal_work_buf_size(NULL, 42);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
+}
+
+
+void test_work_buf_size_calculation_detects_invalid_primary_preprocessing(void)
+{
+	struct cmp_params par_uncompressed = { 0 };
+	uint32_t work_buf_size;
+
+	par_uncompressed.primary_preprocessing = -1U;
+
+	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
+}
+
+
+void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void)
+{
+	struct cmp_params par_uncompressed = { 0 };
+	uint32_t work_buf_size;
+
+	par_uncompressed.secondary_preprocessing = -1U;
+	par_uncompressed.max_secondary_passes = 1;
+
+	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
 }
 
 
@@ -98,7 +180,7 @@ void test_invalid_preprocess_initialization(void)
 	uint32_t return_val;
 
 	par.mode = CMP_MODE_UNCOMPRESSED;
-	par.preprocess = 0xFFFF;
+	par.primary_preprocessing = 0xFFFF;
 
 	memset(&ctx, 0xFF, sizeof(ctx));
 	return_val = cmp_initialise(&ctx, &par, NULL, 0);
@@ -233,13 +315,29 @@ void test_detect_missing_work_buffer(void)
 	struct cmp_context ctx;
 	uint32_t return_value;
 
-	params.mode = CMP_MODE_UNCOMPRESSED;
-	params.preprocess = CMP_PREPROCESS_IWT;
+	params.primary_preprocessing = CMP_PREPROCESS_IWT;
 
 	return_value = cmp_initialise(&ctx, &params, NULL, 0);
 
 	TEST_ASSERT_CMP_FAILURE(return_value);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_NULL, return_value);
+}
+
+
+void test_detect_0_size_work_buffer(void)
+{
+	struct cmp_params params = { 0 };
+	struct cmp_context ctx;
+	uint32_t work_buf[1];
+	uint32_t return_value;
+
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.max_secondary_passes = 1;
+
+	return_value = cmp_initialise(&ctx, &params, work_buf, 0);
+
+	TEST_ASSERT_CMP_FAILURE(return_value);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, return_value);
 }
 
 
@@ -253,7 +351,7 @@ void test_compression_detecst_to_small_work_buffer(void)
 	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
 
 	params.mode = CMP_MODE_UNCOMPRESSED;
-	params.preprocess = CMP_PREPROCESS_IWT;
+	params.primary_preprocessing = CMP_PREPROCESS_IWT;
 	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(data));
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
@@ -262,6 +360,29 @@ void test_compression_detecst_to_small_work_buffer(void)
 
 	TEST_ASSERT_CMP_FAILURE(dst_size);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, dst_size);
+}
+
+
+void test_non_model_preprocessing_src_size_change_allowed(void)
+{
+	const uint16_t data1[] = { 0, 0, 0, 0 };
+	const uint16_t data2[] = { 0, 0, 0 };
+	uint8_t work_buf[sizeof(data1)];
+	uint8_t *dst[CMP_HDR_SIZE + sizeof(data1)];
+	uint32_t return_code;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+
+	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.primary_preprocessing = CMP_PREPROCESS_NONE;
+	params.secondary_preprocessing = CMP_PREPROCESS_IWT;
+	params.max_secondary_passes = 10;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), data1, sizeof(data1)));
+
+	return_code = cmp_compress_u16(&ctx, dst, sizeof(dst), data2, sizeof(data2));
+
+	TEST_ASSERT_CMP_SUCCESS(return_code);
 }
 
 

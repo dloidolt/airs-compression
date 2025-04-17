@@ -32,13 +32,31 @@
 
 #include "../cmp.h"
 
+
+/** Maximum allowed model adaptation rate parameter  */
+#define CMP_MAX_MODEL_RATE 16
+
+
+/**
+ * @brief rounds up a number to the next multiple of 2
+ *
+ * @param n	integer to be rounded
+ *
+ * @returns next even number or the input if already even
+ */
+
+#define ROUND_UP_TO_NEXT_2(n) (((n) + 1U) & ~1U)
+
+
 /**
  * @brief Preprocessing method structure.
  */
 struct preprocessing_method {
 	enum cmp_preprocessing type;
 	uint32_t (*get_work_buf_size)(uint32_t input_size);
-	uint32_t (*init)(const uint16_t *src, uint32_t src_size, void *work_buf, uint32_t work_buf_size);
+	uint32_t (*init)(const uint16_t *src, uint32_t src_size,
+			 void *work_buf, uint32_t work_buf_size,
+			 uint32_t optional_arg);
 	int16_t (*process)(uint32_t i, const uint16_t *src, void *work_buf);
 };
 

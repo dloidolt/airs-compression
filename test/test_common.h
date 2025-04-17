@@ -20,10 +20,14 @@
  * @param expected_CMP_ERROR	expected error code
  * @param cmp_ret_code		compression library return code
  */
-#define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code)                       \
-	TEST_ASSERT_EQUAL_INT_MESSAGE(expected_CMP_ERROR, cmp_get_error_code(cmp_ret_code), \
-				      gen_cmp_error_message(expected_CMP_ERROR,             \
-							    cmp_get_error_code(cmp_ret_code)))
+#define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code)		\
+	do {									\
+		uint32_t _cmp_err_ret = (cmp_ret_code);				\
+		TEST_ASSERT_EQUAL_INT_MESSAGE(expected_CMP_ERROR,		\
+			cmp_get_error_code(_cmp_err_ret),			\
+			gen_cmp_error_message(expected_CMP_ERROR,		\
+					      cmp_get_error_code(_cmp_err_ret)));\
+	} while (0)
 
 
 /**
@@ -31,8 +35,11 @@
  *
  * @param cmp_ret_code	return code from compression library function
  */
-#define TEST_ASSERT_CMP_SUCCESS(cmp_ret_code) \
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_NO_ERROR, cmp_ret_code)
+#define TEST_ASSERT_CMP_SUCCESS(cmp_ret_code)				\
+	do {								\
+		uint32_t _cmp_ret = (cmp_ret_code);			\
+		TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_NO_ERROR, _cmp_ret);\
+	} while (0)
 
 
 /**
@@ -74,6 +81,8 @@ static __inline const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_SRC_SIZE_WRONG";
 	case CMP_ERR_DST_TOO_SMALL:
 		return "CMP_ERR_DST_TOO_SMALL";
+	case CMP_ERR_SRC_SIZE_MISMATCH:
+		return "CMP_ERR_SRC_SIZE_MISMATCH";
 	case CMP_ERR_INT_HDR:
 		return "CMP_ERR_INT_HDR";
 	case CMP_ERR_MAX_CODE:

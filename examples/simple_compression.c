@@ -19,6 +19,25 @@
 
 
 /**
+ * @brief Dummy timestamp function
+ *
+ * This function provides a simple dummy implementation for a timestamp provider.
+ * It increments a static counter by 2 on each call and returns the result. This
+ * function is intended for demonstration or testing purposes only.
+ *
+ * @returns a dummy 48-bit timestamp value
+ */
+
+static uint64_t dummy_timestamp(void)
+{
+	static uint64_t dummy_time;
+	uint64_t const mask48 = (((uint64_t)1 << 48)-1);
+
+	return (dummy_time += 2) & mask48;
+}
+
+
+/**
  * @brief demonstrate compression API usage
  */
 
@@ -41,6 +60,14 @@ static int simple_compression(void)
 
 	uint32_t cmp_size; /* Actual size of compressed data */
 	uint32_t return_value;
+
+
+	/*
+	 * Step 0: Setup Timestamp Function
+	 * Register the dummy timestamp function to supply timestamps for the
+	 * compression library.
+	 */
+	cmp_set_timestamp_func(dummy_timestamp);
 
 
 	/*
