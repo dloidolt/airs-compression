@@ -56,6 +56,8 @@ const char *cmp_get_error_string(enum cmp_error code)
 		return "Destination buffer is too small to hold the content";
 	case CMP_ERR_SRC_SIZE_MISMATCH:
 		return "Source data size changed using model preprocessing; not allowed until reset";
+	case CMP_ERR_TIMESTAMP_INVALID:
+		return "Invalid timestamp provided";
 
 	case CMP_ERR_INT_HDR:
 		return "Internal header processing error";

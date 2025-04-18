@@ -407,3 +407,45 @@ void test_bound_size_calculation_detects_to_large_src_size(void)
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, bound);
 }
+
+
+static uint64_t g_timestamp;
+static uint64_t return_timesamp_stub(void)
+{
+	return g_timestamp;
+}
+
+
+void test_detect_to_large_timestamp_at_initialisation(void)
+{
+	uint32_t return_code;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+
+	g_timestamp = (uint64_t)1 << 48;
+	cmp_set_timestamp_func(return_timesamp_stub);
+	return_code = cmp_initialise(&ctx, &params, NULL, 0);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_TIMESTAMP_INVALID, return_code);
+	g_timestamp = 0;
+}
+
+
+void test_detect_to_large_timestamp_during_at_compression(void)
+{
+	const uint16_t data[] = { 0, 0 };
+	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
+	uint32_t return_code;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+
+	cmp_set_timestamp_func(return_timesamp_stub);
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), data, sizeof(data)));
+
+	g_timestamp = (uint64_t)1 << 48;
+	return_code = cmp_compress_u16(&ctx, dst, sizeof(dst), data, sizeof(data));
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_TIMESTAMP_INVALID, return_code);
+	g_timestamp = 0;
+}

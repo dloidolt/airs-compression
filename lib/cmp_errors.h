@@ -43,6 +43,7 @@ enum cmp_error {
 	/* Runtime errors (30-39) */
 	CMP_ERR_DST_TOO_SMALL = 30,		/**< Destination buffer is too small */
 	CMP_ERR_SRC_SIZE_MISMATCH = 31,		/**< Source data size changed with model preprocessing */
+	CMP_ERR_TIMESTAMP_INVALID = 32,		/**< Invalid timestamp provided */
 
 	/* Internal processing errors (100-109) */
 	CMP_ERR_INT_HDR = 100,			/**< Internal header processing error */

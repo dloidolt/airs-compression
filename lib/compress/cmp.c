@@ -160,8 +160,12 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (cmp_size > dst_capacity)
 		return CMP_ERROR(DST_TOO_SMALL);
 
-	if (ctx->pass_count > ctx->params.max_secondary_passes)
-		cmp_reset(ctx);
+	if (ctx->pass_count > ctx->params.max_secondary_passes) {
+		uint32_t const ret_code = cmp_reset(ctx);
+
+		if (cmp_is_error_int(ret_code))
+			return ret_code;
+	}
 
 	if (ctx->pass_count == 0)
 		seleced_preprocessing = ctx->params.primary_preprocessing;
@@ -236,11 +240,16 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 uint32_t cmp_reset(struct cmp_context *ctx)
 {
+	uint64_t const timestamp =  g_get_current_timestamp();
+
 	if (ctx == NULL)
 		return CMP_ERROR(CONTEXT_INVALID);
 
+	if (timestamp > ((uint64_t)1 << 48) - 1)
+		return CMP_ERROR(TIMESTAMP_INVALID);
+
 	ctx->pass_count = 0;
-	ctx->model_id = g_get_current_timestamp();
+	ctx->model_id = timestamp;
 	ctx->model_size = 0;
 
 	return CMP_ERROR(NO_ERROR);
