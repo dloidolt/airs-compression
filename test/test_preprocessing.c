@@ -18,19 +18,19 @@
 #include "../programs/byteorder.h"
 
 
-#define TEST_ASSERT_CMP_HDR(compressed_data, size, expeced_hdr)							\
+#define TEST_ASSERT_CMP_HDR(compressed_data, size, expected_hdr)							\
 do {															\
 	struct cmp_hdr assert_hdr;											\
 	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(compressed_data, size, &assert_hdr));				\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.version, assert_hdr.version, "header version mismatch");			\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.cmp_size, assert_hdr.cmp_size, "header compressed data size mismatch");	\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.original_size, assert_hdr.original_size, "header original size mismatch");\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.mode, assert_hdr.mode, "header mode mismatch");				\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.preprocess, assert_hdr.preprocess, "header preprocessing mismatch");	\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.model_rate, assert_hdr.model_rate, "model rate mismatch");		\
-	TEST_ASSERT_EQUAL_MESSAGE(expeced_hdr.pass_count, assert_hdr.pass_count, "pass counter mismatch");		\
-	assert_hdr.model_id = expeced_hdr.model_id; /* ignore to check model id*/					\
-	TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&expeced_hdr, &assert_hdr, sizeof(expeced_hdr), "header mismatch");		\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.version, assert_hdr.version, "header version mismatch");			\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.cmp_size, assert_hdr.cmp_size, "header compressed data size mismatch");	\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.original_size, assert_hdr.original_size, "header original size mismatch");\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.mode, assert_hdr.mode, "header mode mismatch");				\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.preprocess, assert_hdr.preprocess, "header preprocessing mismatch");	\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.model_rate, assert_hdr.model_rate, "model rate mismatch");		\
+	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.pass_count, assert_hdr.pass_count, "pass counter mismatch");		\
+	assert_hdr.model_id = expected_hdr.model_id; /* ignore to check model id*/					\
+	TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&expected_hdr, &assert_hdr, sizeof(expected_hdr), "header mismatch");		\
 } while (0)
 
 
@@ -100,7 +100,7 @@ TEST_CASE(iwt_input_two, iwt_expected_two, sizeof(iwt_input_two))
 TEST_CASE(iwt_input_five, iwt_expected_five, sizeof(iwt_input_five))
 TEST_CASE(iwt_input_eight, iwt_expected_eight, sizeof(iwt_input_eight))
 void test_iwt_transform_correct(const int16_t *input_data,
-				const int16_t *expeced_output, uint32_t size)
+				const int16_t *expected_output, uint32_t size)
 {
 	int16_t work_buf[8];
 	uint8_t output_buf[CMP_HDR_SIZE+8*sizeof(int16_t)];
@@ -118,7 +118,7 @@ void test_iwt_transform_correct(const int16_t *input_data,
 	TEST_ASSERT_CMP_SUCCESS(output_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + size, output_size);
 	convert_cmp_data_to_system_endianness(output_buf, output_size);
-	TEST_ASSERT_EQUAL_INT16_ARRAY(expeced_output, cmp_hdr_get_cmp_data(output_buf), size/sizeof(int16_t));
+	TEST_ASSERT_EQUAL_INT16_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf), size/sizeof(int16_t));
 	{	struct cmp_hdr expected_hdr = { 0 };
 
 		expected_hdr.version = CMP_VERSION_NUMBER;
@@ -264,7 +264,7 @@ void test_detects_invalid_model_rate(void)
 }
 
 
-void test_detect_invalid_primary_presseing_model_usage(void)
+void test_detect_invalid_primary_preprocessing_model_usage(void)
 {
 	struct cmp_context ctx;
 	uint16_t work_buf[3];
@@ -352,7 +352,7 @@ void test_detect_to_small_work_buffer_in_model_preprocessing(void)
 }
 
 
-void test_detect_scr_size_change_using_model_preprocessing(void)
+void test_detect_src_size_change_using_model_preprocessing(void)
 {
 	const uint16_t data1[] = { 0, 0, 0, 0 };
 	const uint16_t data2[] = { 0, 0, 0 };

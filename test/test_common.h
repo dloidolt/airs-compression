@@ -26,7 +26,7 @@
 		TEST_ASSERT_EQUAL_INT_MESSAGE(expected_CMP_ERROR,		\
 			cmp_get_error_code(_cmp_err_ret),			\
 			gen_cmp_error_message(expected_CMP_ERROR,		\
-					      cmp_get_error_code(_cmp_err_ret)));\
+					     cmp_get_error_code(_cmp_err_ret)));\
 	} while (0)
 
 
@@ -84,7 +84,7 @@ static __inline const char *cmp_error_enum_to_str(enum cmp_error error)
 	case CMP_ERR_SRC_SIZE_MISMATCH:
 		return "CMP_ERR_SRC_SIZE_MISMATCH";
 	case CMP_ERR_TIMESTAMP_INVALID:
-		return "CMP_ERR_SRC_SIZE_MISMATCH";
+		return "CMP_ERR_TIMESTAMP_INVALID";
 	case CMP_ERR_INT_HDR:
 		return "CMP_ERR_INT_HDR";
 	case CMP_ERR_MAX_CODE:

@@ -40,7 +40,7 @@ void setUp(void)
 }
 
 
-void test_no_work_buf_needed_for_none_precosseing(void)
+void test_no_work_buf_needed_for_none_preprocessing(void)
 {
 	struct cmp_params par_uncompressed = { 0 };
 	uint32_t work_buf_size;
@@ -98,7 +98,7 @@ void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(voi
 }
 
 
-void test_work_buf_size_calculation_detects_missing_parmeters_struct(void)
+void test_work_buf_size_calculation_detects_missing_parameters_struct(void)
 {
 	uint32_t work_buf_size;
 
@@ -192,7 +192,7 @@ void test_invalid_preprocess_initialization(void)
 void test_compression_in_uncompressed_mode(void)
 {
 	const uint16_t data[2] = { 0x0001, 0x0203 };
-	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
+	uint8_t dst[CMP_HDR_SIZE + sizeof(data)];
 	/* uncompressed data should be in big endian */
 	const uint8_t cmp_data_exp[sizeof(data)] = { 0x00, 0x01, 0x02, 0x03 };
 	struct cmp_hdr hdr;
@@ -341,14 +341,14 @@ void test_detect_0_size_work_buffer(void)
 }
 
 
-void test_compression_detecst_to_small_work_buffer(void)
+void test_compression_detects_too_small_work_buffer(void)
 {
 	struct cmp_params params = { 0 };
 	const uint16_t data[] = { 0, 0, 0};
 	uint8_t work_buf[sizeof(data)-1];
 	struct cmp_context ctx;
 	uint32_t dst_size, work_buf_size;
-	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
+	uint8_t dst[CMP_HDR_SIZE + sizeof(data)];
 
 	params.mode = CMP_MODE_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
@@ -368,7 +368,7 @@ void test_non_model_preprocessing_src_size_change_allowed(void)
 	const uint16_t data1[] = { 0, 0, 0, 0 };
 	const uint16_t data2[] = { 0, 0, 0 };
 	uint8_t work_buf[sizeof(data1)];
-	uint8_t *dst[CMP_HDR_SIZE + sizeof(data1)];
+	uint8_t dst[CMP_HDR_SIZE + sizeof(data1)];
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -410,20 +410,20 @@ void test_bound_size_calculation_detects_to_large_src_size(void)
 
 
 static uint64_t g_timestamp;
-static uint64_t return_timesamp_stub(void)
+static uint64_t return_timestamp_stub(void)
 {
 	return g_timestamp;
 }
 
 
-void test_detect_to_large_timestamp_at_initialisation(void)
+void test_detect_too_large_timestamp_during_initialisation(void)
 {
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
 	g_timestamp = (uint64_t)1 << 48;
-	cmp_set_timestamp_func(return_timesamp_stub);
+	cmp_set_timestamp_func(return_timestamp_stub);
 	return_code = cmp_initialise(&ctx, &params, NULL, 0);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_TIMESTAMP_INVALID, return_code);
@@ -431,15 +431,15 @@ void test_detect_to_large_timestamp_at_initialisation(void)
 }
 
 
-void test_detect_to_large_timestamp_during_at_compression(void)
+void test_detect_too_large_timestamp_during_during_compression(void)
 {
 	const uint16_t data[] = { 0, 0 };
-	uint8_t *dst[CMP_HDR_SIZE + sizeof(data)];
+	uint8_t dst[CMP_HDR_SIZE + sizeof(data)];
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	cmp_set_timestamp_func(return_timesamp_stub);
+	cmp_set_timestamp_func(return_timestamp_stub);
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), data, sizeof(data)));
 

@@ -5,7 +5,7 @@
  *
  * @copyright GPL-2.0
  *
- * @brief Data compression errors handling implementation
+ * @brief Data compression error handling implementation
  */
 
 #include <stdint.h>
