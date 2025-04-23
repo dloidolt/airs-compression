@@ -19,6 +19,25 @@
 
 
 /**
+ * @brief Dummy timestamp function
+ *
+ * This function provides a simple dummy implementation for a timestamp provider.
+ * It increments a static counter by 2 on each call and returns the result. This
+ * function is intended for demonstration or testing purposes only.
+ *
+ * @returns a dummy 48-bit timestamp value
+ */
+
+static uint64_t dummy_timestamp(void)
+{
+	static uint64_t dummy_time;
+	uint64_t const mask48 = (((uint64_t)1 << 48)-1);
+
+	return (dummy_time += 2) & mask48;
+}
+
+
+/**
  * @brief demonstrate compression API usage
  */
 
@@ -40,6 +59,15 @@ static int simple_compression(void)
 	uint32_t work_buf_size; /* Size of working buffer */
 
 	uint32_t cmp_size; /* Actual size of compressed data */
+	uint32_t return_value;
+
+
+	/*
+	 * Step 0: Setup Timestamp Function
+	 * Register the dummy timestamp function to supply timestamps for the
+	 * compression library.
+	 */
+	cmp_set_timestamp_func(dummy_timestamp);
 
 
 	/*
@@ -82,10 +110,10 @@ static int simple_compression(void)
 	 * Step 3: Initialise Compression Context
 	 * We need the compression context later in order to compress data.
 	 */
-	cmp_size = cmp_initialise(&ctx, &params, work_buf, work_buf_size);
-	if (cmp_is_error(cmp_size)) {
+	return_value = cmp_initialise(&ctx, &params, work_buf, work_buf_size);
+	if (cmp_is_error(return_value)) {
 		fprintf(stderr, "Compression initialisation failed: %s. (Error Code: %u)\n",
-			cmp_get_error_message(cmp_size), cmp_get_error_code(cmp_size));
+			cmp_get_error_message(return_value), cmp_get_error_code(return_value));
 		free(dst);
 		free(work_buf);
 		return -1;

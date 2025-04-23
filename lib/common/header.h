@@ -11,7 +11,6 @@
 #ifndef CMP_HEADER_H
 #define CMP_HEADER_H
 
-
 #include <stdint.h>
 
 /** maximum allowed compressed data size in bytes */
@@ -21,8 +20,7 @@
 #define CMP_MAX_ORIGINAL_SIZE 0xFFFFFF
 
 /** size of the compression header in bytes TBD */
-#define CMP_HDR_SIZE 8
-
+#define CMP_HDR_SIZE 18
 
 
 /**
@@ -32,9 +30,16 @@
  */
 
 struct cmp_hdr {
-	uint32_t version;		/**< compression library version identifier */
-	uint32_t cmp_size;		/**< size of  the compressed data including header in bytes */
-	uint32_t original_size;		/**< size of the original uncompressed data in bytes */
+	/* minimum header fields, sufficient for uncompressed data*/
+	uint32_t version;       /**< Compression library version identifier */
+	uint32_t cmp_size;      /**< Size of the compressed data including header in bytes */
+	uint32_t original_size; /**< Size of the original uncompressed data in bytes */
+	uint32_t mode;          /**< Compression mode applied */
+	uint32_t preprocess;    /**< Preprocessing technique applied */
+	/* additional fields needed for decompression */
+	uint32_t model_rate;    /**< Rate at which the model adapts during model-based preprocessing */
+	uint64_t model_id;      /**< Unique identifier for the baseline model */
+	uint32_t pass_count;    /**< Number of compression passes performed since the last reset */
 };
 
 

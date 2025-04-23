@@ -56,12 +56,14 @@ if ruby.found()
     'test_cmp.c',
     'test_header.c',
     'test_cmp_errors.c',
+    'test_preprocessing.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
     test_name = fs.name(test_file).split('.')[0]
 
-    test_runner = gen_test_runner.process(test_file)
+    test_runner = gen_test_runner.process(test_file,
+      extra_args : '--use_param_tests=1')
     test_exe = executable(test_name,
       test_file, test_runner, src_common, src_compress,
       include_directories : inc_cmp,

@@ -1,5 +1,5 @@
 project('AIRSPACE', 'c',
-  meson_version : '>=0.60.0',
+  meson_version : '>=0.63.0',
   version : run_command(find_program('python3'),
     'test/get_library_version.py', 'lib/cmp.h',
      check : true).stdout().strip(),

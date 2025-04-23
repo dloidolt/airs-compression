@@ -50,6 +50,8 @@
  */
 #define CMP_VERSION_STRING CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
 
+/* ====== Compression Parameters Limits ====== */
+#define CMP_MAX_SECONDARY_PASSES_MAX UINT8_MAX
 
 /* ====== Parameter Selection ====== */
 /**
@@ -63,14 +65,38 @@ enum cmp_mode {
 
 
 /**
+ * @brief Preprocessing techniques for compression
+ * @note additional compression modes will follow
+ *
+ * This enum defines the available preprocessing methods that can be applied
+ * before encoding. Preprocessing techniques aim to improve compression
+ * efficiency.
+ */
+
+enum cmp_preprocessing {
+	CMP_PREPROCESS_NONE, /**< No preprocessing is applied to the data */
+	CMP_PREPROCESS_DIFF, /**< Differences between neighbouring values are computed */
+	CMP_PREPROCESS_IWT,  /**< Integer Wavelet Transform preprocessing */
+	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data */
+};
+
+
+/**
  * @brief contains the parameters used for compression.
  *
  * @warning number and names of the compression parameters are TBD
  */
 
 struct cmp_params {
-	enum cmp_mode mode;		/**< Compression mode */
-	uint32_t compression_par;	/**< Compression parameter */
+	/* Preprocessing Settings */
+	enum cmp_preprocessing primary_preprocessing;   /**< Preprocessing applied on the first pass */
+	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
+	uint32_t max_secondary_passes; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
+	uint32_t model_rate;           /**< Rate at which the model adapts during model-based preprocessing */
+
+	/* Data Encoding Settings */
+	enum cmp_mode mode;         /**< Compression mode */
+	uint32_t compression_par;   /**< Compression parameter */
 };
 
 
@@ -85,8 +111,29 @@ struct cmp_params {
  */
 
 struct cmp_context {
-	void *unused; /**< unused value */
+	struct cmp_params params; /**< Compression parameters used in the current context */
+	void *work_buf;           /**< Pointer to the working buffer */
+	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
+	uint32_t pass_count;      /**< Number of compression passes performed since the last reset */
+	uint64_t model_id;        /**< Identifier for the compression model */
+	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
 };
+
+
+/* ======  Setup Functions   ====== */
+/**
+ * @brief Sets a custom function to retrieve the current timestamp.
+ *
+ * This function allows to specify a custom function that returns a current
+ * 48-bit timestamp. This timestamp is used by the compression for example, to
+ * generate unique model identifiers.
+ *
+ * @param get_current_timestamp_func	pointer to a function returning a 48-bit
+ *					timestamp; if NULL, a fallback function
+ *					will be set
+ */
+
+void cmp_set_timestamp_func(uint64_t (*get_current_timestamp_func)(void));
 
 
 /* ====== Compression Helper Functions ====== */

@@ -13,9 +13,8 @@ import unittest
 from pathlib import Path
 
 import clitest
-from clitest import RETURN_FAILURE, CliTest
+from clitest import RETURN_FAILURE, RETURN_SUCCESS, CliTest
 
-CMP_HDR_SIZE = 8
 DATA_FILE1 = bytes.fromhex("0001 0002")
 DATA_FILE2 = bytes.fromhex("0003 0004")
 
@@ -25,6 +24,7 @@ class TestCompression(unittest.TestCase):
     def setUpClass(cls):
         cls.cli_test = CliTest()
         cls.airspace = cls.cli_test.run_cli
+        cls.CMP_HDR_SIZE = cls.get_hdr_size(cls)
 
     def setUp(self):
         test_name = self.id().split(".")[-1]
@@ -33,6 +33,14 @@ class TestCompression(unittest.TestCase):
         self.file2 = self.test_dir / "file_2.bin"
         self.file1.write_bytes(DATA_FILE1)
         self.file2.write_bytes(DATA_FILE2)
+
+    def get_hdr_size(self):
+        result = self.airspace(["-c", "--stdout"], stdin=DATA_FILE1)
+        print(result)
+        if result.returncode != RETURN_SUCCESS:
+            raise RuntimeError("Can not calculate header size.")
+
+        return len(result.stdout) - len(DATA_FILE1)
 
     def get_compressed_file_data(self, orinal_file: Path):
         cmp_file = orinal_file.with_name(orinal_file.name + ".air")
@@ -56,7 +64,7 @@ class TestCompression(unittest.TestCase):
                     stdout_exp=DATA_FILE1,
                     stdout_match_mode="contains",
                 )
-                offset = 2 * CMP_HDR_SIZE + len(DATA_FILE1)
+                offset = 2 * self.CMP_HDR_SIZE + len(DATA_FILE1)
                 self.assertEqual(DATA_FILE2, result.stdout[offset:])
 
     def test_compress_2_files_normally(self):
@@ -65,8 +73,8 @@ class TestCompression(unittest.TestCase):
         self.assertCli(result)
         cmp_file1 = self.get_compressed_file_data(self.file1)
         cmp_file2 = self.get_compressed_file_data(self.file2)
-        self.assertEqual(DATA_FILE1, cmp_file1[CMP_HDR_SIZE:], result.args)
-        self.assertEqual(DATA_FILE2, cmp_file2[CMP_HDR_SIZE:], result.args)
+        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE:], result.args)
+        self.assertEqual(DATA_FILE2, cmp_file2[self.CMP_HDR_SIZE:], result.args)
 
     def test_compress_data_from_stdin_to_stdout(self):
         for arg in [["-"], []]:
@@ -88,7 +96,7 @@ class TestCompression(unittest.TestCase):
         result = self.airspace(["-c", self.file1, "-o", cmp_file, "--quiet"])
 
         self.assertCli(result)
-        cmp_data = cmp_file.read_bytes()[CMP_HDR_SIZE:]
+        cmp_data = cmp_file.read_bytes()[self.CMP_HDR_SIZE:]
         self.assertEqual(DATA_FILE1, cmp_data, result.args)
 
     def test_compress_filed_and_data_from_stdin(self):
@@ -99,7 +107,7 @@ class TestCompression(unittest.TestCase):
             stdout_exp=DATA_FILE1,
             stdout_match_mode="contains",
         )
-        offset = 2 * CMP_HDR_SIZE + len(DATA_FILE1)
+        offset = 2 * self.CMP_HDR_SIZE + len(DATA_FILE1)
         self.assertEqual(DATA_FILE2, result.stdout[offset:])
 
     def test_compress_files_with_different_sizes(self):
@@ -111,9 +119,9 @@ class TestCompression(unittest.TestCase):
         self.assertCli(result)
         cmp_file1 = self.get_compressed_file_data(self.file1)
         cmp_small_file = self.get_compressed_file_data(small_file)
-        self.assertEqual(DATA_FILE1, cmp_file1[CMP_HDR_SIZE:], result.args)
+        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE:], result.args)
         self.assertEqual(
-            bytes.fromhex("0003"), cmp_small_file[CMP_HDR_SIZE:], result.args
+            bytes.fromhex("0003"), cmp_small_file[self.CMP_HDR_SIZE:], result.args
         )
 
     def test_abort_when_reading_from_stdin_on_consol(self):
