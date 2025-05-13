@@ -275,7 +275,7 @@ static int16_t diff_process(uint32_t i, const uint16_t *src,
 	if (i == 0)
 		return (int16_t)src[0];
 	else
-		return src[i] - src[i - 1];
+		return (int16_t)(src[i] - src[i - 1]);
 }
 
 
@@ -427,7 +427,7 @@ static __inline uint16_t cmp_up_model16(uint16_t data, uint16_t model, uint8_t m
 static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
 {
 	uint16_t *model = work_buf;
-	int16_t const diff = src[i] - model[i];
+	int16_t const diff = (int16_t)(src[i] - model[i]);
 
 	model[i] = cmp_up_model16(src[i], model[i], g_model_adaptation_rate);
 

@@ -34,7 +34,7 @@
 
 
 /** Maximum allowed model adaptation rate parameter  */
-#define CMP_MAX_MODEL_RATE 16
+#define CMP_MAX_MODEL_RATE 16U
 
 
 /**
