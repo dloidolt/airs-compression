@@ -51,6 +51,9 @@ if ruby.found()
 
   # use the test runner generator script
   gen_test_runner = subproject('unity').get_variable('gen_test_runner')
+  test_lib = static_library('test_common_lib',
+    files(['test_common.c']),
+    dependencies : [unity_dep])
 
   unit_test_src = files([
     'test_cmp.c',
@@ -68,7 +71,7 @@ if ruby.found()
     test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
       c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
-      link_with : cmp_lib,
+      link_with : [test_lib, cmp_lib],
       dependencies : [unity_dep])
 
     test(test_name.replace('test_', '') + ' units tests',
