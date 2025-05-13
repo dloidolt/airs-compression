@@ -18,22 +18,6 @@
 #include "../programs/byteorder.h"
 
 
-#define TEST_ASSERT_CMP_HDR(compressed_data, size, expected_hdr)							\
-do {															\
-	struct cmp_hdr assert_hdr;											\
-	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(compressed_data, size, &assert_hdr));				\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.version, assert_hdr.version, "header version mismatch");			\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.cmp_size, assert_hdr.cmp_size, "header compressed data size mismatch");	\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.original_size, assert_hdr.original_size, "header original size mismatch");\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.mode, assert_hdr.mode, "header mode mismatch");				\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.preprocess, assert_hdr.preprocess, "header preprocessing mismatch");	\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.model_rate, assert_hdr.model_rate, "model rate mismatch");		\
-	TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.pass_count, assert_hdr.pass_count, "pass counter mismatch");		\
-	assert_hdr.model_id = expected_hdr.model_id; /* ignore to check model id*/					\
-	TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&expected_hdr, &assert_hdr, sizeof(expected_hdr), "header mismatch");		\
-} while (0)
-
-
 static void convert_cmp_data_to_system_endianness(void *compressed_data, uint32_t size)
 {
 	uint32_t const cmp_data_size = size - CMP_HDR_SIZE;
@@ -62,7 +46,6 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 	uint32_t output_size;
 	struct cmp_params params = { 0 };
 	struct cmp_context ctx;
-	struct cmp_hdr expected_hdr = { 0 };
 
 	params.mode = CMP_MODE_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
@@ -74,12 +57,15 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_1d_diff), output_size);
 	convert_cmp_data_to_system_endianness(output_buf, output_size);
 	TEST_ASSERT_EQUAL_INT16_ARRAY(expected_1d_diff, cmp_hdr_get_cmp_data(output_buf), ARRAY_SIZE(expected_1d_diff));
-	expected_hdr.version = CMP_VERSION_NUMBER;
-	expected_hdr.cmp_size = output_size;
-	expected_hdr.original_size = sizeof(input_data);
-	expected_hdr.mode = params.mode;
-	expected_hdr.preprocess = params.primary_preprocessing;
-	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+	{	struct cmp_hdr expected_hdr = { 0 };
+
+		expected_hdr.version = CMP_VERSION_NUMBER;
+		expected_hdr.cmp_size = output_size;
+		expected_hdr.original_size = sizeof(input_data);
+		expected_hdr.mode = params.mode;
+		expected_hdr.preprocess = params.primary_preprocessing;
+		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+	}
 }
 
 

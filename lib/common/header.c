@@ -122,6 +122,11 @@ uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *h
 		return s;
 	dst8 += s;
 
+	s = serialize_u16(dst8, hdr->compression_par);
+	if (cmp_is_error_int(s))
+		return s;
+	dst8 += s;
+
 	return (uint32_t)(dst8 - (uint8_t *)dst);
 }
 
@@ -186,6 +191,7 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 	hdr->model_rate = *pos++;
 	pos = deserialize_u48(pos, &hdr->model_id);
 	hdr->pass_count = *pos++;
+	pos = deserialize_u16(pos, &hdr->compression_par);
 
 	return (uint32_t)(pos - (const uint8_t *)src);
 }

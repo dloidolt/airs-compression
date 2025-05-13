@@ -33,6 +33,7 @@ void test_serialize_header(void)
 	hdr.model_rate = 0x0A;
 	hdr.model_id = 0x0B0C0D0E0F10;
 	hdr.pass_count = 0x11;
+	hdr.compression_par = 0x1213;
 
 	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
 
@@ -66,6 +67,7 @@ void test_deserialize_header(void)
 	TEST_ASSERT_EQUAL_HEX(hdr.model_rate, 0x0A);
 	TEST_ASSERT_EQUAL_HEX(hdr.model_id, 0x0B0C0D0E0F10);
 	TEST_ASSERT_EQUAL_HEX(hdr.pass_count, 0x11);
+	TEST_ASSERT_EQUAL_HEX(hdr.compression_par, 0x1213);
 }
 
 

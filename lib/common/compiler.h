@@ -29,6 +29,10 @@
  #define CMP_GNUC_PREREQ(maj, min) 0
 #endif
 
+/**
+ * @brief a C89 compile time assertion mechanism
+ */
+#define compile_time_assert(cond, msg) UNUSED typedef char ASSERT_##msg[(cond) ? 1 : -1]
 
 /**
  * @brieg assert a build-time dependency, as an expression.
@@ -73,6 +77,11 @@
  */
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]) + BARF_UNLESS_AN_ARRAY(x))
 
+/**
+ * We assume that a byte as 8 bits
+ */
+#define bitsizeof(x)  (8 * sizeof(x))
+
 
 /**
  * @brief marks a function parameter that is always unused.
@@ -115,5 +124,7 @@
  */
 
 #define MAYBE_UNUSED __attribute__((__unused__))
+
+
 
 #endif /*  COMPAT_UTIL_H */

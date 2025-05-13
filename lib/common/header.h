@@ -20,7 +20,7 @@
 #define CMP_MAX_ORIGINAL_SIZE 0xFFFFFF
 
 /** size of the compression header in bytes TBD */
-#define CMP_HDR_SIZE 18
+#define CMP_HDR_SIZE 20
 
 
 /**
@@ -40,6 +40,7 @@ struct cmp_hdr {
 	uint32_t model_rate;    /**< Rate at which the model adapts during model-based preprocessing */
 	uint64_t model_id;      /**< Unique identifier for the baseline model */
 	uint32_t pass_count;    /**< Number of compression passes performed since the last reset */
+	uint32_t compression_par; /**< Compression parameter */
 };
 
 

@@ -47,6 +47,8 @@ const char *cmp_get_error_string(enum cmp_error code)
 		return "Work buffer is too small";
 	case CMP_ERR_DST_NULL:
 		return "Destination buffer pointer is NULL";
+	case CMP_ERR_DST_UNALIGNED:
+		return "Destination buffer pointer is unaligned";
 	case CMP_ERR_SRC_NULL:
 		return "Source buffer pointer is NULL";
 	case CMP_ERR_SRC_SIZE_WRONG:
@@ -61,6 +63,10 @@ const char *cmp_get_error_string(enum cmp_error code)
 
 	case CMP_ERR_INT_HDR:
 		return "Internal header processing error";
+	case CMP_ERR_INT_ENCODER:
+		return "Internal data encoder error";
+	case CMP_ERR_INT_BITSTREAM:
+		return "Internal bitstream writer error";
 
 	case CMP_ERR_MAX_CODE:
 	default:

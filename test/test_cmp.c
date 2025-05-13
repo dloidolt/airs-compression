@@ -236,7 +236,7 @@ void test_compression_detects_missing_dst_buffer(void)
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0x0001, 0x0203 };
 
-	uint32_t const size = cmp_compress_u16(&ctx_uncompressed, NULL, 0, src, sizeof(src));
+	uint32_t const size = cmp_compress_u16(&ctx_uncompressed, NULL, 100, src, sizeof(src));
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_NULL, size);
 }

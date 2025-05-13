@@ -1,0 +1,284 @@
+/**
+ * @file
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
+ * @date   2025
+ * @copyright GPL-2.0
+ *
+ * @brief Data Compression Encoder Implementation
+ */
+
+#include <limits.h>
+#include <string.h>
+
+#include "encoder.h"
+#include "../cmp.h"
+#include "../common/bitstream_writer.h"
+#include "../common/err_private.h"
+#include "../common/compiler.h"
+
+#define CMP_GOLOMB_MAX_CODEWORD_BITS 32
+
+
+/**
+ * @brief Returns floor(log2(x)) for integers
+ *
+ * @param x	input parameter
+ *
+ * @returns the result of floor(log2(x)) or UINT_MAX if x = 0
+ */
+
+static unsigned int ilog2(uint32_t x)
+{
+	compile_time_assert(sizeof(unsigned int) >= sizeof(uint32_t),
+			    _expect_unsigned_int_to_be_at_least_32_bit);
+
+	if (x == 0)
+		return UINT_MAX;
+
+	return bitsizeof(unsigned int) - 1 - (unsigned int)__builtin_clz(x);
+}
+
+
+/**
+ * @brief Calculate a optimal outlier parameter for zero escape mechanism
+ *
+ * @param g_par		Golomb parameter
+ * @param n_bits	Number of bits used to represent uncompressed samples
+ *
+ * @returns the highest optimal outlier value for a given Golomb parameter, when
+ *	the zero escape mechanism is used or 0 on fail
+ * @warning value might be to high to encode with golomb_encode()
+ *
+ * @detail We are looking for the smallest v such that:
+ *   len_escape < len_golomb(v+1)  (1)  // v+1 so zero can be used as escape symbol
+ * where
+ *   len_escape = ilog2(g_par)+1        // bits for the zero symbol
+ *              + n_bits,               // raw value that follows
+ * and
+ *   len_golomb(x) = group_num(x) + 1   // unary prefix
+ *                 + ilog2(g_par)+1    // binary suffix
+ * for x >= cutoff.
+ *
+ * (Note: If x < cutoff, len_golomb(x) = ilog2(g_par)+1. In this scenario,
+ * (1) becomes n_bits < 0, which is impossible.  Thus, the crossover point where
+ * escape becomes cheaper must occur when v+1 >= cutoff.)
+ *
+ * (1) simplifies to:
+ *   n_bits < group_num(v+1) + 1,
+ * -> n_bits =< group_num(v+1).
+ *
+ * With
+ *   group_num(v) = floor((v − cutoff) / g_par),
+ * we get
+ *   n_bits =< floor((v+1 - cutoff) / g_par)  (2)
+ *
+ * The lowest v value that satisfies (2) is therefore the last element of
+ * group (n_bits-1):
+ *    v_low = cutoff + n_bits * g_par - 1
+ *
+ * That value becomes our outlier threshold – every mapped sample from
+ * that value onwards will be encoded via the zero-escape method.
+ */
+
+static uint32_t optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
+{
+	uint32_t cutoff;
+	uint64_t outlier;
+
+	if (g_par < CMP_MIN_GOLOMB_PAR || g_par > CMP_MAX_GOLOMB_PAR)
+		return 0;
+
+	if (n_bits < 1 || n_bits > CMP_GOLOMB_MAX_CODEWORD_BITS)
+		return 0;
+
+	/* size of group 0 */
+	cutoff = (2U << ilog2(g_par)) - g_par;
+
+	/*
+	 * Calculate last member in group (n_bits-1).
+	 * Use 64-bit to prevent overflow when g_par is large.
+	 */
+	outlier = cutoff + (uint64_t)n_bits * g_par - 1;
+
+	/*
+	 * Cap at UINT32_MAX since we're returning uint32_t and our encoding
+	 * functions can't handle larger values anyway.
+	 */
+	if (outlier > UINT32_MAX)
+		return UINT32_MAX;
+
+	return (uint32_t)outlier;
+}
+
+
+uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
+			  uint32_t encoder_param, struct bitstream_writer *bs)
+{
+	if (!enc || !bs)
+		return CMP_ERROR(INT_ENCODER);
+
+	memset(enc, 0, sizeof(*enc));
+	enc->encoder_type = encoder_type;
+	enc->bs = bs;
+
+	switch (enc->encoder_type) {
+	case CMP_ENCODER_UNCOMPRESSED:
+		break;
+	case CMP_ENCODER_GOLOMB_ZERO:
+		if (encoder_param < CMP_MIN_GOLOMB_PAR || encoder_param > CMP_MAX_GOLOMB_PAR)
+			return CMP_ERROR(PARAMS_INVALID);
+		enc->g_par = encoder_param;
+		enc->g_par_log2 = ilog2(encoder_param);
+		enc->outlier = optimal_outlier_zero(enc->g_par, CMP_NUM_BITS_PER_SAMPLE);
+		if (enc->outlier == 0)
+			return CMP_ERROR(PARAMS_INVALID);
+		break;
+	default:
+		return CMP_ERROR(PARAMS_INVALID);
+	}
+
+	return CMP_ERROR(NO_ERROR);
+}
+
+
+uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param)
+{
+	struct cmp_encoder enc_dummy;
+	struct bitstream_writer bs_dummy;
+
+	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, &bs_dummy);
+}
+
+
+/**
+ * @brief Sign-extend a value to fill the full width of the integer type
+ *
+ * @param value		value to sign-extend
+ * @param n_bits	number of bits used to represent the value (including sign
+ *			bit) in range [0, 32], if 0 returns the value unchained
+ *
+ * @see https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
+ * @returns the sign-extended value
+ */
+
+
+static int32_t sign_extend(int32_t value, unsigned int n_bits)
+{
+	compile_time_assert((-1 >> 1) == -1, Arithmetic_shift_need);
+	unsigned int const extend_bits = (bitsizeof(value) - n_bits) & (bitsizeof(value) - 1);
+
+	return (int32_t)((uint32_t)value << extend_bits) >> extend_bits;
+}
+
+
+/**
+ * Map a signed integer to unsigned via ZigZag encoding
+ *
+ * @param value		signed integer to map
+ * @param n_bits	number of bits needed to represent the highest possible
+ *			value in range [1, 32]; 0 if treated as 32 bits
+ *
+ * This function mapps negative values to uneven numbers and positive values to
+ * even numbers: 0 -> 0, -1 -> 1, 1 -> 2, -2 -> 3, ...  value_MAX -> 2^n_bits - 2,
+ *               value_MIN -> 2^n_bits - 1
+ *
+ * This is needed becomes Golomb code only works with unsigned values
+ * @see https://stackoverflow.com/questions/4533076/google-protocol-buffers-zigzag-encoding
+ *
+ * @returns a ZigZag encoded unsigned integer
+ */
+
+static uint32_t map_to_unsigned(int32_t value, unsigned int n_bits)
+{
+	compile_time_assert((-1 >> 1) == -1, Arithmetic_shift_need);
+	uint32_t const reg_mask = bitsizeof(value) - 1;
+
+	/*
+	 * The arithmetic right shift of a negative number (value >> (n_bits - 1))
+	 * results in -1 (all bits set), and for a non-negative number, it
+	 * results in 0.
+	 */
+	value = sign_extend(value, n_bits);
+	return (((uint32_t)value << 1) ^ (uint32_t)(value >> ((n_bits - 1) & reg_mask)));
+}
+
+
+/**
+ * @brief forms a codeword according to the Golomb code
+ *
+ * @param value		value to be encoded (must be smaller or equal than cmp_ima_max_spill(m))
+ * @param g_par		Golomb parameter (have to be bigger than 0)
+ * @param g_par_log2	Is ilog_2(g_par) calculate outside function for better
+ *			performance
+ * @param bs		Pointer to a bitstream writer; must be initialized and
+ *			provided by the caller
+ *
+ * @warning there is no check of the validity of the input parameters!
+ * @returns an error code, which can be checked using cmp_is_error()
+ */
+
+static uint32_t golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,
+			      struct bitstream_writer *bs)
+{
+	uint32_t const cutoff = (2U << g_par_log2) - g_par; /* members in group 0 */
+
+	if (value < cutoff) /* group 0 */
+		return bitstream_write32(bs, value, g_par_log2 + 1);
+
+	{ /* other groups */
+		uint32_t const reg_mask = bitsizeof(value) - 1;
+		uint32_t const group_num = (value - cutoff) / g_par;
+		uint32_t const remainder = (value - cutoff) - group_num * g_par;
+		uint32_t const unary_code = (1U << (group_num & reg_mask)) - 1;
+		uint32_t const base_codeword = cutoff << 1;
+		uint32_t len = g_par_log2 + 1;
+		uint32_t codeword = unary_code << ((len + 1) & reg_mask);
+
+		codeword += base_codeword + remainder;
+		len += 1 + group_num; /* length of the codeword */
+
+		return bitstream_write32(bs, codeword, len);
+	}
+}
+
+
+uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
+{
+	uint32_t ret;
+
+	if (!enc || !enc->bs)
+		return CMP_ERROR(INT_ENCODER);
+
+	switch (enc->encoder_type) {
+	case CMP_ENCODER_UNCOMPRESSED:
+		ret = bitstream_write32(enc->bs, (uint16_t)value, bitsizeof(value));
+		break;
+
+	case CMP_ENCODER_GOLOMB_ZERO: {
+		uint16_t const mapped = (uint16_t)map_to_unsigned(value, bitsizeof(value));
+
+		if (mapped < enc->outlier) {
+			/* add 1 for non-outlier values to make space for 0 as escape symbol */
+			ret = golomb_encode((uint32_t)mapped + 1, enc->g_par, enc->g_par_log2,
+					    enc->bs);
+		} else {
+			(void)golomb_encode(0, enc->g_par, enc->g_par_log2, enc->bs);
+			ret = bitstream_write32(enc->bs, mapped, bitsizeof(mapped));
+		}
+		break;
+	}
+	default:
+		return CMP_ERROR(PARAMS_INVALID);
+	}
+
+	return ret;
+}
+
+
+uint32_t cmp_encoder_finish(struct cmp_encoder *enc)
+{
+	if (!enc || !enc->bs)
+		return CMP_ERROR(INT_ENCODER);
+
+	return bitstream_flush(enc->bs);
+}

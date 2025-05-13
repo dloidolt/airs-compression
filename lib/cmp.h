@@ -60,7 +60,8 @@
  */
 
 enum cmp_mode {
-	CMP_MODE_UNCOMPRESSED	/**< Uncompressed mode */
+	CMP_MODE_UNCOMPRESSED, /**< Uncompressed mode */
+	CMP_MODE_GOLOMB_ZERO   /**< Golomb encoder with zero escape mechanism */
 };
 
 
