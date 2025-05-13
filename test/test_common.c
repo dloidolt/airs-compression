@@ -76,14 +76,13 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
  * @returns formatted error message string
  */
 
-static const char *gen_cmp_error_message(enum cmp_error expected,
-					 enum cmp_error actual)
+static const char *gen_cmp_error_message(enum cmp_error expected, enum cmp_error actual)
 {
-	enum{ CMP_TEST_MESSAGE_BUF_SIZE = 128 };
+	enum { CMP_TEST_MESSAGE_BUF_SIZE = 128 };
 	static char message[CMP_TEST_MESSAGE_BUF_SIZE];
 
-	snprintf(message, sizeof(message), "Expected %s Was %s.",
-		 cmp_error_enum_to_str(expected), cmp_error_enum_to_str(actual));
+	snprintf(message, sizeof(message), "Expected %s Was %s.", cmp_error_enum_to_str(expected),
+		 cmp_error_enum_to_str(actual));
 	return message;
 }
 
@@ -95,12 +94,10 @@ static const char *gen_cmp_error_message(enum cmp_error expected,
  * @param cmp_ret_code		compression library return code
  */
 
-void assert_equal_cmp_error_internal(enum cmp_error expected_error,
-				     uint32_t cmp_ret_code, int line)
+void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp_ret_code, int line)
 {
 	enum cmp_error actual_error = cmp_get_error_code(cmp_ret_code);
 	const char *message = gen_cmp_error_message(expected_error, actual_error);
 
-	UNITY_TEST_ASSERT_EQUAL_INT(expected_error, actual_error, line,
-				    message);
+	UNITY_TEST_ASSERT_EQUAL_INT(expected_error, actual_error, line, message);
 }

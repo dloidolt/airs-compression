@@ -109,8 +109,8 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 }
 
 
-uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params,
-			void *work_buf, uint32_t work_buf_size)
+uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
+			uint32_t work_buf_size)
 {
 	uint32_t const min_src_size = 2;
 	uint32_t work_buf_needed;
@@ -195,8 +195,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (prepocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	n_values = prepocess->init(src, src_size, ctx->work_buf,
-				   ctx->work_buf_size,
+	n_values = prepocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size,
 				   ctx->params.model_rate);
 	if (cmp_is_error_int(n_values))
 		return n_values;
@@ -204,8 +203,9 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	for (i = 0; i < n_values; i++) {
 		int16_t const prepocessed_value = prepocess->process(i, src, ctx->work_buf);
 		int const model_initialisation_need = ctx->pass_count == 0 &&
-			ctx->params.secondary_preprocessing == CMP_PREPROCESS_MODEL &&
-			ctx->params.max_secondary_passes != 0;
+						      ctx->params.secondary_preprocessing ==
+							      CMP_PREPROCESS_MODEL &&
+						      ctx->params.max_secondary_passes != 0;
 
 		if (model_initialisation_need) {
 			uint16_t *model = ctx->work_buf;
@@ -223,7 +223,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		return cmp_size;
 
 	{ /* Build header */
-		struct cmp_hdr hdr = {0};
+		struct cmp_hdr hdr = { 0 };
 		uint32_t return_val;
 
 		hdr.version = CMP_VERSION_NUMBER;
@@ -248,7 +248,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 uint32_t cmp_reset(struct cmp_context *ctx)
 {
-	uint64_t const timestamp =  g_get_current_timestamp();
+	uint64_t const timestamp = g_get_current_timestamp();
 
 	if (ctx == NULL)
 		return CMP_ERROR(CONTEXT_INVALID);

@@ -33,12 +33,12 @@
  */
 
 struct bitstream_writer {
-	uint64_t cache; /**< Local bit cache  */
+	uint64_t cache;	      /**< Local bit cache  */
 	unsigned int bit_cap; /**< Bit capacity left in the cache */
-	uint8_t *start; /**< Beginning of bitstream */
-	uint8_t *ptr;   /**< Current write position */
-	uint8_t *end;   /**< End of the bitstream pointer */
-	int overflow;
+	uint8_t *start;	      /**< Beginning of bitstream */
+	uint8_t *ptr;	      /**< Current write position */
+	uint8_t *end;	      /**< End of the bitstream pointer */
+	int overflow;	      /**< Set to non-zero if buffer overflows */
 };
 
 
@@ -52,8 +52,7 @@ struct bitstream_writer {
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-static __inline uint32_t bitstream_write_init(struct bitstream_writer *bs,
-					      void *dst, uint32_t size)
+static __inline uint32_t bitstream_write_init(struct bitstream_writer *bs, void *dst, uint32_t size)
 {
 	if (!bs)
 		return CMP_ERROR(INT_BITSTREAM);
@@ -102,8 +101,8 @@ static __inline void put_be64(void *ptr, uint64_t val)
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-static __inline uint32_t bitstream_write(struct bitstream_writer *bs,
-					 uint32_t value, unsigned int nb_bits)
+static __inline uint32_t bitstream_write(struct bitstream_writer *bs, uint32_t value,
+					 unsigned int nb_bits)
 {
 	if (!bs)
 		return CMP_ERROR(INT_BITSTREAM);
@@ -193,8 +192,7 @@ static __inline uint32_t bitstream_size(const struct bitstream_writer *bs)
 	if (bs->overflow)
 		return CMP_ERROR(DST_TOO_SMALL);
 
-	return (uint32_t)(bs->ptr - bs->start)
-		+ (64 - (uint32_t)bs->bit_cap + 7)/8;
+	return (uint32_t)(bs->ptr - bs->start) + (64 - (uint32_t)bs->bit_cap + 7) / 8;
 }
 
 

@@ -11,8 +11,8 @@
 #include <string.h>
 
 #include "encoder.h"
+#include "bitstream_write.h"
 #include "../cmp.h"
-#include "../common/bitstream_writer.h"
 #include "../common/err_private.h"
 #include "../common/compiler.h"
 
@@ -35,7 +35,7 @@ static unsigned int ilog2(uint32_t x)
 	if (x == 0)
 		return UINT_MAX;
 
-	return bitsizeof(unsigned int) - 1 - (unsigned int)__builtin_clz(x);
+	return bitsizeof(x) - 1 - (unsigned int)__builtin_clz(x);
 }
 
 
@@ -111,24 +111,25 @@ static uint32_t optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
 }
 
 
-uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, struct bitstream_writer *bs)
+uint32_t cmp_encoder_init(struct cmp_encoder *enc, const struct cmp_params *params,
+			  struct bitstream_writer *bs)
 {
-	if (!enc || !bs)
+	if (!enc || !params || !bs)
 		return CMP_ERROR(INT_ENCODER);
 
 	memset(enc, 0, sizeof(*enc));
-	enc->encoder_type = encoder_type;
+	enc->mode = params->mode;
 	enc->bs = bs;
 
-	switch (enc->encoder_type) {
-	case CMP_ENCODER_UNCOMPRESSED:
+	switch (enc->mode) {
+	case CMP_MODE_UNCOMPRESSED:
 		break;
-	case CMP_ENCODER_GOLOMB_ZERO:
-		if (encoder_param < CMP_MIN_GOLOMB_PAR || encoder_param > CMP_MAX_GOLOMB_PAR)
+	case CMP_MODE_GOLOMB_ZERO:
+		if (params->compression_par < CMP_MIN_GOLOMB_PAR ||
+		    params->compression_par > CMP_MAX_GOLOMB_PAR)
 			return CMP_ERROR(PARAMS_INVALID);
-		enc->g_par = encoder_param;
-		enc->g_par_log2 = ilog2(encoder_param);
+		enc->g_par = params->compression_par;
+		enc->g_par_log2 = ilog2(params->compression_par);
 		enc->outlier = optimal_outlier_zero(enc->g_par, CMP_NUM_BITS_PER_SAMPLE);
 		if (enc->outlier == 0)
 			return CMP_ERROR(PARAMS_INVALID);
@@ -138,15 +139,6 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 	}
 
 	return CMP_ERROR(NO_ERROR);
-}
-
-
-uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param)
-{
-	struct cmp_encoder enc_dummy;
-	struct bitstream_writer bs_dummy;
-
-	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, &bs_dummy);
 }
 
 
@@ -165,7 +157,8 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 static int32_t sign_extend(int32_t value, unsigned int n_bits)
 {
 	compile_time_assert((-1 >> 1) == -1, Arithmetic_shift_need);
-	unsigned int const extend_bits = (bitsizeof(value) - n_bits) & (bitsizeof(value) - 1);
+	unsigned int const extend_bits =
+		(bitsizeof(value) - n_bits) & (bitsizeof(value) - 1);
 
 	return (int32_t)((uint32_t)value << extend_bits) >> extend_bits;
 }
@@ -220,24 +213,24 @@ static uint32_t map_to_unsigned(int32_t value, unsigned int n_bits)
 static uint32_t golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,
 			      struct bitstream_writer *bs)
 {
-	uint32_t const cutoff = (2U << g_par_log2) - g_par; /* members in group 0 */
+	uint32_t const cutoff = (2U << g_par_log2) - g_par;  /* members in group 0 */
 
 	if (value < cutoff) /* group 0 */
 		return bitstream_write32(bs, value, g_par_log2 + 1);
 
-	{ /* other groups */
-		uint32_t const reg_mask = bitsizeof(value) - 1;
-		uint32_t const group_num = (value - cutoff) / g_par;
-		uint32_t const remainder = (value - cutoff) - group_num * g_par;
+	{  /* other groups */
+		uint32_t const reg_mask = bitsizeof(value)-1;
+		uint32_t const group_num = (value-cutoff) / g_par;
+		uint32_t const remainder = (value-cutoff) - group_num * g_par;
 		uint32_t const unary_code = (1U << (group_num & reg_mask)) - 1;
 		uint32_t const base_codeword = cutoff << 1;
 		uint32_t len = g_par_log2 + 1;
-		uint32_t codeword = unary_code << ((len + 1) & reg_mask);
+		uint32_t codeword = unary_code << ((len+1) & reg_mask);
 
 		codeword += base_codeword + remainder;
 		len += 1 + group_num; /* length of the codeword */
 
-		return bitstream_write32(bs, codeword, len);
+		return bitstream_write(bs, codeword, len);
 	}
 }
 
@@ -249,9 +242,9 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 	if (!enc || !enc->bs)
 		return CMP_ERROR(INT_ENCODER);
 
-	switch (enc->encoder_type) {
-	case CMP_ENCODER_UNCOMPRESSED:
-		ret = bitstream_write32(enc->bs, (uint16_t)value, bitsizeof(value));
+	switch (enc->mode) {
+	case CMP_MODE_UNCOMPRESSED:
+		ret = bitstream_write(enc->bs, (uint16_t)value, bitsizeof(value));
 		break;
 
 	case CMP_ENCODER_GOLOMB_ZERO: {
@@ -263,7 +256,7 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 					    enc->bs);
 		} else {
 			(void)golomb_encode(0, enc->g_par, enc->g_par_log2, enc->bs);
-			ret = bitstream_write32(enc->bs, mapped, bitsizeof(mapped));
+			ret = bitstream_write(enc->bs, mapped, bitsizeof(mapped));
 		}
 		break;
 	}

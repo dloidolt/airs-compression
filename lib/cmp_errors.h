@@ -26,35 +26,35 @@
  */
 
 enum cmp_error {
-	CMP_ERR_NO_ERROR = 0,			/**< Operation completed successfully */
+	CMP_ERR_NO_ERROR = 0, /**< Operation completed successfully */
 
 	/* General errors (1-9) */
-	CMP_ERR_GENERIC = 1,			/**< Generic error occurred */
+	CMP_ERR_GENERIC = 1, /**< Generic error occurred */
 
 	/* Parameter validation errors (10-29) */
-	CMP_ERR_CONTEXT_INVALID = 10,		/**< Invalid compression context */
-	CMP_ERR_PARAMS_INVALID = 11,		/**< Invalid compression parameters */
-	CMP_ERR_WORK_BUF_NULL = 12,		/**< Work buffer is NULL but required */
-	CMP_ERR_WORK_BUF_TOO_SMALL = 13,	/**< Work buffer is too small */
-	CMP_ERR_DST_NULL = 14,			/**< Destination buffer pointer is NULL */
-	CMP_ERR_DST_UNALIGNED = 15,		/**< Destination buffer not correct aligned */
-	CMP_ERR_SRC_NULL = 16,			/**< Source buffer pointer is NULL */
-	CMP_ERR_SRC_SIZE_WRONG = 17,		/**< Source buffer size doesn't match expected size */
+	CMP_ERR_CONTEXT_INVALID = 10,	 /**< Invalid compression context */
+	CMP_ERR_PARAMS_INVALID = 11,	 /**< Invalid compression parameters */
+	CMP_ERR_WORK_BUF_NULL = 12,	 /**< Work buffer is NULL but required */
+	CMP_ERR_WORK_BUF_TOO_SMALL = 13, /**< Work buffer is too small */
+	CMP_ERR_DST_NULL = 14,		 /**< Destination buffer pointer is NULL */
+	CMP_ERR_DST_UNALIGNED = 15,	 /**< Destination buffer not correct aligned */
+	CMP_ERR_SRC_NULL = 16,		 /**< Source buffer pointer is NULL */
+	CMP_ERR_SRC_SIZE_WRONG = 17,	 /**< Source buffer size doesn't match expected size */
 
 	/* Runtime errors (30-39) */
-	CMP_ERR_DST_TOO_SMALL = 30,		/**< Destination buffer is too small */
-	CMP_ERR_SRC_SIZE_MISMATCH = 31,		/**< Source data size changed with model preprocessing */
-	CMP_ERR_TIMESTAMP_INVALID = 32,		/**< Invalid timestamp provided */
+	CMP_ERR_DST_TOO_SMALL = 30,	/**< Destination buffer is too small */
+	CMP_ERR_SRC_SIZE_MISMATCH = 31, /**< Source data size changed with model preprocessing */
+	CMP_ERR_TIMESTAMP_INVALID = 32, /**< Invalid timestamp provided */
 
 	/* Internal errors (100-109) */
-	CMP_ERR_INT_HDR = 100,			/**< Internal header processing error */
-	CMP_ERR_INT_ENCODER = 101,		/**< Internal data encoder error */
-	CMP_ERR_INT_BITSTREAM = 102,		/**< Internal bitstream error */
+	CMP_ERR_INT_HDR = 100,	     /**< Internal header processing error */
+	CMP_ERR_INT_ENCODER = 101,   /**< Internal data encoder error */
+	CMP_ERR_INT_BITSTREAM = 102, /**< Internal bitstream error */
 	/*
 	 * Limit marker - not an actual error code
 	 * Do not use this value directly. Prefer cmp_is_error() for error checking.
 	 */
-	CMP_ERR_MAX_CODE = 128			/**< Maximum error code value. Do not use this */
+	CMP_ERR_MAX_CODE = 128 /**< Maximum error code value. Do not use this */
 };
 
 

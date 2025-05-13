@@ -411,7 +411,8 @@ void test_bound_size_is_enough_for_uncompressed_mode(void)
 	uint32_t const bound = cmp_compress_bound(3);
 
 	TEST_ASSERT_CMP_SUCCESS(bound);
-	TEST_ASSERT_GREATER_OR_EQUAL_UINT32(CMP_HDR_SIZE + 4, bound); /* round size up to next multiple of 2 */
+	/* round size up to next multiple of 2 */
+	TEST_ASSERT_GREATER_OR_EQUAL_UINT32(CMP_HDR_SIZE + 4, bound);
 }
 
 

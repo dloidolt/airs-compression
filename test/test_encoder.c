@@ -98,13 +98,12 @@ void test_detect_bitstream_overflow(void)
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);
 }
 
-
 void test_bitstream_skip_first_8_bytes(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[10] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-	uint8_t expected_bs[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0xAB};
+	uint8_t buffer[10] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+	uint8_t expected_bs[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0xAB };
 
 	bitstream_write_init(&bsw, buffer, sizeof(buffer));
 
@@ -116,13 +115,12 @@ void test_bitstream_skip_first_8_bytes(void)
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
 }
 
-
 void test_bitstream_skip_first_3_bytes(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[10] = {0xAB, 0xCD, 0xEF};
-	uint8_t expected_bs[] = {0xAB, 0xCD, 0xEF, 0x12};
+	uint8_t buffer[10] = { 0xAB, 0xCD, 0xEF };
+	uint8_t expected_bs[] = { 0xAB, 0xCD, 0xEF, 0x12 };
 
 	bitstream_write_init(&bsw, buffer, sizeof(buffer));
 
@@ -149,11 +147,10 @@ void test_bitstream_skip_over_buffer_end(void)
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);
 }
 
-
 void test_encode_values_with_golomb_zero(void)
 {
 	const int16_t data_to_encode[] = { -1, 1 };
-	const uint8_t expected_output[] = { 0xDC};
+	const uint8_t expected_output[] = { 0xDC };
 	uint8_t output_buf[CMP_HDR_SIZE + 4];
 	uint32_t output_size;
 	struct cmp_context ctx;
@@ -167,9 +164,11 @@ void test_encode_values_with_golomb_zero(void)
 				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE+sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf), sizeof(expected_output));
-	{	struct cmp_hdr expected_hdr = { 0 };
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_output), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_output));
+	{
+		struct cmp_hdr expected_hdr = { 0 };
 
 		expected_hdr.version = CMP_VERSION_NUMBER;
 		expected_hdr.cmp_size = output_size;
@@ -199,9 +198,11 @@ void test_encode_values_with_golomb_zero_withoutlier(void)
 				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE+sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf), sizeof(expected_output));
-	{	struct cmp_hdr expected_hdr = { 0 };
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_output), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_output));
+	{
+		struct cmp_hdr expected_hdr = { 0 };
 
 		expected_hdr.version = CMP_VERSION_NUMBER;
 		expected_hdr.cmp_size = output_size;
@@ -231,9 +232,11 @@ void test_encode_values_with_compression_par(void)
 				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE+sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf), sizeof(expected_output));
-	{	struct cmp_hdr expected_hdr = { 0 };
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_output), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_output));
+	{
+		struct cmp_hdr expected_hdr = { 0 };
 
 		expected_hdr.version = CMP_VERSION_NUMBER;
 		expected_hdr.cmp_size = output_size;

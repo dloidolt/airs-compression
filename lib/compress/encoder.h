@@ -30,11 +30,10 @@
 
 struct cmp_encoder {
 	struct bitstream_writer *bs; /**< Pointer to a bitstream write */
-
-	enum cmp_mode mode;  /** Algorithm used for encoding samples  */
+	enum cmp_mode mode;	     /** Algorithm used for encoding samples  */
 
 	/* Golomb parameters (used only in GOLOMB modes, otherwise ignored) */
-	uint32_t g_par;      /**< Golomb parameter */
+	uint32_t g_par;	     /**< Golomb parameter */
 	uint32_t g_par_log2; /**< Precomputed log2(Golomb parameter) for performance */
 	uint32_t outlier;    /**< Threshold value for encoding outliers */
 };

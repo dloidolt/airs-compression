@@ -23,18 +23,16 @@
 
 void test_vesion_matches(void)
 {
-	enum {
-		MAX_PATH_SIZE = 256,
-		CONTENT_SIZE = 200
-	};
-	char file_path[256] = {0};
-	char content[CONTENT_SIZE] = {0};
+	enum { MAX_PATH_SIZE = 256, CONTENT_SIZE = 200 };
+	char file_path[256] = { 0 };
+	char content[CONTENT_SIZE] = { 0 };
 	const char *version_key = "\"version\": \"";
 
 	FILE *fp;
 	size_t ret;
 
-	int read = snprintf(file_path, sizeof(file_path), "%s/meson-info/intro-projectinfo.json", CMP_MESON_BUILD_ROOT);
+	int read = snprintf(file_path, sizeof(file_path), "%s/meson-info/intro-projectinfo.json",
+			    CMP_MESON_BUILD_ROOT);
 
 	TEST_ASSERT_NOT_EQUAL(0, read);
 	TEST_ASSERT_LESS_THAN(sizeof(file_path), read);
@@ -57,8 +55,8 @@ void test_vesion_matches(void)
 		TEST_ASSERT_NOT_NULL(end);
 		*end = '\0';
 
-		snprintf(version_exp, sizeof(version_exp), "%d.%d.%d",
-			 CMP_VERSION_MAJOR, CMP_VERSION_MINOR, CMP_VERSION_RELEASE);
+		snprintf(version_exp, sizeof(version_exp), "%d.%d.%d", CMP_VERSION_MAJOR,
+			 CMP_VERSION_MINOR, CMP_VERSION_RELEASE);
 		TEST_ASSERT_EQUAL_STRING(version_exp, version);
 	}
 	fclose(fp);

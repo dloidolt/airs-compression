@@ -66,8 +66,7 @@ static __inline int16_t floor_division_by_4(int32_t dividend)
  * @returns the odd (low frequency) coefficient
  */
 
-static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left,
-					    int16_t right)
+static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_t right)
 {
 	return centre - floor_division_by_2(left + right);
 }
@@ -114,8 +113,7 @@ static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_le
  * @returns the calculated edge even (high frequency) coefficient
  */
 
-static __inline int16_t iwt_edge_even_coefficient(int16_t centre,
-						  int16_t odd_coef_neighbour)
+static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_coef_neighbour)
 {
 	return centre + floor_division_by_2(odd_coef_neighbour);
 }
@@ -229,9 +227,8 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
  *	be checked with cmp_is_error()
  */
 
-static uint32_t none_init(const uint16_t *src, uint32_t src_size,
-			  void *work_buf UNUSED, uint32_t work_buf_size UNUSED,
-			  uint32_t optional_arg UNUSED)
+static uint32_t none_init(const uint16_t *src, uint32_t src_size, void *work_buf UNUSED,
+			  uint32_t work_buf_size UNUSED, uint32_t optional_arg UNUSED)
 {
 	if (!src)
 		return CMP_ERROR(SRC_NULL);
@@ -239,7 +236,7 @@ static uint32_t none_init(const uint16_t *src, uint32_t src_size,
 		return CMP_ERROR(SRC_SIZE_WRONG);
 	if (src_size % sizeof(uint16_t) != 0)
 		return CMP_ERROR(SRC_SIZE_WRONG);
-	return src_size/sizeof(uint16_t);
+	return src_size / sizeof(uint16_t);
 }
 
 
@@ -269,8 +266,7 @@ static int16_t none_process(uint32_t i, const uint16_t *src, void *work_buf UNUS
  * @returns the processed data at index i
  */
 
-static int16_t diff_process(uint32_t i, const uint16_t *src,
-			    void *work_buf UNUSED)
+static int16_t diff_process(uint32_t i, const uint16_t *src, void *work_buf UNUSED)
 {
 	if (i == 0)
 		return (int16_t)src[0];
@@ -309,9 +305,8 @@ static uint32_t iwt_get_work_buf_size(uint32_t input_size)
  *	can be checked using cmp_is_error()).
  */
 
-static uint32_t iwt_init(const uint16_t *src, uint32_t src_size,
-			 void *work_buf, uint32_t work_buf_size,
-			 uint32_t optional_arg)
+static uint32_t iwt_init(const uint16_t *src, uint32_t src_size, void *work_buf,
+			 uint32_t work_buf_size, uint32_t optional_arg)
 {
 	uint32_t const num_samples =
 		none_init(src, src_size, work_buf, work_buf_size, optional_arg);
@@ -326,8 +321,7 @@ static uint32_t iwt_init(const uint16_t *src, uint32_t src_size,
 	if (work_buf_size < iwt_get_work_buf_size(src_size))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 
-	iwt_multi_level_decomposition_i16(input_data, pre_cal_coefficient,
-					  num_samples);
+	iwt_multi_level_decomposition_i16(input_data, pre_cal_coefficient, num_samples);
 
 	return num_samples;
 }
@@ -380,12 +374,10 @@ static uint32_t model_get_work_buf_size(uint32_t input_size)
  *	can be checked using cmp_is_error()).
  */
 
-static uint32_t model_init(const uint16_t *src, uint32_t src_size,
-			   void *work_buf, uint32_t work_buf_size,
-			   uint32_t model_rate)
+static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_buf,
+			   uint32_t work_buf_size, uint32_t model_rate)
 {
-	uint32_t const num_samples =
-		none_init(src, src_size, work_buf, work_buf_size, model_rate);
+	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size, model_rate);
 
 	if (cmp_is_error_int(num_samples))
 		return num_samples;
@@ -439,10 +431,10 @@ static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
 const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessing type)
 {
 	static const struct preprocessing_method preprocessing_methods[] = {
-		{CMP_PREPROCESS_NONE, none_get_work_buf_size, none_init, none_process},
-		{CMP_PREPROCESS_DIFF, none_get_work_buf_size, none_init, diff_process},
-		{CMP_PREPROCESS_IWT, iwt_get_work_buf_size, iwt_init, iwt_process},
-		{CMP_PREPROCESS_MODEL, model_get_work_buf_size, model_init, model_process}
+		{ CMP_PREPROCESS_NONE, none_get_work_buf_size, none_init, none_process },
+		{ CMP_PREPROCESS_DIFF, none_get_work_buf_size, none_init, diff_process },
+		{ CMP_PREPROCESS_IWT, iwt_get_work_buf_size, iwt_init, iwt_process },
+		{ CMP_PREPROCESS_MODEL, model_get_work_buf_size, model_init, model_process }
 	};
 	size_t i;
 

@@ -18,7 +18,7 @@ enum cmp_error cmp_get_error_code(uint32_t code)
 {
 	if (!cmp_is_error_int(code))
 		return CMP_ERR_NO_ERROR;
-	return (enum cmp_error)(0-code);
+	return (enum cmp_error)(0 - code);
 }
 
 

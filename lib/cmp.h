@@ -43,12 +43,14 @@
 /**
  * @brief complete version number
  */
-#define CMP_VERSION_NUMBER (CMP_VERSION_MAJOR*100*100 + CMP_VERSION_MINOR*100 + CMP_VERSION_RELEASE)
+#define CMP_VERSION_NUMBER \
+	(CMP_VERSION_MAJOR * 100 * 100 + CMP_VERSION_MINOR * 100 + CMP_VERSION_RELEASE)
 
 /**
  * @brief complete version string
  */
-#define CMP_VERSION_STRING CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
+#define CMP_VERSION_STRING \
+	CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
 
 /* ====== Compression Parameters Limits ====== */
 #define CMP_MAX_SECONDARY_PASSES_MAX UINT8_MAX
@@ -90,14 +92,15 @@ enum cmp_preprocessing {
 
 struct cmp_params {
 	/* Preprocessing Settings */
-	enum cmp_preprocessing primary_preprocessing;   /**< Preprocessing applied on the first pass */
-	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
+	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing applied on the first pass */
+	enum cmp_preprocessing
+		secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
 	uint32_t max_secondary_passes; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
-	uint32_t model_rate;           /**< Rate at which the model adapts during model-based preprocessing */
+	uint32_t model_rate; /**< Rate at which the model adapts during model-based preprocessing */
 
 	/* Data Encoding Settings */
-	enum cmp_mode mode;         /**< Compression mode */
-	uint32_t compression_par;   /**< Compression parameter */
+	enum cmp_mode mode;	  /**< Compression mode */
+	uint32_t compression_par; /**< Compression parameter */
 };
 
 
@@ -113,11 +116,11 @@ struct cmp_params {
 
 struct cmp_context {
 	struct cmp_params params; /**< Compression parameters used in the current context */
-	void *work_buf;           /**< Pointer to the working buffer */
-	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
-	uint32_t pass_count;      /**< Number of compression passes performed since the last reset */
-	uint64_t model_id;        /**< Identifier for the compression model */
-	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
+	void *work_buf;		  /**< Pointer to the working buffer */
+	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
+	uint32_t pass_count; /**< Number of compression passes performed since the last reset */
+	uint64_t model_id;   /**< Identifier for the compression model */
+	uint32_t model_size; /**< Size of the model used in the model-based preprocessing */
 };
 
 
@@ -194,9 +197,8 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_initialise(struct cmp_context *ctx,
-			const struct cmp_params *params,
-			void *work_buf, uint32_t work_buf_size);
+uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
+			uint32_t work_buf_size);
 
 /**
  * @brief compresses an unsigned 16-bit data buffer

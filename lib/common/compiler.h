@@ -23,10 +23,9 @@
  *	#endif
  */
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
-# define CMP_GNUC_PREREQ(maj, min) \
-	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#  define CMP_GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
 #else
- #define CMP_GNUC_PREREQ(maj, min) 0
+#  define CMP_GNUC_PREREQ(maj, min) 0
 #endif
 
 /**
@@ -47,8 +46,7 @@
  *		 ((char *)(foo)						\
  *		  + BUILD_ASSERT_OR_ZERO(offsetof(struct foo, string) == 0))
  */
-#define BUILD_ASSERT_OR_ZERO(cond) \
-	(sizeof(char [1 - 2*!(cond)]) - 1)
+#define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - 2 * !(cond)]) - 1)
 
 
 /**
@@ -57,12 +55,12 @@
  */
 
 #if CMP_GNUC_PREREQ(3, 1)
- /* &arr[0] degrades to a pointer: a different type from an array */
-# define BARF_UNLESS_AN_ARRAY(arr)						\
-	BUILD_ASSERT_OR_ZERO(!__builtin_types_compatible_p(__typeof__(arr), \
-							   __typeof__(&(arr)[0])))
+/* &arr[0] degrades to a pointer: a different type from an array */
+#  define BARF_UNLESS_AN_ARRAY(arr) \
+	  BUILD_ASSERT_OR_ZERO(     \
+		  !__builtin_types_compatible_p(__typeof__(arr), __typeof__(&(arr)[0])))
 #else
-# define BARF_UNLESS_AN_ARRAY(arr) 0
+#  define BARF_UNLESS_AN_ARRAY(arr) 0
 #endif
 
 
@@ -80,7 +78,7 @@
 /**
  * We assume that a byte as 8 bits
  */
-#define bitsizeof(x)  (8 * sizeof(x))
+#define bitsizeof(x) (8 * sizeof(x))
 
 
 /**
@@ -99,13 +97,11 @@
  */
 
 #if CMP_GNUC_PREREQ(4, 5) || defined(__clang__)
-#define UNUSED __attribute__((unused)) \
-	__attribute__((deprecated("parameter declared as UNUSED")))
+#  define UNUSED __attribute__((unused)) __attribute__((deprecated("parameter declared as UNUSED")))
 #elif defined(__GNUC__)
-#define UNUSED __attribute__((unused)) \
-	__attribute__((deprecated))
+#  define UNUSED __attribute__((unused)) __attribute__((deprecated))
 #else
-#define UNUSED
+#  define UNUSED
 #endif
 
 
@@ -124,7 +120,6 @@
  */
 
 #define MAYBE_UNUSED __attribute__((__unused__))
-
 
 
 #endif /*  COMPAT_UTIL_H */

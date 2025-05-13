@@ -54,9 +54,8 @@
 struct preprocessing_method {
 	enum cmp_preprocessing type;
 	uint32_t (*get_work_buf_size)(uint32_t input_size);
-	uint32_t (*init)(const uint16_t *src, uint32_t src_size,
-			 void *work_buf, uint32_t work_buf_size,
-			 uint32_t optional_arg);
+	uint32_t (*init)(const uint16_t *src, uint32_t src_size, void *work_buf,
+			 uint32_t work_buf_size, uint32_t optional_arg);
 	int16_t (*process)(uint32_t i, const uint16_t *src, void *work_buf);
 };
 
