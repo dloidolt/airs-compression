@@ -15,7 +15,7 @@
 #include "../lib/cmp.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/common/header.h"
-#include "../lib/compress/bitstream_write.h"
+#include "../lib/common/bitstream_writer.h"
 
 void test_bitstream_write_nothing(void)
 {
@@ -23,12 +23,13 @@ void test_bitstream_write_nothing(void)
 	struct bitstream_writer bsw;
 	uint8_t buffer[1];
 
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
+	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL(0, size);
 }
+
 
 void test_bitstream_write_single_bit_one(void)
 {
@@ -36,9 +37,9 @@ void test_bitstream_write_single_bit_one(void)
 	struct bitstream_writer bsw;
 	uint8_t buffer[1];
 
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
+	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
-	bitstream_write(&bsw, 1, 1);
+	bitstream_write32(&bsw, 1, 1);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_UINT8(0x80, buffer[0]);
@@ -52,10 +53,10 @@ void test_bitstream_write_two_bits_zero_one(void)
 	struct bitstream_writer bsw;
 	uint8_t buffer[1];
 
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
+	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
-	bitstream_write(&bsw, 0, 1);
-	bitstream_write(&bsw, 1, 1);
+	bitstream_write32(&bsw, 0, 1);
+	bitstream_write32(&bsw, 1, 1);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_UINT8(0x40, buffer[0]);
@@ -70,13 +71,13 @@ void test_bitstream_write_10bytes(void)
 	uint8_t buffer[10];
 	uint8_t expected_bs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 };
 
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
+	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
-	bitstream_write(&bsw, 0x0001, 16);
-	bitstream_write(&bsw, 0x0203, 16);
-	bitstream_write(&bsw, 0x0405, 16);
-	bitstream_write(&bsw, 0x0607, 16);
-	bitstream_write(&bsw, 0x0809, 16);
+	bitstream_write32(&bsw, 0x0001, 16);
+	bitstream_write32(&bsw, 0x0203, 16);
+	bitstream_write32(&bsw, 0x0405, 16);
+	bitstream_write32(&bsw, 0x0607, 16);
+	bitstream_write32(&bsw, 0x0809, 16);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
@@ -90,62 +91,14 @@ void test_detect_bitstream_overflow(void)
 	struct bitstream_writer bsw;
 	uint8_t buffer[1];
 
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
+	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
-	bitstream_write(&bsw, 0x1F, 9);
+	bitstream_write32(&bsw, 0x1F, 9);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);
 }
 
-void test_bitstream_skip_first_8_bytes(void)
-{
-	uint32_t size;
-	struct bitstream_writer bsw;
-	uint8_t buffer[10] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
-	uint8_t expected_bs[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0xAB };
-
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
-
-	bitstream_skip_bytes(&bsw, 8);
-	bitstream_write(&bsw, 0xAB, 8);
-	size = bitstream_flush(&bsw);
-
-	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
-}
-
-void test_bitstream_skip_first_3_bytes(void)
-{
-	uint32_t size;
-	struct bitstream_writer bsw;
-	uint8_t buffer[10] = { 0xAB, 0xCD, 0xEF };
-	uint8_t expected_bs[] = { 0xAB, 0xCD, 0xEF, 0x12 };
-
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
-
-	bitstream_skip_bytes(&bsw, 3);
-	bitstream_write(&bsw, 0x12, 8);
-	size = bitstream_flush(&bsw);
-
-	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
-}
-
-
-void test_bitstream_skip_over_buffer_end(void)
-{
-	uint32_t size;
-	struct bitstream_writer bsw;
-	uint8_t buffer[4];
-
-	bitstream_write_init(&bsw, buffer, sizeof(buffer));
-
-	bitstream_skip_bytes(&bsw, 7);
-	size = bitstream_flush(&bsw);
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);
-}
 
 void test_encode_values_with_golomb_zero(void)
 {

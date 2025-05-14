@@ -11,8 +11,8 @@
 #define CMP_ENCODER_H
 
 #include <stdint.h>
-#include "bitstream_write.h"
 #include "../cmp.h"
+#include "../common/bitstream_writer.h"
 
 #define CMP_MIN_GOLOMB_PAR 1
 #define CMP_MAX_GOLOMB_PAR UINT16_MAX

@@ -13,14 +13,25 @@
 
 #include <stdint.h>
 
-/** maximum allowed compressed data size in bytes */
-#define CMP_MAX_CMP_SIZE 0xFFFFFF
+#include "bitstream_writer.h"
 
-/** maximum allowed size to compress in bytes */
-#define CMP_MAX_ORIGINAL_SIZE 0xFFFFFF
+/** Size of the compression header in bytes TBD */
+#define CMP_HDR_SIZE                                                                       \
+	((CMP_HDR_BITS_VERSION + CMP_HDR_BITS_CMP_SIZE + CMP_HDR_BITS_ORIGINAL_SIZE +      \
+	  CMP_HDR_BITS_MODE + CMP_HDR_BITS_PREPROCESS + CMP_HDR_BITS_MODEL_RATE +          \
+	  CMP_HDR_BITS_MODEL_ID + CMP_HDR_BITS_PASS_COUNT + CMP_HDR_BITS_COMPRESSION_PAR)  \
+	 / 8)
 
-/** size of the compression header in bytes TBD */
-#define CMP_HDR_SIZE 20
+/* Bit length of the different header fields */
+#define CMP_HDR_BITS_VERSION 16
+#define CMP_HDR_BITS_CMP_SIZE 24
+#define CMP_HDR_BITS_ORIGINAL_SIZE 24
+#define CMP_HDR_BITS_MODE 8
+#define CMP_HDR_BITS_PREPROCESS 8
+#define CMP_HDR_BITS_MODEL_RATE 8
+#define CMP_HDR_BITS_MODEL_ID 48
+#define CMP_HDR_BITS_PASS_COUNT 8
+#define CMP_HDR_BITS_COMPRESSION_PAR 16
 
 
 /**
@@ -47,17 +58,14 @@ struct cmp_hdr {
 /**
  * @brief serialize compression header to a byte buffer
  *
- * Data are written in big-endian byte order.
- *
- * @param dst		destination buffer to write serialized header
- * @param dst_size	size of destination buffer
+ * @param bs		Pointer to a initialized bitstream writer structure
  * @param hdr		Pointer to header structure to serialize
  *
  * @returns the compression header size or an error, which can be checked using
  *	cmp_is_error()
  */
 
-uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *hdr);
+uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hdr);
 
 
 /**

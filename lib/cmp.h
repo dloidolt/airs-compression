@@ -52,9 +52,6 @@
 #define CMP_VERSION_STRING \
 	CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
 
-/* ====== Compression Parameters Limits ====== */
-#define CMP_MAX_SECONDARY_PASSES_MAX UINT8_MAX
-
 /* ====== Parameter Selection ====== */
 /**
  * @brief available compression modes

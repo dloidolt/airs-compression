@@ -13,6 +13,7 @@
 
 #include "header.h"
 #include "err_private.h"
+#include "bitstream_writer.h"
 
 
 void *cmp_hdr_get_cmp_data(void *header)
@@ -21,113 +22,45 @@ void *cmp_hdr_get_cmp_data(void *header)
 }
 
 
-static uint32_t serialize_u48(uint8_t *dst, uint64_t value)
+uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hdr)
 {
-	if (value > (((uint64_t)1 << 48) - 1))
+	uint32_t start_size, end_size;
+
+	if (!hdr)
 		return CMP_ERROR(INT_HDR);
 
-	dst[0] = (uint8_t)(value >> 40);
-	dst[1] = (uint8_t)(value >> 32);
-	dst[2] = (uint8_t)(value >> 24);
-	dst[3] = (uint8_t)(value >> 16);
-	dst[4] = (uint8_t)(value >> 8);
-	dst[5] = (uint8_t)(value & 0xFF);
+	if (hdr->original_size >= 1ULL << CMP_HDR_BITS_ORIGINAL_SIZE)
+		return CMP_ERROR(SRC_SIZE_WRONG);
 
-	return 6;
-}
+	start_size = bitstream_size(bs);
+	if (cmp_is_error_int(start_size))
+		return start_size;
 
+/* Local macro for this function only */
+#define CMP_DO_WRITE_OR_RETURN(bs_ptr, val_to_write, len_to_write)                        \
+	do {                                                                              \
+		uint32_t __err_code;                                                      \
+		__err_code = bitstream_write64((bs_ptr), (val_to_write), (len_to_write)); \
+		if (cmp_is_error_int(__err_code))                                         \
+			return __err_code;                                                \
+	} while (0)
 
-static uint32_t serialize_u24(uint8_t *dst, uint32_t value)
-{
-	if (value > (((uint32_t)1 << 24) - 1))
-		return CMP_ERROR(INT_HDR);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->version, CMP_HDR_BITS_VERSION);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->cmp_size, CMP_HDR_BITS_CMP_SIZE);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->original_size, CMP_HDR_BITS_ORIGINAL_SIZE);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->mode, CMP_HDR_BITS_MODE);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->preprocess, CMP_HDR_BITS_PREPROCESS);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->model_rate, CMP_HDR_BITS_MODEL_RATE);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->model_id, CMP_HDR_BITS_MODEL_ID);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->pass_count, CMP_HDR_BITS_PASS_COUNT);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->compression_par, CMP_HDR_BITS_COMPRESSION_PAR);
+#undef CMP_DO_WRITE_OR_RETURN
 
-	dst[0] = (uint8_t)(value >> 16);
-	dst[1] = (uint8_t)((value >> 8) & 0xFF);
-	dst[2] = (uint8_t)(value & 0xFF);
+	end_size = bitstream_flush(bs);
+	if (cmp_is_error_int(end_size))
+		return end_size;
 
-	return 3;
-}
-
-
-static uint32_t serialize_u16(uint8_t *dst, uint32_t value)
-{
-	if (value > UINT16_MAX)
-		return CMP_ERROR(INT_HDR);
-
-	dst[0] = (uint8_t)(value >> 8);
-	dst[1] = (uint8_t)(value & 0xFF);
-
-	return 2;
-}
-
-
-static uint32_t serialize_u8(uint8_t *dst, uint32_t value)
-{
-	if (value > UINT8_MAX)
-		return CMP_ERROR(INT_HDR);
-
-	dst[0] = (uint8_t)value;
-
-	return 1;
-}
-
-
-uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *hdr)
-{
-	uint8_t *dst8 = dst;
-	uint32_t s;
-	(void)dst_size;
-	/* CMP_ASSERT(hdr != NULL) */
-	/* if (!hdr) */
-	/*	return CMP_HDR_SIZE; */
-
-	s = serialize_u16(dst8, hdr->version);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u24(dst8, hdr->cmp_size);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u24(dst8, hdr->original_size);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u8(dst8, hdr->mode);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u8(dst8, hdr->preprocess);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u8(dst8, hdr->model_rate);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u48(dst8, hdr->model_id);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u8(dst8, hdr->pass_count);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	s = serialize_u16(dst8, hdr->compression_par);
-	if (cmp_is_error_int(s))
-		return s;
-	dst8 += s;
-
-	return (uint32_t)(dst8 - (uint8_t *)dst);
+	return end_size - start_size;
 }
 
 
@@ -158,13 +91,9 @@ static const uint8_t *deserialize_u24(const uint8_t *pos, uint32_t *read_value)
 
 static const uint8_t *deserialize_u48(const uint8_t *pos, uint64_t *read_value)
 {
-	*read_value =
-		((uint64_t)pos[0] << 40) |
-		((uint64_t)pos[1] << 32) |
-		((uint64_t)pos[2] << 24) |
-		((uint64_t)pos[3] << 16) |
-		((uint64_t)pos[4] << 8)  |
-		((uint64_t)pos[5]);
+	*read_value = ((uint64_t)pos[0] << 40) | ((uint64_t)pos[1] << 32) |
+		      ((uint64_t)pos[2] << 24) | ((uint64_t)pos[3] << 16) |
+		      ((uint64_t)pos[4] << 8) | ((uint64_t)pos[5]);
 	return pos + 6;
 }
 

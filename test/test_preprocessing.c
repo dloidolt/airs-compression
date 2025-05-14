@@ -295,7 +295,7 @@ void test_detects_invalid_max_secondary_passes_value(void)
 	struct cmp_params params = { 0 };
 
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	params.max_secondary_passes = CMP_MAX_SECONDARY_PASSES_MAX + 1;
+	params.max_secondary_passes = 256;
 
 	return_value = cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf));
 

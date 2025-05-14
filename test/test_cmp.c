@@ -285,7 +285,7 @@ void test_compression_detects_src_size_too_large(void)
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	uint8_t dst[CMP_HDR_SIZE + sizeof(uint16_t)];
 	const uint16_t src[2] = { 0x0001, 0x0203 };
-	uint32_t const src_size_too_large = CMP_MAX_ORIGINAL_SIZE + 1;
+	uint32_t const src_size_too_large = 1 << CMP_HDR_BITS_ORIGINAL_SIZE;
 
 	uint32_t const cmp_size =
 		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, src_size_too_large);

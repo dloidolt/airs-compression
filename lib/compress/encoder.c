@@ -11,8 +11,8 @@
 #include <string.h>
 
 #include "encoder.h"
-#include "bitstream_write.h"
 #include "../cmp.h"
+#include "../common/bitstream_writer.h"
 #include "../common/err_private.h"
 #include "../common/compiler.h"
 
@@ -230,7 +230,7 @@ static uint32_t golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log
 		codeword += base_codeword + remainder;
 		len += 1 + group_num; /* length of the codeword */
 
-		return bitstream_write(bs, codeword, len);
+		return bitstream_write32(bs, codeword, len);
 	}
 }
 
@@ -244,7 +244,7 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 
 	switch (enc->mode) {
 	case CMP_MODE_UNCOMPRESSED:
-		ret = bitstream_write(enc->bs, (uint16_t)value, bitsizeof(value));
+		ret = bitstream_write32(enc->bs, (uint16_t)value, bitsizeof(value));
 		break;
 
 	case CMP_ENCODER_GOLOMB_ZERO: {
@@ -256,7 +256,7 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 					    enc->bs);
 		} else {
 			(void)golomb_encode(0, enc->g_par, enc->g_par_log2, enc->bs);
-			ret = bitstream_write(enc->bs, mapped, bitsizeof(mapped));
+			ret = bitstream_write32(enc->bs, mapped, bitsizeof(mapped));
 		}
 		break;
 	}
