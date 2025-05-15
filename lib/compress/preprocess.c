@@ -23,9 +23,6 @@
 #include "../common/compiler.h"
 #include "../common/err_private.h"
 
-/** Global variable storing the model adaptation rate */
-static uint8_t g_model_adaptation_rate;
-
 
 /* ====== Helper Functions for Integer Wavelet Transform (IWT) ===== */
 /**
@@ -228,7 +225,7 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
  */
 
 static uint32_t none_init(const uint16_t *src, uint32_t src_size, void *work_buf UNUSED,
-			  uint32_t work_buf_size UNUSED, uint32_t optional_arg UNUSED)
+			  uint32_t work_buf_size UNUSED)
 {
 	if (!src)
 		return CMP_ERROR(SRC_NULL);
@@ -299,17 +296,15 @@ static uint32_t iwt_get_work_buf_size(uint32_t input_size)
  * @param src_size	size of the source data
  * @param work_buf	pointer to the working buffer for temporary results
  * @param work_buf_size	size in bytes of the working buffer
- * @param optional_arg	unused
  *
  * @returns the number of samples to process or an error code is returned (which
  *	can be checked using cmp_is_error()).
  */
 
 static uint32_t iwt_init(const uint16_t *src, uint32_t src_size, void *work_buf,
-			 uint32_t work_buf_size, uint32_t optional_arg)
+			 uint32_t work_buf_size)
 {
-	uint32_t const num_samples =
-		none_init(src, src_size, work_buf, work_buf_size, optional_arg);
+	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size);
 	const int16_t *input_data = (const int16_t *)src;
 	int16_t *pre_cal_coefficient = (int16_t *)work_buf;
 
@@ -364,20 +359,18 @@ static uint32_t model_get_work_buf_size(uint32_t input_size)
  *
  * @param src		pointer to the source data
  * @param src_size	size of the source data
- * @param work_buf	pointer to the working buffer where the initial model of
- *			the source data is stored
+ * @param work_buf	pointer to the buffer where the model to be subtracted
+ *			from data is stored
  * @param work_buf_size	size in bytes of the working buffer
- * @param model_rate	rate at which the model adapts; must be smaller than
- *			CMP_MAX_MODEL_RATE
  *
  * @returns the number of samples to process or an error code is returned (which
  *	can be checked using cmp_is_error()).
  */
 
 static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_buf,
-			   uint32_t work_buf_size, uint32_t model_rate)
+			   uint32_t work_buf_size)
 {
-	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size, model_rate);
+	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size);
 
 	if (cmp_is_error_int(num_samples))
 		return num_samples;
@@ -387,22 +380,7 @@ static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_bu
 	if (work_buf_size < model_get_work_buf_size(src_size))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 
-	if (model_rate > CMP_MAX_MODEL_RATE)
-		return CMP_ERROR(PARAMS_INVALID);
-
-	g_model_adaptation_rate = (uint8_t)model_rate;
-
 	return num_samples;
-}
-
-
-static __inline uint16_t cmp_up_model16(uint16_t data, uint16_t model, uint8_t model_rate)
-{
-	uint32_t const weighted_data = data * (CMP_MAX_MODEL_RATE - model_rate);
-	uint32_t const weighted_model = model * model_rate;
-
-	/* truncation is intended */
-	return (uint16_t)((weighted_model + weighted_data) / CMP_MAX_MODEL_RATE);
 }
 
 
@@ -419,11 +397,8 @@ static __inline uint16_t cmp_up_model16(uint16_t data, uint16_t model, uint8_t m
 static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
 {
 	uint16_t *model = work_buf;
-	int16_t const diff = (int16_t)(src[i] - model[i]);
 
-	model[i] = cmp_up_model16(src[i], model[i], g_model_adaptation_rate);
-
-	return diff;
+	return (int16_t)(src[i] - model[i]);
 }
 
 

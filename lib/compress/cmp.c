@@ -109,6 +109,29 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 }
 
 
+/** Maximum allowed model adaptation rate parameter  */
+#define CMP_MAX_MODEL_RATE 16U
+
+/**
+ * @brief Updates the model value based on new data and adaptation rate
+ *
+ * @param data		new data value to incorporate into the model
+ * @param model		current model value
+ * @param model_rate	model adaptation rate; higher values make the model adapt
+ *			more slowly to new data; must be less than or equal to
+ *			CMP_MAX_MODEL_RATE
+ * @returns the updated model value
+ */
+
+static uint16_t update_model(uint16_t data, uint16_t model, unsigned int model_rate)
+{
+	uint32_t const weighted_data = data * (CMP_MAX_MODEL_RATE - model_rate);
+	uint32_t const weighted_model = model * model_rate;
+
+	return (uint16_t)((weighted_model + weighted_data) / CMP_MAX_MODEL_RATE);
+}
+
+
 uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
 			uint32_t work_buf_size)
 {
@@ -150,9 +173,10 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 {
 	uint32_t i, ret, n_values;
 	const struct preprocessing_method *prepocess;
-	enum cmp_preprocessing seleced_preprocessing;
+	enum cmp_preprocessing selected_preprocessing;
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
+	int model_is_needed = 0;
 	struct cmp_hdr hdr = { 0 };
 
 	if (!ctx)
@@ -162,10 +186,10 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		ret = cmp_reset(ctx);
 		if (cmp_is_error_int(ret))
 			return ret;
-		seleced_preprocessing = ctx->params.primary_preprocessing;
+		selected_preprocessing = ctx->params.primary_preprocessing;
 		ctx->model_size = src_size;
 	} else {
-		seleced_preprocessing = ctx->params.secondary_preprocessing;
+		selected_preprocessing = ctx->params.secondary_preprocessing;
 		/*
 		 * When using model preprocessing the size of the data to
 		 * compression is not allowed to change unit a reset.
@@ -175,6 +199,15 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 			return CMP_ERROR(SRC_SIZE_MISMATCH);
 	}
 
+	/* Do we need a model? */
+	if (ctx->params.secondary_preprocessing == CMP_PREPROCESS_MODEL &&
+	    ctx->params.max_secondary_passes != 0) {
+		model_is_needed = 1;
+
+		if (ctx->work_buf_size < src_size)
+			return CMP_ERROR(WORK_BUF_TOO_SMALL);
+	}
+
 	ret = bitstream_writer_init(&bs, dst, dst_capacity);
 	if (cmp_is_error_int(ret))
 		return ret;
@@ -182,7 +215,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	hdr.version = CMP_VERSION_NUMBER;
 	hdr.original_size = src_size;
 	hdr.mode = ctx->params.mode;
-	hdr.preprocess = seleced_preprocessing;
+	hdr.preprocess = selected_preprocessing;
 	hdr.model_rate = ctx->params.model_rate;
 	hdr.model_id = (uint16_t)ctx->model_id;
 	hdr.pass_count = ctx->pass_count;
@@ -195,31 +228,29 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (cmp_is_error_int(ret))
 		return ret;
 
-	prepocess = preprocessing_get_method(seleced_preprocessing);
+	prepocess = preprocessing_get_method(selected_preprocessing);
 	if (prepocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	n_values = prepocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size,
-				   ctx->params.model_rate);
+	n_values = prepocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size);
 	if (cmp_is_error_int(n_values))
 		return n_values;
 
 	for (i = 0; i < n_values; i++) {
-		int16_t const prepocessed_value = prepocess->process(i, src, ctx->work_buf);
-		int const model_initialisation_need = ctx->pass_count == 0 &&
-						      ctx->params.secondary_preprocessing ==
-							      CMP_PREPROCESS_MODEL &&
-						      ctx->params.max_secondary_passes != 0;
+		int16_t const value = prepocess->process(i, src, ctx->work_buf);
 
-		if (model_initialisation_need) {
+		ret = cmp_encoder_encode_s16(&enc, value);
+		if (cmp_is_error_int(ret))
+			return ret;
+
+		if (model_is_needed) {
 			uint16_t *model = ctx->work_buf;
 
-			if (ctx->work_buf_size < src_size)
-				return CMP_ERROR(WORK_BUF_TOO_SMALL);
-			model[i] = src[i];
+			if (ctx->pass_count == 0)
+				model[i] = src[i];
+			else
+				model[i] = update_model(src[i], model[i], ctx->params.model_rate);
 		}
-
-		cmp_encoder_encode_s16(&enc, prepocessed_value);
 	}
 
 	hdr.cmp_size = cmp_encoder_finish(&enc);
