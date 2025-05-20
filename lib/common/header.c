@@ -16,12 +16,6 @@
 #include "bitstream_writer.h"
 
 
-void *cmp_hdr_get_cmp_data(void *header)
-{
-	return (uint8_t *)header + CMP_HDR_SIZE;
-}
-
-
 uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hdr)
 {
 	uint32_t start_size, end_size;
@@ -36,24 +30,34 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 	if (cmp_is_error_int(start_size))
 		return start_size;
 
-/* Local macro for this function only */
-#define CMP_DO_WRITE_OR_RETURN(bs_ptr, val_to_write, len_to_write)                        \
-	do {                                                                              \
-		uint32_t __err_code;                                                      \
-		__err_code = bitstream_write64((bs_ptr), (val_to_write), (len_to_write)); \
-		if (cmp_is_error_int(__err_code))                                         \
-			return __err_code;                                                \
+#define CMP_DO_WRITE_OR_RETURN(bs_ptr, val_to_write, len_to_write)                            \
+	do {                                                                                  \
+		uint32_t write_err_code;                                                      \
+		write_err_code = bitstream_write64((bs_ptr), (val_to_write), (len_to_write)); \
+		if (cmp_is_error_int(write_err_code))                                         \
+			return write_err_code;                                                \
 	} while (0)
 
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->version, CMP_HDR_BITS_VERSION);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->cmp_size, CMP_HDR_BITS_CMP_SIZE);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->version_flag, CMP_HDR_BITS_VERSION_FLAG);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->version_id, CMP_HDR_BITS_VERSION_ID);
+
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->compressed_size, CMP_HDR_BITS_COMPRESSED_SIZE);
 	CMP_DO_WRITE_OR_RETURN(bs, hdr->original_size, CMP_HDR_BITS_ORIGINAL_SIZE);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->mode, CMP_HDR_BITS_MODE);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->preprocess, CMP_HDR_BITS_PREPROCESS);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->model_rate, CMP_HDR_BITS_MODEL_RATE);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->model_id, CMP_HDR_BITS_MODEL_ID);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->pass_count, CMP_HDR_BITS_PASS_COUNT);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->compression_par, CMP_HDR_BITS_COMPRESSION_PAR);
+
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->identifier, CMP_HDR_BITS_IDENTIFIER);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->sequence_number, CMP_HDR_BITS_SEQUENCE_NUMBER);
+
+	/* internal structure of the compression method */
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->preprocessing, CMP_HDR_BITS_METHOD_PREPROCESSING);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->checksum_enabled, CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED);
+	CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_type, CMP_HDR_BITS_METHOD_ENCODER_TYPE);
+
+	if (hdr->preprocessing != CMP_PREPROCESS_NONE ||
+	    hdr->encoder_type != CMP_ENCODER_UNCOMPRESSED) {
+		CMP_DO_WRITE_OR_RETURN(bs, hdr->model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION);
+		CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM);
+		CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER);
+	}
 #undef CMP_DO_WRITE_OR_RETURN
 
 	end_size = bitstream_flush(bs);
@@ -64,63 +68,68 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 }
 
 
-/* no size checks */
-static const uint8_t *deserialize_u16(const uint8_t *pos, uint32_t *read_value)
+static uint16_t extract_u16be(const uint8_t *buf)
 {
-	/* CMP_ASSERT(read_value != NULL); */
-
-	*read_value = (uint16_t)(pos[0] << 8);
-	*read_value |= pos[1];
-
-	return pos + 2;
+	return (uint16_t)(buf[0] << 8) | (uint16_t)buf[1];
 }
 
 
-/* no size checks */
-static const uint8_t *deserialize_u24(const uint8_t *pos, uint32_t *read_value)
+static uint32_t extract_u24be(const uint8_t *buf)
 {
-	/* CMP_ASSERT(read_value != NULL); */
-
-	*read_value = (uint32_t)pos[0] << 16;
-	*read_value |= (uint32_t)pos[1] << 8;
-	*read_value |= pos[2];
-
-	return pos + 3;
+	return (uint32_t)buf[0] << 16 | (uint32_t)buf[1] << 8 | (uint32_t)buf[2];
 }
 
 
-static const uint8_t *deserialize_u48(const uint8_t *pos, uint64_t *read_value)
+static uint64_t extract_u48be(const uint8_t *buf)
 {
-	*read_value = ((uint64_t)pos[0] << 40) | ((uint64_t)pos[1] << 32) |
-		      ((uint64_t)pos[2] << 24) | ((uint64_t)pos[3] << 16) |
-		      ((uint64_t)pos[4] << 8) | ((uint64_t)pos[5]);
-	return pos + 6;
+	return (uint64_t)buf[0] << 40 | (uint64_t)buf[1] << 32 | (uint64_t)buf[2] << 24 |
+	       (uint64_t)buf[3] << 16 | (uint64_t)buf[4] << 8 | (uint64_t)buf[5];
 }
 
 
 uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr *hdr)
 {
-	/* CMP_ASSERT(hdr != NULL) */
-	const uint8_t *pos = src;
+	const uint8_t *start = src;
+	uint8_t method;
+	uint16_t version;
+
 	(void)src_size;
 
-	/* if (hdr == NULL) */
-	/*	return */
-	/* if (src == NULL) */
-	/*	return */
-	/* if (src_size < CMP_HDR_SIZE) */
-	/*	return */
+	if (!hdr)
+		return CMP_ERROR(INT_HDR);
+	if (!src)
+		return CMP_ERROR(INT_HDR);
+	if (src_size < CMP_HDR_SIZE)
+		return CMP_ERROR(INT_HDR);
 	memset(hdr, 0x00, sizeof(*hdr));
 
-	pos = deserialize_u16(pos, &hdr->version);
-	pos = deserialize_u24(pos, &hdr->cmp_size);
-	pos = deserialize_u24(pos, &hdr->original_size);
-	hdr->mode = *pos++;
-	hdr->preprocess = *pos++;
-	hdr->model_rate = *pos++;
-	pos = deserialize_u48(pos, &hdr->model_id);
-	hdr->pass_count = *pos++;
-	pos = deserialize_u16(pos, &hdr->compression_par);
+	version = extract_u16be(start + CMP_HDR_OFFSET_VERSION);
+	hdr->version_flag = version >> CMP_HDR_BITS_VERSION_ID;
+	hdr->version_id = version & (1 << CMP_HDR_BITS_VERSION_ID) - 1;
 
-	return (uint32_t)(pos - (const uint8_t *)src);
+	hdr->compressed_size = extract_u24be(start + CMP_HDR_OFFSET_COMPRESSED_SIZE);
+	hdr->original_size = extract_u24be(start + CMP_HDR_OFFSET_ORIGINAL_SIZE);
+	hdr->identifier = extract_u48be(start + CMP_HDR_OFFSET_IDENTIFIER);
+	hdr->sequence_number = start[CMP_HDR_OFFSET_SEQUENCE_NUMBER];
+
+	method = start[CMP_HDR_OFFSET_METHOD];
+	hdr->preprocessing = (method >> 4) & 0XF;
+	hdr->checksum_enabled = (method >> 3) & 0x1;
+	hdr->encoder_type = method & 0x7;
+
+	/* have extended header? */
+	if (hdr->preprocessing == CMP_PREPROCESS_NONE &&
+	    hdr->encoder_type == CMP_ENCODER_UNCOMPRESSED)
+		return CMP_HDR_SIZE;
+
+	if (src_size < CMP_HDR_SIZE + CMP_EXT_HDR_SIZE) {
+		memset(hdr, 0x00, sizeof(*hdr));
+		return CMP_ERROR(INT_HDR);
+	}
+
+	hdr->model_rate = start[CMP_EXT_HDR_OFFSET_MODEL_RATE];
+	hdr->encoder_param = extract_u16be(start + CMP_EXT_HDR_OFFSET_ENCODER_PARAM);
+	hdr->encoder_outlier = extract_u24be(start + CMP_EXT_HDR_OFFSET_OUTLIER_PARAM);
+
+	return CMP_HDR_SIZE + CMP_EXT_HDR_SIZE;
 }

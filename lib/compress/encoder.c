@@ -118,18 +118,18 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, const struct cmp_params *para
 		return CMP_ERROR(INT_ENCODER);
 
 	memset(enc, 0, sizeof(*enc));
-	enc->mode = params->mode;
+	enc->encoder_type = params->encoder_type;
 	enc->bs = bs;
 
-	switch (enc->mode) {
-	case CMP_MODE_UNCOMPRESSED:
+	switch (enc->encoder_type) {
+	case CMP_ENCODER_UNCOMPRESSED:
 		break;
-	case CMP_MODE_GOLOMB_ZERO:
-		if (params->compression_par < CMP_MIN_GOLOMB_PAR ||
-		    params->compression_par > CMP_MAX_GOLOMB_PAR)
+	case CMP_ENCODER_GOLOMB_ZERO:
+		if (params->encoder_param < CMP_MIN_GOLOMB_PAR ||
+		    params->encoder_param > CMP_MAX_GOLOMB_PAR)
 			return CMP_ERROR(PARAMS_INVALID);
-		enc->g_par = params->compression_par;
-		enc->g_par_log2 = ilog2(params->compression_par);
+		enc->g_par = params->encoder_param;
+		enc->g_par_log2 = ilog2(params->encoder_param);
 		enc->outlier = optimal_outlier_zero(enc->g_par, CMP_NUM_BITS_PER_SAMPLE);
 		if (enc->outlier == 0)
 			return CMP_ERROR(PARAMS_INVALID);
@@ -242,8 +242,8 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 	if (!enc || !enc->bs)
 		return CMP_ERROR(INT_ENCODER);
 
-	switch (enc->mode) {
-	case CMP_MODE_UNCOMPRESSED:
+	switch (enc->encoder_type) {
+	case CMP_ENCODER_UNCOMPRESSED:
 		ret = bitstream_write32(enc->bs, (uint16_t)value, bitsizeof(value));
 		break;
 

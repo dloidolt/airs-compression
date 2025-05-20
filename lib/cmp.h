@@ -9,7 +9,7 @@
  *
  * @brief Data Compression API
  *
- * - Setup: Initialise context with cmp_initialise()
+ * - Setup: Create a compression context with cmp_initialise()
  * - Process: Compress data using cmp_compress_u16()
  * - Reset compression context using cmp_reset()
  * - Clean-up: Optionally destroy context with cmp_deinitialise()
@@ -18,7 +18,6 @@
  *
  * @warning The interface is not frozen yet and may change in future versions.
  * Changes may include:
- *    - Additional compression modes
  *    - New compression parameters
  *    - Change/Extended API functionality
  */
@@ -36,9 +35,9 @@
 #define CMP_EXPAND_AND_QUOTE(str) CMP_QUOTE(str)
 
 /* ====== Version Information ====== */
-#define CMP_VERSION_MAJOR    0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR    2 /**< minor part of the version ID */
-#define CMP_VERSION_RELEASE  0 /**< release part of the version ID */
+#define CMP_VERSION_MAJOR 0   /**< major part of the version ID */
+#define CMP_VERSION_MINOR 2   /**< minor part of the version ID */
+#define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
  * @brief complete version number
@@ -54,19 +53,7 @@
 
 /* ====== Parameter Selection ====== */
 /**
- * @brief available compression modes
- * @note additional compression modes will follow
- */
-
-enum cmp_mode {
-	CMP_MODE_UNCOMPRESSED, /**< Uncompressed mode */
-	CMP_MODE_GOLOMB_ZERO   /**< Golomb encoder with zero escape mechanism */
-};
-
-
-/**
- * @brief Preprocessing techniques for compression
- * @note additional compression modes will follow
+ * @brief Preprocessing techniques for encoding
  *
  * This enum defines the available preprocessing methods that can be applied
  * before encoding. Preprocessing techniques aim to improve compression
@@ -82,7 +69,17 @@ enum cmp_preprocessing {
 
 
 /**
- * @brief contains the parameters used for compression.
+ * @brief available compression encoders
+ */
+
+enum cmp_encoder_type {
+	CMP_ENCODER_UNCOMPRESSED, /**< Uncompressed mode */
+	CMP_ENCODER_GOLOMB_ZERO	  /**< Golomb encoder with zero escape mechanism */
+};
+
+
+/**
+ * @brief parameters used for compression
  *
  * @warning number and names of the compression parameters are TBD
  */
@@ -92,12 +89,12 @@ struct cmp_params {
 	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing applied on the first pass */
 	enum cmp_preprocessing
 		secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
-	uint32_t max_secondary_passes; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
+	uint32_t secondary_iterations; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
 	uint32_t model_rate; /**< Rate at which the model adapts during model-based preprocessing */
 
 	/* Data Encoding Settings */
-	enum cmp_mode mode;	  /**< Compression mode */
-	uint32_t compression_par; /**< Compression parameter */
+	enum cmp_encoder_type encoder_type; /**< Compression encoder type */
+	uint32_t encoder_param;		    /**< Encoder parameter */
 };
 
 
@@ -115,9 +112,9 @@ struct cmp_context {
 	struct cmp_params params; /**< Compression parameters used in the current context */
 	void *work_buf;		  /**< Pointer to the working buffer */
 	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
-	uint32_t pass_count; /**< Number of compression passes performed since the last reset */
-	uint64_t model_id;   /**< Identifier for the compression model */
-	uint32_t model_size; /**< Size of the model used in the model-based preprocessing */
+	uint32_t model_size;	  /**< Size of the model used in the model-based preprocessing */
+	uint64_t identifier;	  /**< Identifier for the compression model */
+	uint8_t sequence_number;  /**< Number of compression passes performed since the last reset */
 };
 
 

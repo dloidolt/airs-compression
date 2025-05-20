@@ -13,7 +13,21 @@
 #include <unity_internals.h>
 
 
+#include "test_common.h"
 #include "../lib/cmp_errors.h"
+#include "../lib/common/header.h"
+
+
+void *cmp_hdr_get_cmp_data(void *header)
+{
+	struct cmp_hdr hdr;
+	uint32_t hdr_size;
+
+	TEST_ASSERT_NOT_NULL(header);
+	hdr_size = cmp_hdr_deserialize(header, CMP_HDR_MAX_SIZE, &hdr);
+	TEST_ASSERT_CMP_SUCCESS(hdr_size);
+	return (uint8_t *)header + hdr_size;
+}
 
 
 /**

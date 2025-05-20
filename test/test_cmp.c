@@ -24,9 +24,9 @@ static struct cmp_context create_uncompressed_context(void)
 	struct cmp_params par_uncompressed = { 0 };
 	uint32_t return_val;
 
-	par_uncompressed.mode = CMP_MODE_UNCOMPRESSED;
+	par_uncompressed.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	par_uncompressed.primary_preprocessing = CMP_PREPROCESS_NONE;
-	/* we do not need a working buffer for CMP_MODE_UNCOMPRESSED */
+	/* we do not need a working buffer for CMP_ENCODER_UNCOMPRESSED */
 	return_val = cmp_initialise(&ctx, &par_uncompressed, NULL, 0);
 	TEST_ASSERT_CMP_SUCCESS(return_val);
 
@@ -67,7 +67,7 @@ void test_calculate_work_buf_size_for_model_preprocess_correctly(void)
 
 	par.primary_preprocessing = CMP_PREPROCESS_NONE;
 	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	par.max_secondary_passes = 1;
+	par.secondary_iterations = 1;
 
 	work_buf_size = cmp_cal_work_buf_size(&par, 41);
 
@@ -83,7 +83,7 @@ void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(voi
 
 	par.primary_preprocessing = CMP_PREPROCESS_NONE;
 	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	par.max_secondary_passes = 0;
+	par.secondary_iterations = 0;
 
 	work_buf_size = cmp_cal_work_buf_size(&par, 41);
 
@@ -121,7 +121,7 @@ void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void
 	uint32_t work_buf_size;
 
 	par_uncompressed.secondary_preprocessing = -1U;
-	par_uncompressed.max_secondary_passes = 1;
+	par_uncompressed.secondary_iterations = 1;
 
 	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
 
@@ -173,7 +173,7 @@ void test_invalid_preprocess_initialization(void)
 	struct cmp_context ctx;
 	uint32_t return_val;
 
-	par.mode = CMP_MODE_UNCOMPRESSED;
+	par.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	par.primary_preprocessing = 0xFFFF;
 
 	memset(&ctx, 0xFF, sizeof(ctx));
@@ -198,12 +198,12 @@ void test_compression_in_uncompressed_mode(void)
 	TEST_ASSERT_CMP_SUCCESS(cmp_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + 4, cmp_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(cmp_data_exp, cmp_hdr_get_cmp_data(dst), sizeof(data));
-	cmp_hdr_deserialize(dst, cmp_size, &hdr);
-	TEST_ASSERT_EQUAL(CMP_VERSION_NUMBER, hdr.version);
-	TEST_ASSERT_EQUAL(cmp_size, hdr.cmp_size);
+	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(dst, cmp_size, &hdr));
+	TEST_ASSERT_EQUAL(CMP_VERSION_NUMBER, hdr.version_id);
+	TEST_ASSERT_EQUAL(cmp_size, hdr.compressed_size);
 	TEST_ASSERT_EQUAL(sizeof(data), hdr.original_size);
-	TEST_ASSERT_EQUAL(CMP_MODE_UNCOMPRESSED, hdr.mode);
-	TEST_ASSERT_EQUAL(CMP_PREPROCESS_NONE, hdr.preprocess);
+	TEST_ASSERT_EQUAL(CMP_ENCODER_UNCOMPRESSED, hdr.encoder_type);
+	TEST_ASSERT_EQUAL(CMP_PREPROCESS_NONE, hdr.preprocessing);
 }
 
 
@@ -346,7 +346,7 @@ void test_detect_0_size_work_buffer(void)
 	uint32_t return_value;
 
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	params.max_secondary_passes = 1;
+	params.secondary_iterations = 1;
 
 	return_value = cmp_initialise(&ctx, &params, work_buf, 0);
 
@@ -362,9 +362,9 @@ void test_compression_detects_too_small_work_buffer(void)
 	uint8_t work_buf[sizeof(data) - 1];
 	struct cmp_context ctx;
 	uint32_t dst_size, work_buf_size;
-	uint8_t dst[CMP_HDR_SIZE + sizeof(data)];
+	uint8_t dst[CMP_HDR_MAX_SIZE + sizeof(data)];
 
-	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
 	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(data));
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
@@ -382,15 +382,15 @@ void test_non_model_preprocessing_src_size_change_allowed(void)
 	const uint16_t data1[] = { 0, 0, 0, 0 };
 	const uint16_t data2[] = { 0, 0, 0 };
 	uint8_t work_buf[sizeof(data1)];
-	uint8_t dst[CMP_HDR_SIZE + sizeof(data1)];
+	uint8_t dst[CMP_HDR_MAX_SIZE + sizeof(data1)];
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_IWT;
-	params.max_secondary_passes = 10;
+	params.secondary_iterations = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), data1, sizeof(data1)));
 

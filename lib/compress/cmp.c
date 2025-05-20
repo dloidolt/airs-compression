@@ -73,7 +73,7 @@ uint32_t cmp_compress_bound(uint32_t src_size)
 	if (bound <= src_size)
 		return (CMP_ERROR(SRC_SIZE_WRONG));
 
-	if (bound >= 1ULL << CMP_HDR_BITS_CMP_SIZE)
+	if (bound >= 1ULL << CMP_HDR_BITS_COMPRESSED_SIZE)
 		return (CMP_ERROR(SRC_SIZE_WRONG));
 
 	return bound;
@@ -96,7 +96,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 		return CMP_ERROR(PARAMS_INVALID);
 	primary_work_buf_size = prepocess->get_work_buf_size(src_size);
 
-	if (params->max_secondary_passes) {
+	if (params->secondary_iterations) {
 		prepocess = preprocessing_get_method(params->secondary_preprocessing);
 		if (prepocess == NULL)
 			return CMP_ERROR(PARAMS_INVALID);
@@ -157,7 +157,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	    params->secondary_preprocessing == CMP_PREPROCESS_MODEL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	if (params->max_secondary_passes >= (1ULL << CMP_HDR_BITS_PASS_COUNT))
+	if (params->secondary_iterations >= (1ULL << CMP_HDR_BITS_SEQUENCE_NUMBER))
 		return CMP_ERROR(PARAMS_INVALID);
 
 	ctx->params = *params;
@@ -182,7 +182,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (!ctx)
 		return CMP_ERROR(CONTEXT_INVALID);
 
-	if (ctx->pass_count == 0 || ctx->pass_count > ctx->params.max_secondary_passes) {
+	if (ctx->sequence_number == 0 || ctx->sequence_number > ctx->params.secondary_iterations) {
 		ret = cmp_reset(ctx);
 		if (cmp_is_error_int(ret))
 			return ret;
@@ -201,7 +201,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 	/* Do we need a model? */
 	if (ctx->params.secondary_preprocessing == CMP_PREPROCESS_MODEL &&
-	    ctx->params.max_secondary_passes != 0) {
+	    ctx->params.secondary_iterations != 0) {
 		model_is_needed = 1;
 
 		if (ctx->work_buf_size < src_size)
@@ -212,14 +212,16 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (cmp_is_error_int(ret))
 		return ret;
 
-	hdr.version = CMP_VERSION_NUMBER;
+	hdr.version_flag = 1;
+	hdr.version_id = CMP_VERSION_NUMBER;
 	hdr.original_size = src_size;
-	hdr.mode = ctx->params.mode;
-	hdr.preprocess = selected_preprocessing;
+	hdr.compressed_size = 0; /* place holder, not know right now */
+	hdr.identifier = ctx->identifier;
+	hdr.sequence_number = ctx->sequence_number;
+	hdr.preprocessing = selected_preprocessing;
+	hdr.encoder_type = ctx->params.encoder_type;
 	hdr.model_rate = ctx->params.model_rate;
-	hdr.model_id = (uint16_t)ctx->model_id;
-	hdr.pass_count = ctx->pass_count;
-	hdr.compression_par = ctx->params.compression_par;
+	hdr.encoder_param = ctx->params.encoder_param;
 	ret = cmp_hdr_serialize(&bs, &hdr);
 	if (cmp_is_error_int(ret))
 		return ret;
@@ -246,16 +248,16 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		if (model_is_needed) {
 			uint16_t *model = ctx->work_buf;
 
-			if (ctx->pass_count == 0)
+			if (ctx->sequence_number == 0)
 				model[i] = src[i];
 			else
 				model[i] = update_model(src[i], model[i], ctx->params.model_rate);
 		}
 	}
 
-	hdr.cmp_size = cmp_encoder_finish(&enc);
-	if (cmp_is_error_int(hdr.cmp_size))
-		return hdr.cmp_size;
+	hdr.compressed_size = cmp_encoder_finish(&enc);
+	if (cmp_is_error_int(hdr.compressed_size))
+		return hdr.compressed_size;
 
 	/*
 	 * Now that we have the final compressed size, rewind the bitstream and
@@ -268,8 +270,8 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (cmp_is_error_int(ret))
 		return ret;
 
-	ctx->pass_count++;
-	return hdr.cmp_size;
+	ctx->sequence_number++;
+	return hdr.compressed_size;
 }
 
 
@@ -283,8 +285,8 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 	if (timestamp > ((uint64_t)1 << 48) - 1)
 		return CMP_ERROR(TIMESTAMP_INVALID);
 
-	ctx->pass_count = 0;
-	ctx->model_id = timestamp;
+	ctx->sequence_number = 0;
+	ctx->identifier = timestamp;
 	ctx->model_size = 0;
 
 	return CMP_ERROR(NO_ERROR);

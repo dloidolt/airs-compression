@@ -447,7 +447,7 @@ uint32_t file_compress(struct cmp_context *ctx, const char *dst_filename,
 	dst_capacity = cmp_compress_bound(src_size);
 	if (cmp_is_error(dst_capacity)) {
 		LOG_WARNING("Can't calculating compressed data buffer size, use maximum size");
-		dst_capacity = (1ULL << CMP_HDR_BITS_CMP_SIZE) - 1;
+		dst_capacity = (1ULL << CMP_HDR_BITS_COMPRESSED_SIZE) - 1;
 	}
 	dst_buf = malloc(dst_capacity);
 	if (!dst_buf) {

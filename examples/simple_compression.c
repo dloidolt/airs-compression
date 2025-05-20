@@ -76,7 +76,7 @@ static int simple_compression(void)
 	 * In real-world scenarios, you would select an appropriate compression
 	 * mode and the additional parameters.
 	 */
-	params.mode = CMP_MODE_UNCOMPRESSED;
+	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	/* No additional parameters needed for uncompressed mode */
 
 
