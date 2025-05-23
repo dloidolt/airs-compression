@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "../common/err_private.h"
 #include "../common/compiler.h"
@@ -57,6 +58,8 @@ static __inline uint32_t bitstream_writer_init(struct bitstream_writer *bs, void
 {
 	if (!bs)
 		return CMP_ERROR(INT_BITSTREAM);
+	memset(bs, 0, sizeof(*bs));
+
 	if (!dst)
 		return CMP_ERROR(DST_NULL);
 	if ((uintptr_t)dst & 7)

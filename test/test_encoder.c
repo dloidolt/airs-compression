@@ -21,7 +21,7 @@ void test_bitstream_write_nothing(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[1];
+	uint8_t buffer[1] = { 0xFF };
 
 	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
@@ -35,7 +35,7 @@ void test_bitstream_write_single_bit_one(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[1];
+	uint8_t buffer[1] = { 0xFF };
 
 	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
@@ -51,7 +51,7 @@ void test_bitstream_write_two_bits_zero_one(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[1];
+	uint8_t buffer[1] = { 0xFF };
 
 	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
@@ -71,6 +71,8 @@ void test_bitstream_write_10bytes(void)
 	uint8_t buffer[10];
 	uint8_t expected_bs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 };
 
+	memset(buffer, 0xFF, sizeof(buffer));
+
 	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
 	bitstream_write32(&bsw, 0x0001, 16);
@@ -89,7 +91,7 @@ void test_detect_bitstream_overflow(void)
 {
 	uint32_t size;
 	struct bitstream_writer bsw;
-	uint8_t buffer[1];
+	uint8_t buffer[1] = { 0xFF };
 
 	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
 
@@ -109,6 +111,7 @@ void test_encode_values_with_golomb_zero(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
+	memset(output_buf, 0xFF, sizeof(output_buf));
 	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	params.encoder_param = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
@@ -143,6 +146,7 @@ void test_encode_values_with_golomb_zero_with_outlier(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
+	memset(output_buf, 0xFF, sizeof(output_buf));
 	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	params.encoder_param = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
@@ -177,6 +181,7 @@ void test_encode_values_with_compression_par(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
+	memset(output_buf, 0xFF, sizeof(output_buf));
 	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	params.encoder_param = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
