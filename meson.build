@@ -85,7 +85,7 @@ if asciidoctor.found()
   custom_target(
     input : asciidoc_files,
     output : html_files,
-    command : [asciidoctor, '--destination-dir=@OUTDIR@', '@INPUT@']
+    command : [asciidoctor, '--destination-dir=@OUTDIR@', '--attribute', 'imagesdir=@SOURCE_ROOT@/docs', '@INPUT@']
   )
 endif
 
