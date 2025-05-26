@@ -17,6 +17,7 @@
 #include "../lib/common/header.h"
 #include "../lib/common/bitstream_writer.h"
 
+
 void test_bitstream_write_nothing(void)
 {
 	uint32_t size;
@@ -102,106 +103,153 @@ void test_detect_bitstream_overflow(void)
 }
 
 
-void test_encode_values_with_golomb_zero(void)
+static void run_encoder_test(enum cmp_encoder_type type, uint32_t encoder_param,
+			     const int16_t *input_data, uint32_t input_size,
+			     const uint8_t *expected, uint32_t expected_size)
+
 {
-	const int16_t data_to_encode[] = { -1, 1 };
-	const uint8_t expected_output[] = { 0xDC };
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + 4];
+	uint8_t output_buf[CMP_HDR_MAX_SIZE + 16]; /* enough for all tests */
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
 	memset(output_buf, 0xFF, sizeof(output_buf));
-	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
-	params.encoder_param = 1;
+	params.primary_encoder_type = type;
+	params.primary_encoder_param = encoder_param;
+
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
 	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf),
-				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
+				       (const uint16_t *)input_data, input_size);
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
-				     sizeof(expected_output));
+	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + expected_size, output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected, cmp_hdr_get_cmp_data(output_buf), expected_size);
 	{
 		struct cmp_hdr expected_hdr = { 0 };
 
-		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = output_size;
-		expected_hdr.original_size = sizeof(data_to_encode);
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.original_size = input_size;
+		expected_hdr.encoder_type = type;
 		expected_hdr.preprocessing = params.secondary_preprocessing;
-		expected_hdr.encoder_param = params.encoder_param;
+		expected_hdr.encoder_param = encoder_param;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
 }
 
 
-void test_encode_values_with_golomb_zero_with_outlier(void)
+void test_encode_non_outliers_with_golomb_zero_g_par_1(void)
 {
-	const int16_t data_to_encode[] = { -9 };
-	const uint8_t expected_output[] = { 0x00, 0x08, 0x80 };
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + 4];
-	uint32_t output_size;
-	struct cmp_context ctx;
-	struct cmp_params params = { 0 };
+	const int16_t data[] = { -8, 7, -1, 0 };
+	const uint8_t expected[] = { 0xFF, 0xFF, 0x7F, 0xFF, 0x68 };
 
-	memset(output_buf, 0xFF, sizeof(output_buf));
-	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
-	params.encoder_param = 1;
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
-
-	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf),
-				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
-
-	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
-				     sizeof(expected_output));
-	{
-		struct cmp_hdr expected_hdr = { 0 };
-
-		expected_hdr.version_id = CMP_VERSION_NUMBER;
-		expected_hdr.compressed_size = output_size;
-		expected_hdr.original_size = sizeof(data_to_encode);
-		expected_hdr.encoder_type = params.encoder_type;
-		expected_hdr.preprocessing = params.secondary_preprocessing;
-		expected_hdr.encoder_param = params.encoder_param;
-		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
-	}
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
+			 sizeof(expected));
 }
 
 
-void test_encode_values_with_compression_par(void)
+void test_encode_smallest_outliers_with_golomb_zero_g_par_1(void)
 {
-	const int16_t data_to_encode[] = { 0, -10 };
-	const uint8_t expected_output[] = { 0x1C, 0 };
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + 4];
+	const int16_t data[] = { 8 };
+	const uint8_t expected[] = { 0x00, 0x08, 0x00 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_encode_largest_outliers_with_golomb_zero_g_par_1(void)
+{
+	const int16_t data[] = { INT16_MIN };
+	const uint8_t expected[] = { 0x7F, 0xFF, 0x80 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_encode_non_outliers_with_golomb_zero_g_par_10(void)
+{
+	const int16_t data[] = { 82, 4, 0 };
+	const uint8_t expected[] = { 0xFF, 0XFF, 0x57, 0x88 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_encode_smallest_outliers_with_golomb_zero_g_par_10(void)
+{
+	const int16_t data[] = { -83 };
+	const uint8_t expected[] = { 0x00, 0x0A, 0x50 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_encode_largest_outliers_with_golomb_zero_g_par_10(void)
+{
+	const int16_t data[] = { INT16_MIN };
+	const uint8_t expected[] = { 0x0F, 0xFF, 0xF0 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_encode_non_outliers_with_golomb_zero_g_par_uint16_max(void)
+{
+	const int16_t data[] = { 0, INT16_MIN };
+	const uint8_t expected[] = { 0x00, 0x01, 0x40, 0x00, 0x40 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, UINT16_MAX, data, sizeof(data), expected,
+			 sizeof(expected));
+}
+
+
+void test_use_secondary_encoder_for_second_pass(void)
+{
+	const uint16_t input_data[] = { 82, 4, 0 };
+	const int8_t expected_primary[] = { 0, 82, 0, 4, 0, 0 };
+	const uint8_t expected_secondary[] = { 0xFF, 0XFF, 0x57, 0x88 };
+	uint8_t output_buf[CMP_HDR_MAX_SIZE + sizeof(expected_secondary)] = { 0 };
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
 
-	memset(output_buf, 0xFF, sizeof(output_buf));
-	params.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
-	params.encoder_param = 10;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.secondary_iterations = 1;
+	params.secondary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	params.secondary_encoder_param = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
-	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf),
-				       (const uint16_t *)data_to_encode, sizeof(data_to_encode));
+	/* 1st pass */
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_data,
+				       sizeof(input_data));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_output), output_size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_output, cmp_hdr_get_cmp_data(output_buf),
-				     sizeof(expected_output));
-	{
-		struct cmp_hdr expected_hdr = { 0 };
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_primary), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_primary, cmp_hdr_get_cmp_data(output_buf), ARRAY_SIZE(expected_primary));
 
-		expected_hdr.version_id = CMP_VERSION_NUMBER;
-		expected_hdr.compressed_size = output_size;
-		expected_hdr.original_size = sizeof(data_to_encode);
-		expected_hdr.encoder_type = params.encoder_type;
-		expected_hdr.preprocessing = params.secondary_preprocessing;
-		expected_hdr.encoder_param = params.encoder_param;
-		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
-	}
+	expected_hdr.compressed_size = CMP_HDR_SIZE + sizeof(expected_primary);
+	expected_hdr.original_size = sizeof(input_data);
+	expected_hdr.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	expected_hdr.preprocessing = params.secondary_preprocessing;
+	expected_hdr.encoder_param = 0;
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+
+	/* 2nd pass */
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_data,
+				       sizeof(input_data));
+
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_secondary), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_secondary, cmp_hdr_get_cmp_data(output_buf), ARRAY_SIZE(expected_secondary));
+	expected_hdr.sequence_number = 1;
+	expected_hdr.compressed_size = CMP_HDR_MAX_SIZE + sizeof(expected_secondary);
+	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	expected_hdr.encoder_param = 10;
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 }

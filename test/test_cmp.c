@@ -24,7 +24,7 @@ static struct cmp_context create_uncompressed_context(void)
 	struct cmp_params par_uncompressed = { 0 };
 	uint32_t return_val;
 
-	par_uncompressed.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	par_uncompressed.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	par_uncompressed.primary_preprocessing = CMP_PREPROCESS_NONE;
 	/* we do not need a working buffer for CMP_ENCODER_UNCOMPRESSED */
 	return_val = cmp_initialise(&ctx, &par_uncompressed, NULL, 0);
@@ -173,7 +173,6 @@ void test_invalid_preprocess_initialization(void)
 	struct cmp_context ctx;
 	uint32_t return_val;
 
-	par.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	par.primary_preprocessing = 0xFFFF;
 
 	memset(&ctx, 0xFF, sizeof(ctx));
@@ -364,7 +363,6 @@ void test_compression_detects_too_small_work_buffer(void)
 	uint32_t dst_size, work_buf_size;
 	uint8_t dst[CMP_HDR_MAX_SIZE + sizeof(data)];
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
 	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(data));
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
@@ -387,8 +385,6 @@ void test_non_model_preprocessing_src_size_change_allowed(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
-	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_IWT;
 	params.secondary_iterations = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));

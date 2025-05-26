@@ -111,25 +111,25 @@ static uint32_t optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
 }
 
 
-uint32_t cmp_encoder_init(struct cmp_encoder *enc, const struct cmp_params *params,
-			  struct bitstream_writer *bs)
+uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
+			  uint32_t encoder_param, struct bitstream_writer *bs)
 {
-	if (!enc || !params || !bs)
+	if (!enc || !bs)
 		return CMP_ERROR(INT_ENCODER);
 
 	memset(enc, 0, sizeof(*enc));
-	enc->encoder_type = params->encoder_type;
+	enc->encoder_type = encoder_type;
 	enc->bs = bs;
 
 	switch (enc->encoder_type) {
 	case CMP_ENCODER_UNCOMPRESSED:
 		break;
 	case CMP_ENCODER_GOLOMB_ZERO:
-		if (params->encoder_param < CMP_MIN_GOLOMB_PAR ||
-		    params->encoder_param > CMP_MAX_GOLOMB_PAR)
+		if (encoder_param < CMP_MIN_GOLOMB_PAR ||
+		    encoder_param > CMP_MAX_GOLOMB_PAR)
 			return CMP_ERROR(PARAMS_INVALID);
-		enc->g_par = params->encoder_param;
-		enc->g_par_log2 = ilog2(params->encoder_param);
+		enc->g_par = encoder_param;
+		enc->g_par_log2 = ilog2(encoder_param);
 		enc->outlier = optimal_outlier_zero(enc->g_par, CMP_NUM_BITS_PER_SAMPLE);
 		if (enc->outlier == 0)
 			return CMP_ERROR(PARAMS_INVALID);

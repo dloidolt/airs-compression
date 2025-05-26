@@ -64,7 +64,7 @@ enum cmp_preprocessing {
 	CMP_PREPROCESS_NONE, /**< No preprocessing is applied to the data */
 	CMP_PREPROCESS_DIFF, /**< Differences between neighbouring values are computed */
 	CMP_PREPROCESS_IWT,  /**< Integer Wavelet Transform preprocessing */
-	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data */
+	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data, only for secondary_preprocessing allowed */
 };
 
 
@@ -79,22 +79,30 @@ enum cmp_encoder_type {
 
 
 /**
- * @brief parameters used for compression
+ * @brief Compression parameters
  *
- * @warning number and names of the compression parameters are TBD
+ * Supports independent configuration of preprocessing and encoders
+ * for a primary compression pass and optional secondary passes.
+ *
+ * @warning Parameter names and behaviour may change in future versions.
  */
 
 struct cmp_params {
-	/* Preprocessing Settings */
-	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing applied on the first pass */
-	enum cmp_preprocessing
-		secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
-	uint32_t secondary_iterations; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
-	uint32_t model_rate; /**< Rate at which the model adapts during model-based preprocessing */
+	/*
+	 * Primary (initial pass) settings
+	 */
+	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing for the first pass */
+	enum cmp_encoder_type primary_encoder_type;   /**< Encoder used in the first pass */
+	uint32_t primary_encoder_param;		      /**< Parameter for the primary encoder */
 
-	/* Data Encoding Settings */
-	enum cmp_encoder_type encoder_type; /**< Compression encoder type */
-	uint32_t encoder_param;		    /**< Encoder parameter */
+	/*
+	 * Secondary (subsequent passes) settings (if any)
+	 */
+	uint32_t secondary_iterations;			/**< Max secondary passes (0 = disabled) */
+	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
+	enum cmp_encoder_type secondary_encoder_type;	/**< Encoder for secondary passes */
+	uint32_t secondary_encoder_param;		/**< Parameter for the secondary encoder */
+	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
 };
 
 

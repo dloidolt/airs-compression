@@ -46,7 +46,7 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 	struct cmp_params params = { 0 };
 	struct cmp_context ctx;
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
@@ -62,7 +62,7 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = output_size;
 		expected_hdr.original_size = sizeof(input_data);
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.encoder_type = params.primary_encoder_type;
 		expected_hdr.preprocessing = params.primary_preprocessing;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
@@ -96,7 +96,7 @@ void test_iwt_transform_correct(const int16_t *input_data, const int16_t *expect
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
 	TEST_ASSERT_TRUE(sizeof(work_buf) >= size);
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, size));
@@ -113,7 +113,7 @@ void test_iwt_transform_correct(const int16_t *input_data, const int16_t *expect
 		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = CMP_HDR_MAX_SIZE + size;
 		expected_hdr.original_size = size;
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.encoder_type = params.primary_encoder_type;
 		expected_hdr.preprocessing = params.primary_preprocessing;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
@@ -131,7 +131,7 @@ void test_model_preprocessing_for_multiple_values(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 1;
@@ -150,7 +150,7 @@ void test_model_preprocessing_for_multiple_values(void)
 		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = output_size;
 		expected_hdr.original_size = sizeof(data);
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.encoder_type = params.primary_encoder_type;
 		expected_hdr.preprocessing = params.secondary_preprocessing;
 		expected_hdr.sequence_number = 1;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
@@ -170,7 +170,7 @@ void test_model_updates_correctly(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.model_rate = 1;
@@ -193,7 +193,7 @@ void test_model_updates_correctly(void)
 		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = output_size;
 		expected_hdr.original_size = sizeof(input2);
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.encoder_type = params.primary_encoder_type;
 		expected_hdr.preprocessing = params.secondary_preprocessing;
 		expected_hdr.model_rate = 1;
 		expected_hdr.sequence_number = 2;
@@ -213,7 +213,7 @@ void test_primary_preprocessing_after_max_secondary_iterations(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 2;
@@ -237,7 +237,7 @@ void test_primary_preprocessing_after_max_secondary_iterations(void)
 		expected_hdr.version_id = CMP_VERSION_NUMBER;
 		expected_hdr.compressed_size = output_size;
 		expected_hdr.original_size = sizeof(input);
-		expected_hdr.encoder_type = params.encoder_type;
+		expected_hdr.encoder_type = params.primary_encoder_type;
 		expected_hdr.preprocessing = CMP_PREPROCESS_NONE;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
@@ -305,7 +305,7 @@ void test_assigns_unique_model_ids(void)
 	struct cmp_context ctx1, ctx2;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 10;
@@ -334,7 +334,7 @@ void test_detect_to_small_work_buffer_in_model_preprocessing(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 1;
@@ -359,7 +359,7 @@ void test_detect_src_size_change_using_model_preprocessing(void)
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
-	params.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 10;

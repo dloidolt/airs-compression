@@ -30,7 +30,7 @@
 
 struct cmp_encoder {
 	struct bitstream_writer *bs;	    /**< Pointer to a bitstream write */
-	enum cmp_encoder_type encoder_type; /** Algorithm used for encoding samples  */
+	enum cmp_encoder_type encoder_type; /** Algorithm used for encoding samples */
 
 	/* Golomb parameters (used only in GOLOMB modes, otherwise ignored) */
 	uint32_t g_par;	     /**< Golomb parameter */
@@ -46,15 +46,16 @@ struct cmp_encoder {
  * bitstream writer.
  *
  * @param enc		Pointer to the encoder structure to initialize
- * @param params	Pointer to compression parameters
+ * @param encoder_type	Type of encoder to use
+ * @param encoder_param	Parameter specific to the chosen encoder_type
  * @param bs		Pointer to a bitstream writer; must be initialized and
  *			provided by the caller
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_encoder_init(struct cmp_encoder *enc, const struct cmp_params *params,
-			  struct bitstream_writer *bs);
+uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
+			  uint32_t encoder_param, struct bitstream_writer *bs);
 
 
 /**
