@@ -244,23 +244,6 @@ void test_primary_preprocessing_after_max_secondary_iterations(void)
 }
 
 
-void test_detects_invalid_model_rate(void)
-{
-	uint32_t return_value;
-	struct cmp_context ctx;
-	uint16_t work_buf[4];
-	struct cmp_params params = { 0 };
-
-	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	params.secondary_iterations = 1;
-	params.model_rate = 17;
-
-	return_value = cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf));
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_value);
-}
-
-
 void test_detect_invalid_primary_preprocessing_model_usage(void)
 {
 	struct cmp_context ctx;
@@ -273,22 +256,6 @@ void test_detect_invalid_primary_preprocessing_model_usage(void)
 	return_val = cmp_initialise(&ctx, &par, work_buf, sizeof(work_buf));
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_val);
-}
-
-
-void test_detects_invalid_max_secondary_passes_value(void)
-{
-	uint32_t return_value;
-	struct cmp_context ctx;
-	uint16_t work_buf[4];
-	struct cmp_params params = { 0 };
-
-	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	params.secondary_iterations = 256;
-
-	return_value = cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf));
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_value);
 }
 
 

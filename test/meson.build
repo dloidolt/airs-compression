@@ -56,6 +56,7 @@ if ruby.found()
     dependencies : [unity_dep])
 
   unit_test_src = files([
+    'test_initialisation.c',
     'test_cmp.c',
     'test_header.c',
     'test_cmp_errors.c',

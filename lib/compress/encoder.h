@@ -78,10 +78,22 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value);
  * @param enc Pointer to the cmp_encoder structure.
  *
  * @returns size of the bitstream on success, an error code, which can be
- *	checked using cmp_is_error()  on failure
+ *	checked using cmp_is_error() on failure
  */
 
 uint32_t cmp_encoder_finish(struct cmp_encoder *enc);
+
+
+/**
+ * @brief Checks if the given encoder type and parameter are valid
+ *
+ * @param encoder_type	encoder type to check
+ * @param encoder_param	parameter for the encoder
+ *
+ * @returns an error code, which can be checked using cmp_is_error()
+ */
+
+uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param);
 
 
 #endif /* CMP_ENCODER_H */

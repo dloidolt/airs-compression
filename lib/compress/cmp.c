@@ -83,7 +83,7 @@ uint32_t cmp_compress_bound(uint32_t src_size)
 uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size)
 {
 	const struct preprocessing_method *prepocess;
-	uint32_t primary_work_buf_size, secoundary_work_buf_size;
+	uint32_t primary_work_buf_size, secondary_work_buf_size;
 
 	if (params == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
@@ -100,12 +100,12 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 		prepocess = preprocessing_get_method(params->secondary_preprocessing);
 		if (prepocess == NULL)
 			return CMP_ERROR(PARAMS_INVALID);
-		secoundary_work_buf_size = prepocess->get_work_buf_size(src_size);
+		secondary_work_buf_size = prepocess->get_work_buf_size(src_size);
 	} else {
-		secoundary_work_buf_size = 0;
+		secondary_work_buf_size = 0;
 	}
 
-	return max(primary_work_buf_size, secoundary_work_buf_size);
+	return max(primary_work_buf_size, secondary_work_buf_size);
 }
 
 
@@ -137,6 +137,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 {
 	uint32_t const min_src_size = 2;
 	uint32_t work_buf_needed;
+	uint32_t error_code;
 
 	if (ctx == NULL)
 		return CMP_ERROR(CONTEXT_INVALID);
@@ -159,6 +160,18 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 
 	if (params->secondary_iterations >= (1ULL << CMP_HDR_BITS_SEQUENCE_NUMBER))
 		return CMP_ERROR(PARAMS_INVALID);
+
+	error_code = cmp_encoder_params_check(params->primary_encoder_type,
+					      params->primary_encoder_param);
+	if (cmp_is_error_int(error_code))
+		return error_code;
+
+	if (params->secondary_iterations) {
+		error_code = cmp_encoder_params_check(params->secondary_encoder_type,
+						      params->secondary_encoder_param);
+		if (cmp_is_error_int(error_code))
+			return error_code;
+	}
 
 	ctx->params = *params;
 	ctx->work_buf = work_buf;

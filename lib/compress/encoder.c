@@ -125,8 +125,7 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 	case CMP_ENCODER_UNCOMPRESSED:
 		break;
 	case CMP_ENCODER_GOLOMB_ZERO:
-		if (encoder_param < CMP_MIN_GOLOMB_PAR ||
-		    encoder_param > CMP_MAX_GOLOMB_PAR)
+		if (encoder_param < CMP_MIN_GOLOMB_PAR || encoder_param > CMP_MAX_GOLOMB_PAR)
 			return CMP_ERROR(PARAMS_INVALID);
 		enc->g_par = encoder_param;
 		enc->g_par_log2 = ilog2(encoder_param);
@@ -139,6 +138,15 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 	}
 
 	return CMP_ERROR(NO_ERROR);
+}
+
+
+uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param)
+{
+	struct cmp_encoder enc_dummy;
+	struct bitstream_writer bs_dummy;
+
+	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, &bs_dummy);
 }
 
 

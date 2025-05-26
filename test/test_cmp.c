@@ -129,59 +129,6 @@ void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void
 }
 
 
-void test_successful_compression_initialisation_with_work_buf(void)
-{
-	struct cmp_context ctx;
-	struct cmp_params par = { 0 };
-	uint16_t work_buf[2];
-
-	uint32_t return_val = cmp_initialise(&ctx, &par, work_buf, sizeof(work_buf));
-
-	TEST_ASSERT_CMP_SUCCESS(return_val);
-}
-
-
-void test_invalid_compression_initialisation_no_context(void)
-{
-	struct cmp_params const par = { 0 };
-	uint32_t return_val;
-
-	return_val = cmp_initialise(NULL, &par, NULL, 0);
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_CONTEXT_INVALID, return_val);
-}
-
-
-void test_invalid_compression_initialisation_no_parameters(void)
-{
-	struct cmp_context const ctx_all_zero = { 0 };
-	struct cmp_context ctx;
-	uint32_t return_val;
-
-	memset(&ctx, 0xFF, sizeof(ctx));
-
-	return_val = cmp_initialise(&ctx, NULL, NULL, 0);
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_val);
-	TEST_ASSERT_EQUAL_MEMORY(&ctx_all_zero, &ctx, sizeof(ctx));
-}
-
-
-void test_invalid_preprocess_initialization(void)
-{
-	struct cmp_params par = { 0 };
-	struct cmp_context ctx;
-	uint32_t return_val;
-
-	par.primary_preprocessing = 0xFFFF;
-
-	memset(&ctx, 0xFF, sizeof(ctx));
-	return_val = cmp_initialise(&ctx, &par, NULL, 0);
-
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_val);
-}
-
-
 void test_compression_in_uncompressed_mode(void)
 {
 	const uint16_t data[2] = { 0x0001, 0x0203 };
@@ -319,38 +266,6 @@ void test_deinitialise_a_compression_context(void)
 	cmp_deinitialise(&ctx_uncompressed);
 
 	TEST_ASSERT_EQUAL_MEMORY(&ctx_uncompressed, &zero_ctx, sizeof(ctx_uncompressed));
-}
-
-
-void test_detect_missing_work_buffer(void)
-{
-	struct cmp_params params = { 0 };
-	struct cmp_context ctx;
-	uint32_t return_value;
-
-	params.primary_preprocessing = CMP_PREPROCESS_IWT;
-
-	return_value = cmp_initialise(&ctx, &params, NULL, 0);
-
-	TEST_ASSERT_CMP_FAILURE(return_value);
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_NULL, return_value);
-}
-
-
-void test_detect_0_size_work_buffer(void)
-{
-	struct cmp_params params = { 0 };
-	struct cmp_context ctx;
-	uint32_t work_buf[1];
-	uint32_t return_value;
-
-	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	params.secondary_iterations = 1;
-
-	return_value = cmp_initialise(&ctx, &params, work_buf, 0);
-
-	TEST_ASSERT_CMP_FAILURE(return_value);
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, return_value);
 }
 
 
