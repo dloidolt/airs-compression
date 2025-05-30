@@ -98,7 +98,7 @@ static __inline void put_be64(void *ptr, uint64_t val)
 /**
  * @brief Write up to 32 bits to the bitstream
  *
- * @param bs		pointer to a initialized bitstream_writer structure
+ * @param bs		pointer to a initialised bitstream_writer structure
  * @param value		bits to write to the bitstream
  * @param nb_bits	number of bits to write from value
  *
@@ -144,7 +144,7 @@ static __inline uint32_t bitstream_write32(struct bitstream_writer *bs, uint32_t
 /**
  * @brief Write up to 64 bits to the bitstream
  *
- * @param bs		pointer to a initialized bitstream_writer structure
+ * @param bs		pointer to a initialised bitstream_writer structure
  * @param value		bits to write to the bitstream
  * @param nb_bits	number of bits to write from value
  *
@@ -178,7 +178,7 @@ static __inline uint32_t bitstream_write64(struct bitstream_writer *bs, uint64_t
  * @brief Flushes remaining bits form the internal cache to the buffer
  * Last byte may be padded with zeros
  *
- * @param bs	pointer to a initialized bitstream_writer structure
+ * @param bs	pointer to a initialised bitstream_writer structure
  *
  * @returns written bytes to bitstream or an error code, which can be checked
  *	using cmp_is_error()
@@ -216,7 +216,7 @@ static __inline uint32_t bitstream_flush(struct bitstream_writer *bs)
 /**
  * @brief Calculates current total written size in bytes
  *
- * @param bs	pointer to the initialized bitstream_writer structure
+ * @param bs	pointer to the initialised bitstream_writer structure
  *
  * @returns total bytes effectively written including non-flushed cached bits or
  *	an error code, which can be checked using cmp_is_error()
@@ -236,7 +236,7 @@ static __inline uint32_t bitstream_size(const struct bitstream_writer *bs)
 /**
  * @brief Reset the bitstream writer to the beginning of its buffer
  *
- * @param bs	pointer to the initialized bitstream_writer structure
+ * @param bs	pointer to the initialised bitstream_writer structure
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */

@@ -150,8 +150,9 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
 		return;
 	}
 
+	/* clang-format off */
 	/* Compute the first two coefficients outside the loop for performance */
-	y[s] = iwt_odd_coefficient(x[s], x[0], x[2 * s]);
+	y[s] = iwt_odd_coefficient(x[s], x[0], x[2*s]);
 	y[0] = iwt_edge_even_coefficient(x[0], y[s]);
 
 	/* Process the coefficients in the middle */
@@ -167,6 +168,7 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
 	} else {
 		y[i] = iwt_edge_even_coefficient(x[i], y[i-s]);
 	}
+	/* clang-format on */
 }
 
 

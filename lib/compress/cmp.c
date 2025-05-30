@@ -82,7 +82,7 @@ uint32_t cmp_compress_bound(uint32_t src_size)
 
 uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size)
 {
-	const struct preprocessing_method *prepocess;
+	const struct preprocessing_method *preprocess;
 	uint32_t primary_work_buf_size, secondary_work_buf_size;
 
 	if (params == NULL)
@@ -91,16 +91,16 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 	if (params->primary_preprocessing == CMP_PREPROCESS_MODEL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	prepocess = preprocessing_get_method(params->primary_preprocessing);
-	if (prepocess == NULL)
+	preprocess = preprocessing_get_method(params->primary_preprocessing);
+	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
-	primary_work_buf_size = prepocess->get_work_buf_size(src_size);
+	primary_work_buf_size = preprocess->get_work_buf_size(src_size);
 
 	if (params->secondary_iterations) {
-		prepocess = preprocessing_get_method(params->secondary_preprocessing);
-		if (prepocess == NULL)
+		preprocess = preprocessing_get_method(params->secondary_preprocessing);
+		if (preprocess == NULL)
 			return CMP_ERROR(PARAMS_INVALID);
-		secondary_work_buf_size = prepocess->get_work_buf_size(src_size);
+		secondary_work_buf_size = preprocess->get_work_buf_size(src_size);
 	} else {
 		secondary_work_buf_size = 0;
 	}

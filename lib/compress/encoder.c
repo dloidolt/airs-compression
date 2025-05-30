@@ -254,11 +254,11 @@ static int32_t sign_extend(int32_t value, unsigned int n_bits)
  * @param n_bits	number of bits needed to represent the highest possible
  *			value in range [1, 32]; 0 if treated as 32 bits
  *
- * This function mapps negative values to uneven numbers and positive values to
+ * This function maps negative values to uneven numbers and positive values to
  * even numbers: 0 -> 0, -1 -> 1, 1 -> 2, -2 -> 3, ...  value_MAX -> 2^n_bits - 2,
  *               value_MIN -> 2^n_bits - 1
  *
- * This is needed becomes Golomb code only works with unsigned values
+ * This is needed because Golomb code only works with unsigned values
  * @see https://stackoverflow.com/questions/4533076/google-protocol-buffers-zigzag-encoding
  *
  * @returns a ZigZag encoded unsigned integer
@@ -285,7 +285,7 @@ static uint32_t map_to_unsigned(int32_t value, unsigned int n_bits)
  * @param value		Value to be encoded, must be smaller than
  *			golomb_upper_bound()
  * @param g_par		Golomb parameter (have to be bigger than 0)
- * @param g_par_log2	Is ilog_2(g_par) calculate outside function for better
+ * @param g_par_log2	Is ilog2(g_par) calculate outside function for better
  *			performance
  * @param bs		Pointer to a bitstream writer; must be initialised by
  *			the caller
@@ -297,19 +297,19 @@ static uint32_t map_to_unsigned(int32_t value, unsigned int n_bits)
 static uint32_t golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,
 			      struct bitstream_writer *bs)
 {
-	uint32_t const cutoff = (2U << g_par_log2) - g_par;  /* members in group 0 */
+	uint32_t const cutoff = (2U << g_par_log2) - g_par; /* members in group 0 */
 
 	if (value < cutoff) /* group 0 */
 		return bitstream_write32(bs, value, g_par_log2 + 1);
 
-	{  /* other groups */
-		uint32_t const reg_mask = bitsizeof(value)-1;
-		uint32_t const group_num = (value-cutoff) / g_par;
-		uint32_t const remainder = (value-cutoff) - group_num * g_par;
+	{ /* other groups */
+		uint32_t const reg_mask = bitsizeof(value) - 1;
+		uint32_t const group_num = (value - cutoff) / g_par;
+		uint32_t const remainder = (value - cutoff) - group_num * g_par;
 		uint32_t const unary_code = (1U << (group_num & reg_mask)) - 1;
 		uint32_t const base_codeword = cutoff << 1;
 		uint32_t len = g_par_log2 + 1;
-		uint32_t codeword = unary_code << ((len+1) & reg_mask);
+		uint32_t codeword = unary_code << ((len + 1) & reg_mask);
 
 		codeword += base_codeword + remainder;
 		len += 1 + group_num; /* length of the codeword */

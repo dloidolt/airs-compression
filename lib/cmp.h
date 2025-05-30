@@ -125,7 +125,7 @@ struct cmp_context {
 	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
 	uint32_t model_size;	  /**< Size of the model used in the model-based preprocessing */
 	uint64_t identifier;	  /**< Identifier for the compression model */
-	uint8_t sequence_number;  /**< Number of compression passes performed since the last reset */
+	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
 };
 
 
