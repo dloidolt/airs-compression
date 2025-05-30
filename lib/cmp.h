@@ -74,7 +74,8 @@ enum cmp_preprocessing {
 
 enum cmp_encoder_type {
 	CMP_ENCODER_UNCOMPRESSED, /**< Uncompressed mode */
-	CMP_ENCODER_GOLOMB_ZERO	  /**< Golomb encoder with zero escape mechanism */
+	CMP_ENCODER_GOLOMB_ZERO,  /**< Golomb encoder with zero escape mechanism */
+	CMP_ENCODER_GOLOMB_MULTI  /**< Golomb encoder with multi escape mechanism */
 };
 
 
@@ -94,6 +95,7 @@ struct cmp_params {
 	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing for the first pass */
 	enum cmp_encoder_type primary_encoder_type;   /**< Encoder used in the first pass */
 	uint32_t primary_encoder_param;		      /**< Parameter for the primary encoder */
+	uint32_t primary_encoder_outlier; /**< Primary outlier parameter for CMP_ENCODER_GOLOMB_MULTI */
 
 	/*
 	 * Secondary (subsequent passes) settings (if any)
@@ -102,6 +104,7 @@ struct cmp_params {
 	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
 	enum cmp_encoder_type secondary_encoder_type;	/**< Encoder for secondary passes */
 	uint32_t secondary_encoder_param;		/**< Parameter for the secondary encoder */
+	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
 	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
 };
 

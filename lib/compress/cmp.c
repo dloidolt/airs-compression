@@ -162,13 +162,15 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 		return CMP_ERROR(PARAMS_INVALID);
 
 	error_code = cmp_encoder_params_check(params->primary_encoder_type,
-					      params->primary_encoder_param);
+					      params->primary_encoder_param,
+					      params->primary_encoder_outlier);
 	if (cmp_is_error_int(error_code))
 		return error_code;
 
 	if (params->secondary_iterations) {
 		error_code = cmp_encoder_params_check(params->secondary_encoder_type,
-						      params->secondary_encoder_param);
+						      params->secondary_encoder_param,
+						      params->secondary_encoder_outlier);
 		if (cmp_is_error_int(error_code))
 			return error_code;
 	}
@@ -188,6 +190,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	enum cmp_preprocessing selected_preprocessing;
 	enum cmp_encoder_type selected_encoder_type;
 	uint32_t selected_encoder_param;
+	uint32_t selected_outlier;
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
 	const struct preprocessing_method *prepocess;
@@ -204,11 +207,13 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		selected_preprocessing = ctx->params.primary_preprocessing;
 		selected_encoder_type = ctx->params.primary_encoder_type;
 		selected_encoder_param = ctx->params.primary_encoder_param;
+		selected_outlier = ctx->params.primary_encoder_outlier;
 		ctx->model_size = src_size;
 	} else {
 		selected_preprocessing = ctx->params.secondary_preprocessing;
 		selected_encoder_type = ctx->params.secondary_encoder_type;
 		selected_encoder_param = ctx->params.secondary_encoder_param;
+		selected_outlier = ctx->params.secondary_encoder_outlier;
 		/*
 		 * When using model preprocessing the size of the data to
 		 * compression is not allowed to change unit a reset.
@@ -231,6 +236,11 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (cmp_is_error_int(ret))
 		return ret;
 
+	ret = cmp_encoder_init(&enc, selected_encoder_type, selected_encoder_param,
+			       selected_outlier, &bs);
+	if (cmp_is_error_int(ret))
+		return ret;
+
 	hdr.version_flag = 1;
 	hdr.version_id = CMP_VERSION_NUMBER;
 	hdr.original_size = src_size;
@@ -241,11 +251,8 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	hdr.encoder_type = selected_encoder_type;
 	hdr.model_rate = ctx->params.model_rate;
 	hdr.encoder_param = selected_encoder_param;
+	hdr.encoder_outlier = enc.outlier;
 	ret = cmp_hdr_serialize(&bs, &hdr);
-	if (cmp_is_error_int(ret))
-		return ret;
-
-	ret = cmp_encoder_init(&enc, selected_encoder_type, selected_encoder_param, &bs);
 	if (cmp_is_error_int(ret))
 		return ret;
 

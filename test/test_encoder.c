@@ -104,8 +104,9 @@ void test_detect_bitstream_overflow(void)
 
 
 static void run_encoder_test(enum cmp_encoder_type type, uint32_t encoder_param,
-			     const int16_t *input_data, uint32_t input_size,
-			     const uint8_t *expected, uint32_t expected_size)
+			     uint32_t encoder_outlier, const int16_t *input_data,
+			     uint32_t input_size, const uint8_t *expected, uint32_t expected_size,
+			     uint32_t expected_hdr_outlier)
 
 {
 	uint8_t output_buf[CMP_HDR_MAX_SIZE + 16]; /* enough for all tests */
@@ -116,6 +117,7 @@ static void run_encoder_test(enum cmp_encoder_type type, uint32_t encoder_param,
 	memset(output_buf, 0xFF, sizeof(output_buf));
 	params.primary_encoder_type = type;
 	params.primary_encoder_param = encoder_param;
+	params.primary_encoder_outlier = encoder_outlier;
 
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
@@ -131,80 +133,171 @@ static void run_encoder_test(enum cmp_encoder_type type, uint32_t encoder_param,
 		expected_hdr.compressed_size = output_size;
 		expected_hdr.original_size = input_size;
 		expected_hdr.encoder_type = type;
-		expected_hdr.preprocessing = params.secondary_preprocessing;
 		expected_hdr.encoder_param = encoder_param;
+		expected_hdr.encoder_outlier = expected_hdr_outlier;
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
 }
 
 
-void test_encode_non_outliers_with_golomb_zero_g_par_1(void)
+void test_golomb_zero_param1_encodes_normal_values(void)
 {
 	const int16_t data[] = { -8, 7, -1, 0 };
 	const uint8_t expected[] = { 0xFF, 0xFF, 0x7F, 0xFF, 0x68 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, 0, data, sizeof(data), expected,
+			 sizeof(expected), 16);
 }
 
 
-void test_encode_smallest_outliers_with_golomb_zero_g_par_1(void)
+void test_golomb_zero_param1_encodes_lowest_outlier(void)
 {
 	const int16_t data[] = { 8 };
 	const uint8_t expected[] = { 0x00, 0x08, 0x00 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, 0, data, sizeof(data), expected,
+			 sizeof(expected), 16);
 }
 
 
-void test_encode_largest_outliers_with_golomb_zero_g_par_1(void)
+void test_golomb_zero_param1_encodes_highest_outlier(void)
 {
 	const int16_t data[] = { INT16_MIN };
 	const uint8_t expected[] = { 0x7F, 0xFF, 0x80 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 1, 0, data, sizeof(data), expected,
+			 sizeof(expected), 16);
 }
 
 
-void test_encode_non_outliers_with_golomb_zero_g_par_10(void)
+void test_golomb_zero_param10_encodes_normal_values(void)
 {
 	const int16_t data[] = { 82, 4, 0 };
 	const uint8_t expected[] = { 0xFF, 0XFF, 0x57, 0x88 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, 0, data, sizeof(data), expected,
+			 sizeof(expected), 165);
 }
 
 
-void test_encode_smallest_outliers_with_golomb_zero_g_par_10(void)
+void test_golomb_zero_param10_encodes_lowest_outlier(void)
 {
 	const int16_t data[] = { -83 };
 	const uint8_t expected[] = { 0x00, 0x0A, 0x50 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, 0, data, sizeof(data), expected,
+			 sizeof(expected), 165);
 }
 
 
-void test_encode_largest_outliers_with_golomb_zero_g_par_10(void)
+void test_golomb_zero_param10_encodes_highest_outlier(void)
 {
 	const int16_t data[] = { INT16_MIN };
 	const uint8_t expected[] = { 0x0F, 0xFF, 0xF0 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, 10, 0, data, sizeof(data), expected,
+			 sizeof(expected), 165);
 }
 
 
-void test_encode_non_outliers_with_golomb_zero_g_par_uint16_max(void)
+void test_golomb_zero_param_max_encodes_normal_values(void)
 {
+	/* with this g_par we can encode all values, no outlier encoding */
 	const int16_t data[] = { 0, INT16_MIN };
 	const uint8_t expected[] = { 0x00, 0x01, 0x40, 0x00, 0x40 };
 
-	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, UINT16_MAX, data, sizeof(data), expected,
-			 sizeof(expected));
+	run_encoder_test(CMP_ENCODER_GOLOMB_ZERO, UINT16_MAX, 0, data, sizeof(data), expected,
+			 sizeof(expected), 0xFFFF0);
+}
+
+
+void test_golomb_multi_param1_encodes_normal_values(void)
+{
+	const int16_t data[] = { 0, 2 };
+	const uint8_t expected[] = { 0x78 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 5, data, sizeof(data), expected,
+			 sizeof(expected), 5);
+}
+
+
+void test_golomb_multi_encodes_2bits_outliers(void)
+{
+	const int16_t data[] = { -3, 3, -4, 4 };
+	const uint8_t expected[] = { 0xF8, 0xF9, 0xFA, 0xFB };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 5, data, sizeof(data), expected,
+			 sizeof(expected), 5);
+}
+
+
+void test_golomb_multi_encodes_4bits_outliers(void)
+{
+	const int16_t data[] = { -5, 10 };
+	const uint8_t expected[] = { 0xFC, 0x9F, 0xBC };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 5, data, sizeof(data), expected,
+			 sizeof(expected), 5);
+}
+
+
+void test_golomb_multi_encodes_largest_16bits_outliers(void)
+{
+	const int16_t data[] = { INT16_MIN };
+	const uint8_t expected[] = { 0xFF, 0xF7, 0xFF, 0xD0 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 5, data, sizeof(data), expected,
+			 sizeof(expected), 5);
+}
+
+
+void test_golomb_multi_param1_clamps_outlier_at_max_normal_value(void)
+{
+	const int16_t data[] = { -12 };
+	const uint8_t expected[] = { 0xFF, 0xFF, 0xFE };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 42, data, sizeof(data), expected,
+			 sizeof(expected), 24);
+}
+
+
+void test_golomb_multi_param1_clamps_outlier_at_minimum_outlier_value(void)
+{
+	const int16_t data[] = { 12 };
+	const uint8_t expected[] = { 0xFF, 0xFF, 0xFF, 0x00 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 42, data, sizeof(data), expected,
+			 sizeof(expected), 24);
+}
+
+
+void test_golomb_multi_param1_clamps_outlier_at_max_outlier_value(void)
+{
+	const int16_t data[] = { INT16_MIN };
+	const uint8_t expected[] = { 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xE7 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, 1, 42, data, sizeof(data), expected,
+			 sizeof(expected), 24);
+}
+
+
+void test_golomb_multi_param_max_encodes_zero_value(void)
+{
+	const int16_t data[] = { 0 };
+	const uint8_t expected[] = { 0x00, 0x00 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, UINT16_MAX, UINT32_MAX, data, sizeof(data),
+			 expected, sizeof(expected), 0xFFFE9);
+}
+
+
+void test_golomb_multi_param_max_encodes_largest_value(void)
+{
+	const int16_t data[] = { INT16_MIN };
+	const uint8_t expected[] = { 0x80, 0x00, 0x00 };
+
+	run_encoder_test(CMP_ENCODER_GOLOMB_MULTI, UINT16_MAX, UINT32_MAX, data, sizeof(data),
+			 expected, sizeof(expected), 0xFFFE9);
 }
 
 
@@ -236,8 +329,6 @@ void test_use_secondary_encoder_for_second_pass(void)
 	expected_hdr.compressed_size = CMP_HDR_SIZE + sizeof(expected_primary);
 	expected_hdr.original_size = sizeof(input_data);
 	expected_hdr.encoder_type = CMP_ENCODER_UNCOMPRESSED;
-	expected_hdr.preprocessing = params.secondary_preprocessing;
-	expected_hdr.encoder_param = 0;
 	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 
 	/* 2nd pass */
@@ -251,5 +342,6 @@ void test_use_secondary_encoder_for_second_pass(void)
 	expected_hdr.compressed_size = CMP_HDR_MAX_SIZE + sizeof(expected_secondary);
 	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	expected_hdr.encoder_param = 10;
+	expected_hdr.encoder_outlier = 165;
 	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 }

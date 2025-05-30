@@ -48,20 +48,21 @@ struct cmp_encoder {
  * @param enc		Pointer to the encoder structure to initialize
  * @param encoder_type	Type of encoder to use
  * @param encoder_param	Parameter specific to the chosen encoder_type
- * @param bs		Pointer to a bitstream writer; must be initialized and
+ * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param bs		Pointer to a bitstream writer; must be initialised and
  *			provided by the caller
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, struct bitstream_writer *bs);
+			  uint32_t encoder_param, uint32_t outlier, struct bitstream_writer *bs);
 
 
 /**
  * @brief Encode a 16-bit signed sample
  *
- * @param enc		Pointer to initialized encoder structure
+ * @param enc		Pointer to initialised encoder structure
  * @param value		16-bit signed sample to encode
  *
  * @returns an error code, which can be checked using cmp_is_error()
@@ -89,11 +90,12 @@ uint32_t cmp_encoder_finish(struct cmp_encoder *enc);
  *
  * @param encoder_type	encoder type to check
  * @param encoder_param	parameter for the encoder
+ * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param);
-
+uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param,
+				  uint32_t outlier);
 
 #endif /* CMP_ENCODER_H */
