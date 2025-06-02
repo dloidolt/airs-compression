@@ -248,6 +248,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	hdr.identifier = ctx->identifier;
 	hdr.sequence_number = ctx->sequence_number;
 	hdr.preprocessing = selected_preprocessing;
+	hdr.checksum_enabled = ctx->params.checksum_enabled;
 	hdr.encoder_type = selected_encoder_type;
 	hdr.model_rate = ctx->params.model_rate;
 	hdr.encoder_param = selected_encoder_param;
@@ -281,7 +282,20 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		}
 	}
 
-	hdr.compressed_size = cmp_encoder_finish(&enc);
+	ret = cmp_encoder_finish(&enc);
+	if (cmp_is_error_int(ret))
+		return ret;
+
+	if (ctx->params.checksum_enabled) {
+		uint32_t const checksum = cmp_checksum(src, src_size);
+
+		bitstream_pad_last_byte(&bs);
+		ret = bitstream_write32(&bs, checksum, bitsizeof(checksum));
+		if (cmp_is_error_int(ret))
+			return ret;
+	}
+
+	hdr.compressed_size = bitstream_flush(&bs);
 	if (cmp_is_error_int(hdr.compressed_size))
 		return hdr.compressed_size;
 

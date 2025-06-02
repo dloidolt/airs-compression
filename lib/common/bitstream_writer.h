@@ -175,6 +175,21 @@ static __inline uint32_t bitstream_write64(struct bitstream_writer *bs, uint64_t
 
 
 /**
+ * @brief Pads the last byte with zeros if it's not completely filled
+ *
+ * @param bs	pointer to an initialised bitstream_writer structure
+ */
+
+static __inline void bitstream_pad_last_byte(struct bitstream_writer *bs)
+{
+	unsigned int const bits_in_last_byte = (64 - bs->bit_cap) % 8;
+
+	if (bits_in_last_byte != 0)
+		(void)bitstream_write32(bs, 0, 8 - bits_in_last_byte);
+}
+
+
+/**
  * @brief Flushes remaining bits form the internal cache to the buffer
  * Last byte may be padded with zeros
  *

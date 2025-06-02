@@ -106,6 +106,9 @@ struct cmp_params {
 	uint32_t secondary_encoder_param;		/**< Parameter for the secondary encoder */
 	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
 	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
+
+	/* Additional Options */
+	uint8_t checksum_enabled; /**< Enable checksum generation of original data if non-zero */
 };
 
 

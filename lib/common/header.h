@@ -70,6 +70,10 @@
 #define CMP_HDR_MAX_SIZE (CMP_HDR_SIZE + CMP_EXT_HDR_SIZE)
 
 
+/** Seed value used for initializing the checksum computation, arbitrarily chosen*/
+#define CHECKSUM_SEED 419764627
+
+
 /**
  * @brief compression header structure
  *
@@ -126,5 +130,16 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 
 uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr *hdr);
 
+
+/**
+ * @brief Calculates a checksum for an array of 16-bit values
+ *
+ * @param data	Pointer a data buffer (array of 16-bit values)
+ * @param size	Size of the data buffer in bytes.
+ *
+ * @returns a 32-bit checksum of the data buffer
+ */
+
+uint32_t cmp_checksum(const uint16_t *data, uint32_t size);
 
 #endif /* CMP_HEADER_H */

@@ -15,6 +15,10 @@
 #include "err_private.h"
 #include "bitstream_writer.h"
 
+#define XXH_INLINE_ALL
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_NO_STDLIB
+#include "xxhash.h"
 
 uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hdr)
 {
@@ -132,4 +136,26 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 	hdr->encoder_outlier = extract_u24be(start + CMP_EXT_HDR_OFFSET_OUTLIER_PARAM);
 
 	return CMP_HDR_SIZE + CMP_EXT_HDR_SIZE;
+}
+
+
+uint32_t cmp_checksum(const uint16_t *data, uint32_t size)
+{
+	if (XXH_CPU_LITTLE_ENDIAN) {
+		uint32_t i;
+		XXH32_state_t state;
+
+		(void)XXH32_reset(&state, CHECKSUM_SEED);
+		/* Convert to big-endian to get consistent checksums across
+		 * different CPU architectures.
+		 */
+		for (i = 0; i < size / sizeof(*data); i++) {
+			uint16_t big_endian = __builtin_bswap16(data[i]);
+
+			(void)XXH32_update(&state, &big_endian, sizeof(data[i]));
+		}
+		return XXH32_digest(&state);
+	} else {
+		return XXH32(data, size, CHECKSUM_SEED);
+	}
 }
