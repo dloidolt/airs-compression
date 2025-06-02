@@ -175,14 +175,13 @@ static uint32_t golomb_optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
 
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, uint32_t outlier, struct bitstream_writer *bs)
+			  uint32_t encoder_param, uint32_t outlier)
 {
-	if (!enc || !bs)
+	if (!enc)
 		return CMP_ERROR(INT_ENCODER);
 
 	memset(enc, 0, sizeof(*enc));
 	enc->encoder_type = encoder_type;
-	enc->bs = bs;
 
 	switch (enc->encoder_type) {
 	case CMP_ENCODER_UNCOMPRESSED:
@@ -220,9 +219,8 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 				  uint32_t outlier)
 {
 	struct cmp_encoder enc_dummy;
-	struct bitstream_writer bs_dummy;
 
-	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, outlier, &bs_dummy);
+	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, outlier);
 }
 
 
@@ -319,16 +317,17 @@ static uint32_t golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log
 }
 
 
-uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
+uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
+				struct bitstream_writer *bs)
 {
 	uint32_t ret;
 
-	if (!enc || !enc->bs)
+	if (!enc || !bs)
 		return CMP_ERROR(INT_ENCODER);
 
 	switch (enc->encoder_type) {
 	case CMP_ENCODER_UNCOMPRESSED:
-		ret = bitstream_write32(enc->bs, (uint16_t)value, bitsizeof(value));
+		ret = bitstream_write32(bs, (uint16_t)value, bitsizeof(value));
 		break;
 
 	case CMP_ENCODER_GOLOMB_ZERO: {
@@ -336,14 +335,13 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 
 		if (mapped < enc->outlier) {
 			/* add 1 for non-outlier values to make space for 0 as escape symbol */
-			ret = golomb_encode((uint32_t)mapped + 1, enc->g_par, enc->g_par_log2,
-					    enc->bs);
+			ret = golomb_encode((uint32_t)mapped + 1, enc->g_par, enc->g_par_log2, bs);
 		} else {
 			/* encoded 0 indites that encoded mapped data are following */
-			ret = golomb_encode(0, enc->g_par, enc->g_par_log2, enc->bs);
+			ret = golomb_encode(0, enc->g_par, enc->g_par_log2, bs);
 			if (cmp_is_error_int(ret))
 				return ret;
-			ret = bitstream_write32(enc->bs, mapped, bitsizeof(value));
+			ret = bitstream_write32(bs, mapped, bitsizeof(value));
 		}
 		break;
 	}
@@ -352,7 +350,7 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 		uint16_t const mapped = (uint16_t)map_to_unsigned(value, bitsizeof(value));
 
 		if (mapped < enc->outlier) {
-			ret = golomb_encode(mapped, enc->g_par, enc->g_par_log2, enc->bs);
+			ret = golomb_encode(mapped, enc->g_par, enc->g_par_log2, bs);
 		} else {
 			/*
 			 * Multi-escape:
@@ -367,11 +365,10 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 			uint32_t const diff = mapped - enc->outlier;
 			unsigned int const level = diff < 4 ? 0 : ilog2(diff) / 2;
 
-			ret = golomb_encode(enc->outlier + level, enc->g_par, enc->g_par_log2,
-					    enc->bs);
+			ret = golomb_encode(enc->outlier + level, enc->g_par, enc->g_par_log2, bs);
 			if (cmp_is_error_int(ret))
 				return ret;
-			ret = bitstream_write32(enc->bs, diff, (level + 1) * 2);
+			ret = bitstream_write32(bs, diff, (level + 1) * 2);
 		}
 		break;
 	}
@@ -381,13 +378,4 @@ uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value)
 	}
 
 	return ret;
-}
-
-
-uint32_t cmp_encoder_finish(struct cmp_encoder *enc)
-{
-	if (!enc || !enc->bs)
-		return CMP_ERROR(INT_ENCODER);
-
-	return bitstream_flush(enc->bs);
 }

@@ -237,7 +237,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 		return ret;
 
 	ret = cmp_encoder_init(&enc, selected_encoder_type, selected_encoder_param,
-			       selected_outlier, &bs);
+			       selected_outlier);
 	if (cmp_is_error_int(ret))
 		return ret;
 
@@ -268,7 +268,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	for (i = 0; i < n_values; i++) {
 		int16_t const value = prepocess->process(i, src, ctx->work_buf);
 
-		ret = cmp_encoder_encode_s16(&enc, value);
+		ret = cmp_encoder_encode_s16(&enc, value, &bs);
 		if (cmp_is_error_int(ret))
 			return ret;
 
@@ -281,10 +281,6 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 				model[i] = update_model(src[i], model[i], ctx->params.model_rate);
 		}
 	}
-
-	ret = cmp_encoder_finish(&enc);
-	if (cmp_is_error_int(ret))
-		return ret;
 
 	if (ctx->params.checksum_enabled) {
 		uint32_t const checksum = cmp_checksum(src, src_size);

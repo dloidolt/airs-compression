@@ -29,7 +29,6 @@
  */
 
 struct cmp_encoder {
-	struct bitstream_writer *bs;	    /**< Pointer to a bitstream write */
 	enum cmp_encoder_type encoder_type; /** Algorithm used for encoding samples */
 
 	/* Golomb parameters (used only in GOLOMB modes, otherwise ignored) */
@@ -49,14 +48,12 @@ struct cmp_encoder {
  * @param encoder_type	Type of encoder to use
  * @param encoder_param	Parameter specific to the chosen encoder_type
  * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
- * @param bs		Pointer to a bitstream writer; must be initialised and
- *			provided by the caller
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, uint32_t outlier, struct bitstream_writer *bs);
+			  uint32_t encoder_param, uint32_t outlier);
 
 
 /**
@@ -64,25 +61,16 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
  *
  * @param enc		Pointer to initialised encoder structure
  * @param value		16-bit signed sample to encode
+ * @param bs		Pointer to a bitstream writer; must be initialised and
+ *			provided by the caller
  *
+ * @note The caller is responsible for flushing the bitstream when encoding is
+ *       complete to ensure all buffered bits are written
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_encoder_encode_s16(struct cmp_encoder *enc, int16_t value);
-
-
-/**
- * @brief Finalizes the encoding process
- *
- * This function should be called after all samples have been encoded.
- *
- * @param enc Pointer to the cmp_encoder structure.
- *
- * @returns size of the bitstream on success, an error code, which can be
- *	checked using cmp_is_error() on failure
- */
-
-uint32_t cmp_encoder_finish(struct cmp_encoder *enc);
+uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
+				struct bitstream_writer *bs);
 
 
 /**
