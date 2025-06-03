@@ -108,8 +108,8 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 	memset(hdr, 0x00, sizeof(*hdr));
 
 	version = extract_u16be(start + CMP_HDR_OFFSET_VERSION);
-	hdr->version_flag = version >> CMP_HDR_BITS_VERSION_ID;
-	hdr->version_id = version & (1 << CMP_HDR_BITS_VERSION_ID) - 1;
+	hdr->version_flag = (version >> CMP_HDR_BITS_VERSION_ID) & 1U;
+	hdr->version_id = version & ((1 << CMP_HDR_BITS_VERSION_ID) - 1);
 
 	hdr->compressed_size = extract_u24be(start + CMP_HDR_OFFSET_COMPRESSED_SIZE);
 	hdr->original_size = extract_u24be(start + CMP_HDR_OFFSET_ORIGINAL_SIZE);

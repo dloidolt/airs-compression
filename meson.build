@@ -41,7 +41,6 @@ if use_debug
     '-Wdeclaration-after-statement',
     '-Wwrite-strings',
     '-Wold-style-definition',
-    '-Waggregate-return',
     '-Wmissing-include-dirs',
     '-Wundef',
     '-Wdouble-promotion',
