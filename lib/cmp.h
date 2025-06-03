@@ -25,7 +25,6 @@
 #ifndef CMP_H
 #define CMP_H
 
-/* ======   Dependency   ====== */
 #include <stdint.h>
 
 /* ====== Utility Macros  ====== */
@@ -109,6 +108,7 @@ struct cmp_params {
 
 	/* Additional Options */
 	uint8_t checksum_enabled; /**< Enable checksum generation of original data if non-zero */
+	uint8_t uncompressed_fallback_enabled; /**< Fall back to uncompressed storage if compression is ineffective */
 };
 
 

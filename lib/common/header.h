@@ -73,6 +73,9 @@
 /** Seed value used for initializing the checksum computation, arbitrarily chosen*/
 #define CHECKSUM_SEED 419764627
 
+/** Size of the optional checksum in byes */
+#define CMP_CHECKSUM_SIZE sizeof(uint32_t)
+
 
 /**
  * @brief compression header structure

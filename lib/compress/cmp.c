@@ -183,8 +183,9 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 }
 
 
-uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
-			  const uint16_t *src, uint32_t src_size)
+/* Main compression loop */
+static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				    const uint16_t *src, uint32_t src_size)
 {
 	uint32_t i, ret, n_values;
 	enum cmp_preprocessing selected_preprocessing;
@@ -308,6 +309,55 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 	ctx->sequence_number++;
 	return hdr.compressed_size;
+}
+
+
+/* implements uncompressed fallback */
+uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			  const uint16_t *src, uint32_t src_size)
+{
+	uint32_t uncompressed_size = CMP_HDR_SIZE + src_size;
+	enum cmp_preprocessing saved_preprocessing;
+	enum cmp_encoder_type saved_encoder_type;
+	uint32_t ret;
+
+	if (ctx == NULL)
+		return CMP_ERROR(CONTEXT_INVALID);
+
+	if (ctx->params.checksum_enabled)
+		uncompressed_size += CMP_CHECKSUM_SIZE;
+
+	/* Skip fallback if disabled or output buffer too small for uncompressed */
+	if (!ctx->params.uncompressed_fallback_enabled || dst_capacity < uncompressed_size)
+		return compress_u16_engine(ctx, dst, dst_capacity, src, src_size);
+
+	/*
+	 * Try compression with restricted buffer size. If data doesn't compress
+	 * well enough to fit in uncompressed_size bytes, we'll get a buffer
+	 * overflow error and fall back to uncompressed storage.
+	 */
+	ret = compress_u16_engine(ctx, dst, uncompressed_size, src, src_size);
+	if (cmp_get_error_code(ret) != CMP_ERR_DST_TOO_SMALL)
+		return ret;
+
+	/*
+	 * Compression failed - fall back to uncompressed storage.
+	 * Reset context to avoid corrupted model state, then temporarily
+	 * switch to uncompressed mode.
+	 */
+	ret = cmp_reset(ctx);
+	if (cmp_is_error_int(ret))
+		return ret;
+	saved_preprocessing = ctx->params.primary_preprocessing;
+	saved_encoder_type = ctx->params.primary_encoder_type;
+	ctx->params.primary_preprocessing = CMP_PREPROCESS_NONE;
+	ctx->params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+
+	ret = compress_u16_engine(ctx, dst, uncompressed_size, src, src_size);
+
+	ctx->params.primary_preprocessing = saved_preprocessing;
+	ctx->params.primary_encoder_type = saved_encoder_type;
+	return ret;
 }
 
 

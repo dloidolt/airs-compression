@@ -377,10 +377,9 @@ void test_detect_too_large_timestamp_during_during_compression(void)
 }
 
 
-#define CHECKSUM_SIZE sizeof(uint32_t)
 uint32_t get_checksum(void *compressed_data, uint32_t size)
 {
-	uint8_t *buf = (uint8_t *)compressed_data + size - CHECKSUM_SIZE;
+	uint8_t *buf = (uint8_t *)compressed_data + size - CMP_CHECKSUM_SIZE;
 
 	TEST_ASSERT(size > 4);
 	return (uint32_t)buf[0] << 24 | (uint32_t)buf[1] << 16 | (uint32_t)buf[2] << 8 |
@@ -391,7 +390,7 @@ uint32_t get_checksum(void *compressed_data, uint32_t size)
 void test_checksum_appended_to_compressed_data(void)
 {
 	const uint16_t input_data[] = { 0xCA, 0xFF, 0xEE };
-	uint8_t output_buf[CMP_HDR_SIZE + sizeof(input_data) + CHECKSUM_SIZE] = { 0 };
+	uint8_t output_buf[CMP_HDR_SIZE + sizeof(input_data) + CMP_CHECKSUM_SIZE] = { 0 };
 	uint32_t const expected_checksum = cmp_checksum(input_data, sizeof(input_data));
 	uint32_t output_size;
 	struct cmp_context ctx;
@@ -405,7 +404,7 @@ void test_checksum_appended_to_compressed_data(void)
 				       sizeof(input_data));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(input_data) + CHECKSUM_SIZE, output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(input_data) + CMP_CHECKSUM_SIZE, output_size);
 	expected_hdr.compressed_size = output_size;
 	expected_hdr.original_size = sizeof(input_data);
 	expected_hdr.checksum_enabled = 1;
@@ -418,8 +417,8 @@ void test_checksum_is_different_for_different_inputs(void)
 {
 	const uint16_t input_data1[] = { 0xC0, 0xFF, 0xEE };
 	const uint16_t input_data2[] = { 0xC0, 0xFF, 0xEF };
-	uint8_t output_buf1[CMP_HDR_SIZE + sizeof(input_data2) + CHECKSUM_SIZE] = { 0 };
-	uint8_t output_buf2[CMP_HDR_SIZE + sizeof(input_data1) + CHECKSUM_SIZE] = { 0 };
+	uint8_t output_buf1[CMP_HDR_SIZE + sizeof(input_data2) + CMP_CHECKSUM_SIZE] = { 0 };
+	uint8_t output_buf2[CMP_HDR_SIZE + sizeof(input_data1) + CMP_CHECKSUM_SIZE] = { 0 };
 	uint32_t output_size1, output_size2;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -457,11 +456,166 @@ void test_checksum_is_same_for_same_inputs(void)
 
 
 	output_size1 = cmp_compress_u16(&ctx1, output_buf1, sizeof(output_buf1), input_data,
-				       sizeof(input_data));
+					sizeof(input_data));
 	output_size2 = cmp_compress_u16(&ctx2, output_buf2, sizeof(output_buf2), input_data,
-				       sizeof(input_data));
+					sizeof(input_data));
 
 	TEST_ASSERT_CMP_SUCCESS(output_size1);
 	TEST_ASSERT_CMP_SUCCESS(output_size2);
-	TEST_ASSERT_EQUAL_HEX32(get_checksum(output_buf1, output_size1), get_checksum(output_buf2, output_size2));
+	TEST_ASSERT_EQUAL_HEX32(get_checksum(output_buf1, output_size1),
+				get_checksum(output_buf2, output_size2));
+}
+
+
+void test_primary_compression_fallback_for_incompressible_data(void)
+{
+	const uint16_t input_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
+	const uint8_t expected_incompressible[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC };
+	const uint16_t input_compressible[] = { 0, 0, 0, 0 };
+	const uint8_t expected_compressible[] = { 0xAA };
+	uint8_t output_buf[40] = { 0 };
+	uint32_t output_size;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
+
+	params.uncompressed_fallback_enabled = 1;
+	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
+	params.primary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	params.primary_encoder_param = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
+
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_incompressible,
+				       sizeof(input_incompressible));
+
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(input_incompressible), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_incompressible, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_incompressible));
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_incompressible);
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+
+	/* this one is compressible */
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_compressible,
+				       sizeof(input_compressible));
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_compressible), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_compressible, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_compressible));
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_compressible);
+	expected_hdr.preprocessing = CMP_PREPROCESS_DIFF;
+	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	expected_hdr.encoder_param = 1;
+	expected_hdr.encoder_outlier = 16;
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+}
+
+void test_secondary_compression_fallback_for_incompressible_data(void)
+{
+	const uint16_t input_1[] = { 0, 0, 0, 0 };
+	const uint16_t input_2[] = { 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD };
+	const uint8_t expected_2_uncompressed[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xDD, 0xDD };
+	const uint8_t expected_2_compressed[] = { 0xAA };
+	uint8_t work_buf[sizeof(input_2)];
+	uint8_t output_buf[40] = { 0 };
+	uint32_t output_size;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
+
+	params.uncompressed_fallback_enabled = 1;
+	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
+	params.primary_encoder_type = CMP_ENCODER_GOLOMB_MULTI;
+	params.primary_encoder_param = 1;
+	params.primary_encoder_outlier = 16;
+	params.secondary_iterations = 3;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.secondary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	params.secondary_encoder_param = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
+
+	/* normal primary compression, no fallback */
+	output_size =
+		cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_1, sizeof(input_1));
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT(CMP_HDR_SIZE + sizeof(input_2) > output_size);
+
+	/* secondary compression with uncompressed fallback */
+	output_size =
+		cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_2, sizeof(input_2));
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_2_uncompressed), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_2_uncompressed, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_2_uncompressed));
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_2);
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+
+	/* this one is compressible */
+	output_size =
+		cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_2, sizeof(input_2));
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_2_compressed), output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_2_compressed, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_2_compressed));
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_1);
+	expected_hdr.preprocessing = CMP_PREPROCESS_MODEL;
+	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	expected_hdr.encoder_param = 1;
+	expected_hdr.encoder_outlier = 16;
+	expected_hdr.sequence_number = 1;
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+}
+
+
+void test_fallback_works_with_checksum_enabled(void)
+{
+	const uint16_t input_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
+	const uint8_t expected_incompressible[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC };
+	const uint16_t input_compressible[] = { 0, 0, 0, 0 };
+	const uint8_t expected_compressible[] = { 0xAA };
+	uint8_t output_buf[40] = { 0 };
+	uint32_t output_size;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
+
+	params.uncompressed_fallback_enabled = 1;
+	params.checksum_enabled = 1;
+	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
+	params.primary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	params.primary_encoder_param = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
+
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_incompressible,
+				       sizeof(input_incompressible));
+
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + CMP_CHECKSUM_SIZE + sizeof(input_incompressible),
+			  output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_incompressible, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_incompressible));
+	expected_hdr.checksum_enabled = 1;
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_incompressible);
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
+
+	/* this one is compressible */
+	output_size = cmp_compress_u16(&ctx, output_buf, sizeof(output_buf), input_compressible,
+				       sizeof(input_compressible));
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + CMP_CHECKSUM_SIZE + sizeof(expected_compressible),
+			  output_size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_compressible, cmp_hdr_get_cmp_data(output_buf),
+				     sizeof(expected_compressible));
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(input_compressible);
+	expected_hdr.preprocessing = CMP_PREPROCESS_DIFF;
+	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	expected_hdr.encoder_param = 1;
+	expected_hdr.encoder_outlier = 16;
+	TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 }
