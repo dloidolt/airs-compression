@@ -10,8 +10,8 @@
  *	git-compat-util.h by @author Linus Torvalds et al.
  */
 
-#ifndef COMPAT_UTIL_H
-#define COMPAT_UTIL_H
+#ifndef COMPILER_H
+#define COMPILER_H
 
 /**
  * @brief Convenience macros to test the versions of gcc (or a compatible compiler)
@@ -122,4 +122,34 @@
 #define MAYBE_UNUSED __attribute__((__unused__))
 
 
-#endif /*  COMPAT_UTIL_H */
+/**
+ * @brief Defines an aligned type
+ *
+ * @code{.c}
+ * ALIGNED_TYPE(16, uint16_t) aligned_int = 42;
+ * ALIGNED_TYPE(32, uint8_t) aligned_array[128];
+ *
+ * // The default-alignment equivalent would be
+ * uint16_t aligned_int = 42;
+ * uint8_t aligned_array[128];
+ * @endcode
+ * @see FFmpeg DECLARE_ALIGNED in libavutil/mem_internal.h
+ *
+ * @param n Minimum alignment in bytes
+ * @param t Type
+ */
+
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+#  define ALIGNED_TYPE(n, t) _Alignas((n)) t
+#elif defined(__INTEL_COMPILER) && __INTEL_COMPILER < 1110 || defined(__SUNPRO_C)
+#  define ALIGNED_TYPE(n, t) t __attribute__((aligned(n)))
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ALIGNED_TYPE(n, t) t __attribute__((aligned(n)))
+#elif defined(_MSC_VER)
+#  define ALIGNED_TYPE(n, t) __declspec(align(n)) t
+#else
+#  warning "ALIGNED_TYPE: Compiler does not support explicit alignment. Array may not be aligned."
+#  define ALIGNED_TYPE(n, t) t
+#endif
+
+#endif /*  COMPILER_H */

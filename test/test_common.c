@@ -53,6 +53,8 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_WORK_BUF_NULL";
 	case CMP_ERR_WORK_BUF_TOO_SMALL:
 		return "CMP_ERR_WORK_BUF_TOO_SMALL";
+	case CMP_ERR_WORK_BUF_UNALIGNED:
+		return "CMP_ERR_WORK_BUF_UNALIGNED";
 	case CMP_ERR_DST_NULL:
 		return "CMP_ERR_DST_NULL";
 	case CMP_ERR_DST_UNALIGNED:

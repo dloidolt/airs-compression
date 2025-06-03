@@ -23,7 +23,7 @@
 		int16_t output[8];                                                      \
 		uint8_t *p = cmp_hdr_get_cmp_data(compressed_data);                     \
 		uint32_t i;                                                             \
-		TEST_ASSERT(ARRAY_SIZE(output) >= num_elements);                        \
+		TEST_ASSERT(ARRAY_SIZE(output) >= (num_elements));                      \
 		for (i = 0; i < num_elements; i++)                                      \
 			output[i] = (int16_t)(p[i * 2] << 8) | (int16_t)(p[i * 2 + 1]); \
 		TEST_ASSERT_EQUAL_INT16_ARRAY(expected_output, output, num_elements);   \
@@ -37,10 +37,10 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 		1, 3,  0, UINT16_MAX, 0, INT16_MAX, (uint16_t)INT16_MIN, (uint16_t)-5
 	};
 	const int16_t expected_1d_diff[ARRAY_SIZE(input_data)] = {
-		1, 2, -3,         -1, 1, INT16_MAX,                    1, 0x7FFB
+		1, 2, -3,         -1, 1, INT16_MAX,                   1, 0x7FFB
 	};
 	/* clang-format on */
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + sizeof(expected_1d_diff)];
+	DST_ALIGNED_U8 output_buf[CMP_HDR_MAX_SIZE + sizeof(expected_1d_diff)];
 	uint32_t output_size;
 	struct cmp_params params = { 0 };
 	struct cmp_context ctx;
@@ -71,7 +71,7 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 void check_iwt_transform(const int16_t *input_data, const int16_t *expected_output, uint32_t size)
 {
 	int16_t work_buf[8];
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + 8 * sizeof(int16_t)];
+	uint64_t output_buf[5];
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -142,8 +142,8 @@ void test_model_preprocessing_for_multiple_values(void)
 	const uint16_t start_model[] = { 0, 1, 10 };
 	const uint16_t data[ARRAY_SIZE(start_model)] = { 1, 3, 5 };
 	const int16_t expected_output[ARRAY_SIZE(start_model)] = { 1, 2, -5 };
-	uint8_t work_buf[sizeof(start_model)];
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + sizeof(start_model)];
+	uint16_t work_buf[ARRAY_SIZE(start_model)];
+	DST_ALIGNED_U8 output_buf[CMP_HDR_MAX_SIZE + sizeof(start_model)];
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -182,7 +182,7 @@ void test_model_updates_correctly(void)
 	const uint16_t input3[3] = { 0, 0, 0 };
 	const int16_t expected_output[3] = { 0, -2, -5 };
 	uint16_t work_buf[ARRAY_SIZE(input1)];
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + sizeof(input1)];
+	DST_ALIGNED_U8 output_buf[CMP_HDR_MAX_SIZE + sizeof(input1)];
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -224,8 +224,8 @@ void test_primary_preprocessing_after_max_secondary_iterations(void)
 	const uint16_t input[3] = { INT16_MAX, UINT16_MAX, 0 };
 	const uint16_t input_after_reset[3] = { 1, 2, 3 };
 	const int16_t expected_output[3] = { 1, 2, 3 };
-	uint8_t work_buf[sizeof(input)];
-	uint8_t output_buf[CMP_HDR_MAX_SIZE + sizeof(input)];
+	uint16_t work_buf[ARRAY_SIZE(input)];
+	DST_ALIGNED_U8 output_buf[CMP_HDR_MAX_SIZE + sizeof(input)];
 	uint32_t output_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -282,8 +282,8 @@ void test_assigns_unique_model_ids(void)
 	const uint16_t input2[3] = { 1, 3, 5 };
 	uint16_t work_buf1[ARRAY_SIZE(input1)];
 	uint16_t work_buf2[ARRAY_SIZE(input2)];
-	uint8_t output_buf1[CMP_HDR_MAX_SIZE + sizeof(input1)];
-	uint8_t output_buf2[CMP_HDR_MAX_SIZE + sizeof(input2)];
+	DST_ALIGNED_U8 output_buf1[CMP_HDR_MAX_SIZE + sizeof(input1)];
+	DST_ALIGNED_U8 output_buf2[CMP_HDR_MAX_SIZE + sizeof(input2)];
 	uint32_t output_size1, output_size2;
 	struct cmp_hdr hdr1, hdr2;
 	struct cmp_context ctx1, ctx2;
@@ -312,8 +312,8 @@ void test_assigns_unique_model_ids(void)
 void test_detect_to_small_work_buffer_in_model_preprocessing(void)
 {
 	const uint16_t data[] = { 0, 0, 0 };
-	uint8_t *dst[CMP_HDR_MAX_SIZE + sizeof(data)];
-	uint8_t work_buf[sizeof(data) - 1];
+	DST_ALIGNED_U8 dst[CMP_HDR_MAX_SIZE + sizeof(data)];
+	uint16_t work_buf[ARRAY_SIZE(data) - 1];
 	uint32_t work_buf_size, return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -337,8 +337,8 @@ void test_detect_src_size_change_using_model_preprocessing(void)
 {
 	const uint16_t data1[] = { 0, 0, 0, 0 };
 	const uint16_t data2[] = { 0, 0, 0 };
-	uint8_t work_buf[sizeof(data1)];
-	uint8_t *dst[CMP_HDR_MAX_SIZE + sizeof(data1)];
+	uint16_t work_buf[ARRAY_SIZE(data1)];
+	DST_ALIGNED_U8 dst[CMP_HDR_MAX_SIZE + sizeof(data1)];
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };

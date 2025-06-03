@@ -215,7 +215,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  *
  * @param ctx		pointer to a compression context; must have been
  *			initialised once with cmp_initialise()
- * @param dst		the buffer to compress the src buffers into
+ * @param dst		the buffer to compress the src buffers into, MUST be 8-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
  *			cmp_compress_bound(src_size) is guaranteed to be large
  *			enough

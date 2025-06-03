@@ -16,6 +16,7 @@
 #include "../common/err_private.h"
 #include "../common/bitstream_writer.h"
 #include "../common/header.h"
+#include "../common/compiler.h"
 
 /**
  * @brief Returns the maximum of two values.
@@ -148,11 +149,15 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	if (cmp_is_error_int(work_buf_needed))
 		return work_buf_needed;
 
-	if (work_buf_needed && !work_buf)
-		return CMP_ERROR(WORK_BUF_NULL);
+	if (work_buf_needed) {
+		if (!work_buf)
+			return CMP_ERROR(WORK_BUF_NULL);
+		if (work_buf_size == 0)
+			return CMP_ERROR(WORK_BUF_TOO_SMALL);
 
-	if (work_buf_needed && work_buf_size == 0)
-		return CMP_ERROR(WORK_BUF_TOO_SMALL);
+		if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
+			return CMP_ERROR(WORK_BUF_UNALIGNED);
+	}
 
 	if (params->model_rate > CMP_MAX_MODEL_RATE &&
 	    params->secondary_preprocessing == CMP_PREPROCESS_MODEL)

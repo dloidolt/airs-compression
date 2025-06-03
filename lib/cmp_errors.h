@@ -40,6 +40,7 @@ enum cmp_error {
 	CMP_ERR_DST_UNALIGNED = 15,	 /**< Destination buffer not correct aligned */
 	CMP_ERR_SRC_NULL = 16,		 /**< Source buffer pointer is NULL */
 	CMP_ERR_SRC_SIZE_WRONG = 17,	 /**< Source buffer size doesn't match expected size */
+	CMP_ERR_WORK_BUF_UNALIGNED = 18, /**< Work buffer is unaligned */
 
 	/* Runtime errors (30-39) */
 	CMP_ERR_DST_TOO_SMALL = 30,	/**< Destination buffer is too small */

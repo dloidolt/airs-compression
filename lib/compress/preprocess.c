@@ -317,6 +317,8 @@ static uint32_t iwt_init(const uint16_t *src, uint32_t src_size, void *work_buf,
 		return CMP_ERROR(WORK_BUF_NULL);
 	if (work_buf_size < iwt_get_work_buf_size(src_size))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
+	if ((uintptr_t)work_buf & (sizeof(*pre_cal_coefficient) - 1))
+		return CMP_ERROR(WORK_BUF_UNALIGNED);
 
 	iwt_multi_level_decomposition_i16(input_data, pre_cal_coefficient, num_samples);
 
@@ -381,6 +383,8 @@ static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_bu
 		return CMP_ERROR(WORK_BUF_NULL);
 	if (work_buf_size < model_get_work_buf_size(src_size))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
+	if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
+		return CMP_ERROR(WORK_BUF_UNALIGNED);
 
 	return num_samples;
 }
@@ -398,7 +402,7 @@ static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_bu
 
 static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
 {
-	uint16_t *model = work_buf;
+	const uint16_t *model = work_buf;
 
 	return (int16_t)(src[i] - model[i]);
 }

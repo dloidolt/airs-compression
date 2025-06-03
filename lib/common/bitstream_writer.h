@@ -23,7 +23,8 @@
 #include <string.h>
 
 #include "../common/err_private.h"
-#include "../common/compiler.h"
+
+#define CMP_DST_ALIGNMENT sizeof(uint64_t)
 
 
 /**
@@ -62,7 +63,7 @@ static __inline uint32_t bitstream_writer_init(struct bitstream_writer *bs, void
 
 	if (!dst)
 		return CMP_ERROR(DST_NULL);
-	if ((uintptr_t)dst & 7)
+	if ((uintptr_t)dst & (CMP_DST_ALIGNMENT - 1))
 		return CMP_ERROR(DST_UNALIGNED);
 
 	bs->cache = 0;

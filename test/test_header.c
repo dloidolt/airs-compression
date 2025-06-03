@@ -17,6 +17,7 @@
 #include "../lib/cmp_errors.h"
 #include "../lib/cmp.h"
 #include "../lib/common/bitstream_writer.h"
+#include "../lib/common/compiler.h"
 
 
 void test_serialize_header_with_extended_header(void)
@@ -172,24 +173,24 @@ void test_deserialize_header_without_extended_header(void)
 
 void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 {
-#define TEST_HDR_FIELD_TOO_BIG(field, bits_for_field, exp_error)    \
-	do {                                                        \
-		struct cmp_hdr hdr = { 0 };                         \
-		uint8_t buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];       \
-		uint32_t hdr_size;                                  \
-		struct bitstream_writer bs;                         \
-		bitstream_writer_init(&bs, buf, sizeof(buf));       \
-		TEST_ASSERT(bits_for_field < bitsizeof(long long)); \
-		TEST_ASSERT(bits_for_field > 0);                    \
-		hdr.preprocessing = CMP_PREPROCESS_DIFF;            \
-		hdr.field = 1ULL << bits_for_field;                 \
-		hdr_size = cmp_hdr_serialize(&bs, &hdr);            \
-		TEST_ASSERT_EQUAL_CMP_ERROR(exp_error, hdr_size);   \
-		/* now it should work */                            \
-		bitstream_rewind(&bs);                              \
-		hdr.field--;                                        \
-		hdr_size = cmp_hdr_serialize(&bs, &hdr);            \
-		TEST_ASSERT_CMP_SUCCESS(hdr_size);                  \
+#define TEST_HDR_FIELD_TOO_BIG(field, bits_for_field, exp_error)                              \
+	do {                                                                                  \
+		struct cmp_hdr hdr = { 0 };                                                   \
+		uint64_t buf[(CMP_HDR_MAX_SIZE + CMP_DST_ALIGNMENT - 1) / CMP_DST_ALIGNMENT]; \
+		uint32_t hdr_size;                                                            \
+		struct bitstream_writer bs;                                                   \
+		bitstream_writer_init(&bs, buf, sizeof(buf));                                 \
+		TEST_ASSERT(bits_for_field < bitsizeof(long long));                           \
+		TEST_ASSERT(bits_for_field > 0);                                              \
+		hdr.preprocessing = CMP_PREPROCESS_DIFF;                                      \
+		hdr.field = 1ULL << bits_for_field;                                           \
+		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
+		TEST_ASSERT_EQUAL_CMP_ERROR(exp_error, hdr_size);                             \
+		/* now it should work */                                                      \
+		bitstream_rewind(&bs);                                                        \
+		hdr.field--;                                                                  \
+		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
+		TEST_ASSERT_CMP_SUCCESS(hdr_size);                                            \
 	} while (0)
 
 	TEST_HDR_FIELD_TOO_BIG(version_id, CMP_HDR_BITS_VERSION_ID, CMP_ERR_INT_BITSTREAM);
@@ -207,10 +208,12 @@ void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 	TEST_HDR_FIELD_TOO_BIG(encoder_type, CMP_HDR_BITS_METHOD_ENCODER_TYPE,
 			       CMP_ERR_INT_BITSTREAM);
 
-	TEST_HDR_FIELD_TOO_BIG(model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION, CMP_ERR_INT_BITSTREAM);
-	TEST_HDR_FIELD_TOO_BIG(encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM, CMP_ERR_INT_BITSTREAM);
-	/* outlier_par can not be to big  */
-	/* TEST_HDR_FIELD_TOO_BIG(encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER, CMP_ERR_INT_BITSTREAM); */
+	TEST_HDR_FIELD_TOO_BIG(model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER,
+			       CMP_ERR_INT_BITSTREAM);
 #undef TEST_HDR_FIELD_TOO_BIG
 }
 

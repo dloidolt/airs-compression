@@ -45,6 +45,8 @@ const char *cmp_get_error_string(enum cmp_error code)
 		return "Work buffer is NULL but required";
 	case CMP_ERR_WORK_BUF_TOO_SMALL:
 		return "Work buffer is too small";
+	case CMP_ERR_WORK_BUF_UNALIGNED:
+		return "Work buffer is unaligned";
 	case CMP_ERR_DST_NULL:
 		return "Destination buffer pointer is NULL";
 	case CMP_ERR_DST_UNALIGNED:

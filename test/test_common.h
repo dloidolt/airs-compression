@@ -7,9 +7,16 @@
  * @brief Utilities for testing the compression library
  */
 
+#ifndef TEST_COMMON_H
+#define TEST_COMMON_H
 
 #include <unity.h>
 #include "../lib/cmp_errors.h"
+#include "../lib/common/compiler.h"
+#include "../lib/common/bitstream_writer.h"
+
+/** uint8_t type with the required compression destination buffer alignment */
+#define DST_ALIGNED_U8 ALIGNED_TYPE(CMP_DST_ALIGNMENT, uint8_t)
 
 
 void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp_ret_code,
@@ -107,3 +114,5 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  */
 
 void *cmp_hdr_get_cmp_data(void *cmp_data);
+
+#endif /* TEST_COMMON_H */
