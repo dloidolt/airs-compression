@@ -13,7 +13,6 @@
 #define UNITY_SUPPORT_TEST_CASES
 #include <unity.h>
 #include "test_common.h"
-#include "iwt_test_data.h"
 
 #include "../lib/cmp.h"
 #include "../lib/common/header.h"
@@ -69,26 +68,7 @@ void test_1d_difference_preprocessing_for_multiple_values(void)
 }
 
 
-/* clang-format off */
-const int16_t iwt_input_single[1] =    { 0x0F };
-const int16_t iwt_expected_single[1] = { 0x0F };
-
-const int16_t iwt_input_two[2] =    { -23809, 23901 };
-const int16_t iwt_expected_two[2] = { -32722, -17826 };
-
-const int16_t iwt_input_five[5] =   { -1, 2, -3, 4, -5 };
-const int16_t iwt_expected_five[5] = { 0, 4,  0, 8, -2 };
-
-const int16_t iwt_input_eight[8] =   { -3, 2, -1, 3, -2, 5, 0, 7 };
-const int16_t iwt_expected_eight[8] = { 0, 4,  2, 5,  1, 6, 3, 7 };
-/* clang-format on */
-
-TEST_CASE(iwt_input_single, iwt_expected_single, (sizeof(iwt_expected_single)))
-TEST_CASE(iwt_input_two, iwt_expected_two, sizeof(iwt_input_two))
-TEST_CASE(iwt_input_five, iwt_expected_five, sizeof(iwt_input_five))
-TEST_CASE(iwt_input_eight, iwt_expected_eight, sizeof(iwt_input_eight))
-void test_iwt_transform_correct(const int16_t *input_data, const int16_t *expected_output,
-				uint32_t size)
+void check_iwt_transform(const int16_t *input_data, const int16_t *expected_output, uint32_t size)
 {
 	int16_t work_buf[8];
 	uint8_t output_buf[CMP_HDR_MAX_SIZE + 8 * sizeof(int16_t)];
@@ -118,6 +98,43 @@ void test_iwt_transform_correct(const int16_t *input_data, const int16_t *expect
 		TEST_ASSERT_CMP_HDR(output_buf, output_size, expected_hdr);
 	}
 }
+
+
+/* clang-format off */
+void test_iwt_transform_single(void)
+{
+	const int16_t input[]    = { 0x0F };
+	const int16_t expected[] = { 0x0F };
+
+	check_iwt_transform(input, expected, sizeof(input));
+}
+
+
+void test_iwt_transform_two(void)
+{
+	const int16_t input[]    = { -23809, 23901 };
+	const int16_t expected[] = { -32722, -17826 };
+
+	check_iwt_transform(input, expected, sizeof(input));
+}
+
+
+void test_iwt_transform_five(void)
+{
+	const int16_t input[]    = { -1, 2, -3, 4, -5 };
+	const int16_t expected[] = {  0, 4,  0, 8, -2 };
+
+	check_iwt_transform(input, expected, sizeof(input));
+}
+
+void test_iwt_transform_eight(void)
+{
+	const int16_t input[]    = { -3, 2, -1, 3, -2, 5, 0, 7 };
+	const int16_t expected[] = {  0, 4,  2, 5,  1, 6, 3, 7 };
+
+	check_iwt_transform(input, expected, sizeof(input));
+}
+/* clang-format on */
 
 
 void test_model_preprocessing_for_multiple_values(void)
