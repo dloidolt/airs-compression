@@ -17,6 +17,12 @@
 #include "../cmp.h"
 
 /*
+ * Maximum values that can be stored in the size fields
+ */
+#define CMP_HDR_MAX_COMPRESSED_SIZE ((1ULL << CMP_HDR_BITS_COMPRESSED_SIZE) - 1)
+#define CMP_HDR_MAX_ORIGINAL_SIZE ((1ULL << CMP_HDR_BITS_ORIGINAL_SIZE) - 1)
+
+/*
  * Bit length of the different header fields
  */
 #define CMP_HDR_BITS_VERSION (CMP_HDR_BITS_VERSION_FLAG + CMP_HDR_BITS_VERSION_ID)

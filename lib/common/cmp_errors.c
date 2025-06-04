@@ -63,6 +63,11 @@ const char *cmp_get_error_string(enum cmp_error code)
 	case CMP_ERR_TIMESTAMP_INVALID:
 		return "Invalid timestamp provided";
 
+	case CMP_ERR_HDR_CMP_SIZE_TOO_LARGE:
+		return "Compressed size exceeds header field limit";
+	case CMP_ERR_HDR_ORIGINAL_TOO_LARGE:
+		return "Original size exceeds header field limit";
+
 	case CMP_ERR_INT_HDR:
 		return "Internal header processing error";
 	case CMP_ERR_INT_ENCODER:

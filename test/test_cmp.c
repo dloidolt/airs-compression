@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <unity.h>
 #include "test_common.h"
@@ -226,7 +227,7 @@ void test_compression_detects_src_size_is_not_multiple_of_2(void)
 }
 
 
-void test_compression_detects_src_size_too_large(void)
+void test_compression_detects_src_size_too_large_for_header(void)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	uint64_t dst[5];
@@ -236,8 +237,30 @@ void test_compression_detects_src_size_too_large(void)
 	uint32_t const cmp_size =
 		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, src_size_too_large);
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, cmp_size);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, cmp_size);
 }
+
+
+void test_compression_detects_dst_size_too_large_for_header(void)
+{
+	uint32_t const src_size = CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL; /* must be a multiple 2 */
+	uint32_t const dst_cap = CMP_HDR_SIZE + src_size; /* to large for the cmp size field */
+	uint16_t *src = calloc(src_size, 1);
+	uint8_t *dst = calloc(dst_cap, 1);
+	uint32_t cmp_size;
+	struct cmp_context ctx_uncompressed = create_uncompressed_context();
+
+	TEST_ASSERT_NOT_NULL(src);
+	TEST_ASSERT_NOT_NULL(dst);
+
+	cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, dst_cap, src, src_size);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_CMP_SIZE_TOO_LARGE, cmp_size);
+
+	free(src);
+	free(dst);
+}
+
 
 void test_compression_detects_unaligned_dst(void)
 {
@@ -250,6 +273,7 @@ void test_compression_detects_unaligned_dst(void)
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_UNALIGNED, cmp_size);
 }
+
 
 void test_successful_reset_of_compressed_data(void)
 {
@@ -328,21 +352,47 @@ void test_deinitialise_NULL_context_gracefully(void)
 }
 
 
-void test_bound_size_is_enough_for_uncompressed_mode(void)
+void test_bound_size_is_enough_for_uncompressed_mode_with_checksum(void)
 {
 	uint32_t const bound = cmp_compress_bound(3);
 
 	TEST_ASSERT_CMP_SUCCESS(bound);
 	/* round size up to next multiple of 2 */
-	TEST_ASSERT_GREATER_OR_EQUAL_UINT32(CMP_HDR_SIZE + 4, bound);
+	TEST_ASSERT_GREATER_OR_EQUAL_UINT32(CMP_HDR_SIZE + CMP_CHECKSUM_SIZE + 4, bound);
+}
+
+
+void test_compress_bound_provides_sufficient_buffer_size(void)
+{
+	uint64_t dst[5];
+	const uint16_t worst_case_data[2] = { 0xAAAA, 0xBBBB };
+	struct cmp_context ctx;
+	struct cmp_params worst_case_parmas = { 0 };
+	uint32_t bound;
+
+	worst_case_parmas.primary_encoder_type = CMP_ENCODER_GOLOMB_MULTI;
+	worst_case_parmas.primary_encoder_param = 1;
+	worst_case_parmas.primary_encoder_outlier = 32;
+	worst_case_parmas.checksum_enabled = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &worst_case_parmas, NULL, 0));
+
+	bound = cmp_compress_bound(sizeof(worst_case_data) - 1);
+
+	TEST_ASSERT_CMP_SUCCESS(bound);
+	TEST_ASSERT_LESS_OR_EQUAL(sizeof(dst), bound);
+	TEST_ASSERT_CMP_SUCCESS(
+		cmp_compress_u16(&ctx, dst, bound, worst_case_data, sizeof(worst_case_data)));
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL,
+				    cmp_compress_u16(&ctx, dst, bound - 1, worst_case_data,
+						     sizeof(worst_case_data)));
 }
 
 
 void test_bound_size_calculation_detects_to_large_src_size(void)
 {
-	uint32_t const bound = cmp_compress_bound(UINT32_MAX);
+	uint32_t const bound = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, bound);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, bound);
 }
 
 

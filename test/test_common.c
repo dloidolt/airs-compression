@@ -75,6 +75,10 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_INT_ENCODER";
 	case CMP_ERR_INT_BITSTREAM:
 		return "CMP_ERR_INT_BITSTREAM";
+	case CMP_ERR_HDR_CMP_SIZE_TOO_LARGE:
+		return "CMP_ERR_HDR_CMP_SIZE_TOO_LARGE";
+	case CMP_ERR_HDR_ORIGINAL_TOO_LARGE:
+		return "CMP_ERR_HDR_ORIGINAL_TOO_LARGE";
 	case CMP_ERR_MAX_CODE:
 	default:
 		TEST_FAIL_MESSAGE("Missing error name");

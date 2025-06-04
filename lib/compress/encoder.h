@@ -76,8 +76,8 @@ uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 /**
  * @brief Checks if the given encoder type and parameter are valid
  *
- * @param encoder_type	encoder type to check
- * @param encoder_param	parameter for the encoder
+ * @param encoder_type	Encoder type to check
+ * @param encoder_param	Parameter for the encoder
  * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
  *
  * @returns an error code, which can be checked using cmp_is_error()
@@ -85,5 +85,18 @@ uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 
 uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t encoder_param,
 				  uint32_t outlier);
+
+
+/**
+ * @brief Calculates the maximum worst cased compressed size
+ *
+ * @param size	Size of the data uncompressed
+ *
+ * @returns maximum possible compressed size in bytes, can be larger than the
+ *	maximum values that can be stored in the compressed size header field
+ */
+
+uint64_t cmp_encoder_max_compressed_size(uint32_t size);
+
 
 #endif /* CMP_ENCODER_H */

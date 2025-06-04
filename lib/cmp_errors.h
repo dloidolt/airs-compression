@@ -47,6 +47,9 @@ enum cmp_error {
 	CMP_ERR_SRC_SIZE_MISMATCH = 31, /**< Source data size changed with model preprocessing */
 	CMP_ERR_TIMESTAMP_INVALID = 32, /**< Invalid timestamp provided */
 
+	CMP_ERR_HDR_CMP_SIZE_TOO_LARGE = 40, /**< Compressed size exceeds header field limit */
+	CMP_ERR_HDR_ORIGINAL_TOO_LARGE = 41, /**< Original size exceeds header field limit */
+
 	/* Internal errors (100-109) */
 	CMP_ERR_INT_HDR = 100,	     /**< Internal header processing error */
 	CMP_ERR_INT_ENCODER = 101,   /**< Internal data encoder error */

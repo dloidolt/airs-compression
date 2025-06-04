@@ -27,8 +27,11 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 	if (!hdr)
 		return CMP_ERROR(INT_HDR);
 
-	if (hdr->original_size >= 1ULL << CMP_HDR_BITS_ORIGINAL_SIZE)
-		return CMP_ERROR(SRC_SIZE_WRONG);
+	if (hdr->compressed_size > CMP_HDR_MAX_COMPRESSED_SIZE)
+		return CMP_ERROR(HDR_CMP_SIZE_TOO_LARGE);
+
+	if (hdr->original_size > CMP_HDR_MAX_ORIGINAL_SIZE)
+		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
 
 	start_size = bitstream_size(bs);
 	if (cmp_is_error_int(start_size))

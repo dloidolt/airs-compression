@@ -14,11 +14,13 @@
 #include "../cmp.h"
 #include "../common/bitstream_writer.h"
 #include "../common/err_private.h"
+#include "../common/bithacks.h"
 #include "../common/compiler.h"
 
 #define CMP_GOLOMB_MAX_CODEWORD_BITS 32
 
-#define min(X, Y) ((X) < (Y) ? (X) : (Y))
+/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
+#define CMP_MAX_BITS_PER_SAMPLE (CMP_GOLOMB_MAX_CODEWORD_BITS + CMP_NUM_BITS_PER_SAMPLE)
 
 
 /**
@@ -201,8 +203,9 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 			enc->outlier = outlier;
 
 		/* ensure we do not Golomb-encode too large values */
-		enc->outlier = min(enc->outlier, golomb_upper_bound(enc->g_par, enc->encoder_type,
-								    CMP_NUM_BITS_PER_SAMPLE));
+		enc->outlier =
+			min_u32(enc->outlier, golomb_upper_bound(enc->g_par, enc->encoder_type,
+								 CMP_NUM_BITS_PER_SAMPLE));
 		if (enc->outlier == 0)
 			return CMP_ERROR(PARAMS_INVALID);
 		break;
@@ -378,4 +381,12 @@ uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 	}
 
 	return ret;
+}
+
+
+uint64_t cmp_encoder_max_compressed_size(uint32_t size)
+{
+	uint64_t const n_samples = DIV_ROUND_UP((uint64_t)size * 8, CMP_NUM_BITS_PER_SAMPLE);
+
+	return DIV_ROUND_UP(n_samples * CMP_MAX_BITS_PER_SAMPLE, 8);
 }

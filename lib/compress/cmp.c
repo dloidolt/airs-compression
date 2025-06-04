@@ -16,18 +16,8 @@
 #include "../common/err_private.h"
 #include "../common/bitstream_writer.h"
 #include "../common/header.h"
+#include "../common/bithacks.h"
 #include "../common/compiler.h"
-
-/**
- * @brief Returns the maximum of two values.
- *
- * @param a	first value to compare
- * @param b	second value to compare
- *
- * @returns the larger of a and  b
- */
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
 
 /**
  * @brief  fall back dummy implementation of a get_current_timestamp() function
@@ -68,16 +58,19 @@ unsigned int cmp_is_error(uint32_t code)
 
 uint32_t cmp_compress_bound(uint32_t src_size)
 {
-	uint32_t const bound = CMP_HDR_SIZE + ROUND_UP_TO_NEXT_2(src_size);
+	compile_time_assert(CMP_HDR_MAX_COMPRESSED_SIZE <= UINT32_MAX,
+			    max_compressed_bound_exceeds_uint32_max);
+	uint64_t bound;
 
-	/* Check overflow */
-	if (bound <= src_size)
-		return (CMP_ERROR(SRC_SIZE_WRONG));
+	if (src_size > CMP_HDR_MAX_ORIGINAL_SIZE)
+		return (CMP_ERROR(HDR_ORIGINAL_TOO_LARGE));
 
-	if (bound >= 1ULL << CMP_HDR_BITS_COMPRESSED_SIZE)
-		return (CMP_ERROR(SRC_SIZE_WRONG));
+	bound = CMP_HDR_MAX_SIZE + CMP_CHECKSUM_SIZE + cmp_encoder_max_compressed_size(src_size);
 
-	return bound;
+	if (bound > CMP_HDR_MAX_COMPRESSED_SIZE)
+		return (CMP_ERROR(HDR_CMP_SIZE_TOO_LARGE));
+
+	return (uint32_t)bound;
 }
 
 
@@ -106,7 +99,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 		secondary_work_buf_size = 0;
 	}
 
-	return max(primary_work_buf_size, secondary_work_buf_size);
+	return max_u32(primary_work_buf_size, secondary_work_buf_size);
 }
 
 
