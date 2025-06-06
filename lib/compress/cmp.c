@@ -247,11 +247,14 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	hdr.identifier = ctx->identifier;
 	hdr.sequence_number = ctx->sequence_number;
 	hdr.preprocessing = selected_preprocessing;
-	hdr.checksum_enabled = ctx->params.checksum_enabled;
+	hdr.checksum_enabled = !!ctx->params.checksum_enabled;
 	hdr.encoder_type = selected_encoder_type;
-	hdr.model_rate = ctx->params.model_rate;
-	hdr.encoder_param = selected_encoder_param;
-	hdr.encoder_outlier = enc.outlier;
+	if (selected_preprocessing == CMP_PREPROCESS_MODEL)
+		hdr.model_rate = ctx->params.model_rate;
+	if (selected_encoder_type != CMP_ENCODER_UNCOMPRESSED) {
+		hdr.encoder_param = selected_encoder_param;
+		hdr.encoder_outlier = enc.outlier;
+	}
 	ret = cmp_hdr_serialize(&bs, &hdr);
 	if (cmp_is_error_int(ret))
 		return ret;

@@ -504,7 +504,7 @@ void test_checksum_is_same_for_same_inputs(void)
 	struct cmp_context ctx1, ctx2;
 	struct cmp_params params = { 0 };
 
-	params.checksum_enabled = 1;
+	params.checksum_enabled = 0xFF;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx1, &params, NULL, 0));
 	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
 	params.primary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
