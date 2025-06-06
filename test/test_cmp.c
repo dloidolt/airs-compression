@@ -99,7 +99,7 @@ void test_work_buf_size_calculation_detects_missing_parameters_struct(void)
 
 	work_buf_size = cmp_cal_work_buf_size(NULL, 42);
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, work_buf_size);
 }
 
 

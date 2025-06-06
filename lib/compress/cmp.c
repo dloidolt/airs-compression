@@ -80,7 +80,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 	uint32_t primary_work_buf_size, secondary_work_buf_size;
 
 	if (params == NULL)
-		return CMP_ERROR(PARAMS_INVALID);
+		return CMP_ERROR(GENERIC);
 
 	if (params->primary_preprocessing == CMP_PREPROCESS_MODEL)
 		return CMP_ERROR(PARAMS_INVALID);
