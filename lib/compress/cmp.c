@@ -134,27 +134,11 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	uint32_t error_code;
 
 	if (ctx == NULL)
-		return CMP_ERROR(CONTEXT_INVALID);
-
+		return CMP_ERROR(GENERIC);
 	cmp_deinitialise(ctx);
 
-	work_buf_needed = cmp_cal_work_buf_size(params, min_src_size);
-	if (cmp_is_error_int(work_buf_needed))
-		return work_buf_needed;
-
-	if (work_buf_needed) {
-		if (!work_buf)
-			return CMP_ERROR(WORK_BUF_NULL);
-		if (work_buf_size == 0)
-			return CMP_ERROR(WORK_BUF_TOO_SMALL);
-
-		if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
-			return CMP_ERROR(WORK_BUF_UNALIGNED);
-	}
-
-	if (params->model_rate > CMP_MAX_MODEL_RATE &&
-	    params->secondary_preprocessing == CMP_PREPROCESS_MODEL)
-		return CMP_ERROR(PARAMS_INVALID);
+	if (params == NULL)
+		return CMP_ERROR(GENERIC);
 
 	if (params->secondary_iterations >= (1ULL << CMP_HDR_BITS_SEQUENCE_NUMBER))
 		return CMP_ERROR(PARAMS_INVALID);
@@ -171,6 +155,24 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 						      params->secondary_encoder_outlier);
 		if (cmp_is_error_int(error_code))
 			return error_code;
+
+		if (params->model_rate > CMP_MAX_MODEL_RATE &&
+		    params->secondary_preprocessing == CMP_PREPROCESS_MODEL)
+			return CMP_ERROR(PARAMS_INVALID);
+	}
+
+	work_buf_needed = cmp_cal_work_buf_size(params, min_src_size);
+	if (cmp_is_error_int(work_buf_needed))
+		return work_buf_needed;
+
+	if (work_buf_needed) {
+		if (!work_buf)
+			return CMP_ERROR(WORK_BUF_NULL);
+		if (work_buf_size == 0)
+			return CMP_ERROR(WORK_BUF_TOO_SMALL);
+
+		if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
+			return CMP_ERROR(WORK_BUF_UNALIGNED);
 	}
 
 	ctx->params = *params;
