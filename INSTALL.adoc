@@ -210,3 +210,98 @@ ninja clean-gcda
 ----
 
 Find the report in the `meson-logs/coveragereport` subdirectory.
+
+
+=== Fuzzing
+
+Fuzzing is a testing technique that uses random inputs to discover bugs.
+
+The build system supports three fuzzing engines, configured via the
+`fuzzing_engine` option:
+
+* `none` (default): No fuzzing targets are built
+* `libfuzzer`: Use LLVM's libFuzzer (requires Clang)
+* `oss-fuzz`: Use for https://google.github.io/oss-fuzz[OSS-Fuzz] integration
+
+Additional `fuzzer_ldflags` can be used to add extra LDFLAGS used during
+linking of fuzzing binaries.
+
+==== Setup a libFuzzer Build
+
+If you're unfamiliar with fuzzing and libFuzzer, you can find a tutorial
+https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md[here].
+To enable fuzzing with libFuzzer and Address and Undefined Behavior Sanitizers,
+you need Clang/LLVM with libFuzzer support:
+
+[source,bash]
+----
+# Configure build with libFuzzer
+CC=clang CXX=clang++ \
+meson setup build_fuzz \
+  -Dfuzzing_engine=libfuzzer \
+  -Doptimization=1 \
+  -Db_sanitize=address,undefined
+
+cd build_fuzz
+----
+
+==== Fuzz Targets
+The following fuzz targets are available:
+
+* `fuzz_compress`: Fuzzes the compression library entry points
+
+Built fuzz executables are located in `build_fuzz/test/fuzz/`.
+All examples below use `fuzz_compress` as the fuzz target, if you want to use
+another target replace `fuzz_compress` with a different target name.
+
+==== Run Fuzz Smoke Tests
+When using libFuzzer, the build system automatically creates smoke tests:
+
+[source,bash]
+----
+# Run a specific fuzz target smoke test
+meson test fuzz_compress\ smoke\ test
+
+# Run all tests, including fuzz smoke tests
+meson test
+
+# List available tests
+meson test --list
+----
+
+==== Extended Fuzzing
+For longer fuzzing runs, use the predefined run targets:
+
+[source,bash]
+----
+# Fuzz for 10 minutes
+ninja fuzz_compress_10min
+
+# Fuzz continuously until interrupted (press Ctrl+C to stop)
+ninja fuzz_compress_nonstop
+----
+
+Fuzzing artifacts (corpus, crashes) are stored in
+`<name of the build directory>/test/fuzz/corpus_out_fuzz_compress/`.
+
+==== Manual Fuzzing
+You can also build and run fuzz targets directly with custom options:
+
+[source,bash]
+----
+# Build fuzz targets
+ninja test/fuzz/fuzz_compress
+
+# Run with custom number of iterations
+./test/fuzz/fuzz_compress -runs=1000000 -max_total_time=3600
+
+# Use an existing corpus for seeding
+./test/fuzz/fuzz_compress /path/to/corpus
+
+# Minimize a corpus
+mkdir minimized_corpus
+./test/fuzz/fuzz_compress -merge=1 minimized_corpus /path/to/corpus
+
+# For more options, run:
+./test/fuzz/fuzz_compress -help=1
+----

@@ -125,3 +125,6 @@ foreach test : cli_tests
     depends : airspacecli,
     env : test_env)
 endforeach
+
+
+subdir('fuzz')
