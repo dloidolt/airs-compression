@@ -198,9 +198,6 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	int model_is_needed = 0;
 	struct cmp_hdr hdr = { 0 };
 
-	if (!ctx)
-		return CMP_ERROR(CONTEXT_INVALID);
-
 	if (ctx->sequence_number == 0 || ctx->sequence_number > ctx->params.secondary_iterations) {
 		ret = cmp_reset(ctx);
 		if (cmp_is_error_int(ret))
@@ -325,7 +322,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	uint32_t ret;
 
 	if (ctx == NULL)
-		return CMP_ERROR(CONTEXT_INVALID);
+		return CMP_ERROR(GENERIC);
 
 	if (ctx->params.checksum_enabled)
 		uncompressed_size += CMP_CHECKSUM_SIZE;
@@ -369,7 +366,7 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 	uint64_t const timestamp = g_get_current_timestamp();
 
 	if (ctx == NULL)
-		return CMP_ERROR(CONTEXT_INVALID);
+		return CMP_ERROR(GENERIC);
 
 	if (timestamp > ((uint64_t)1 << 48) - 1)
 		return CMP_ERROR(TIMESTAMP_INVALID);

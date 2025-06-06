@@ -29,28 +29,27 @@ enum cmp_error {
 	CMP_ERR_NO_ERROR = 0, /**< Operation completed successfully */
 
 	/* General errors (1-9) */
-	CMP_ERR_GENERIC = 1, /**< Generic error occurred */
+	CMP_ERR_GENERIC = 1,	     /**< Generic error occurred */
+	CMP_ERR_PARAMS_INVALID = 10, /**< Invalid compression parameters */
 
-	/* Parameter validation errors (10-29) */
-	CMP_ERR_CONTEXT_INVALID = 10,	 /**< Invalid compression context */
-	CMP_ERR_PARAMS_INVALID = 11,	 /**< Invalid compression parameters */
-	CMP_ERR_WORK_BUF_NULL = 12,	 /**< Work buffer is NULL but required */
-	CMP_ERR_WORK_BUF_TOO_SMALL = 13, /**< Work buffer is too small */
-	CMP_ERR_DST_NULL = 14,		 /**< Destination buffer pointer is NULL */
-	CMP_ERR_DST_UNALIGNED = 15,	 /**< Destination buffer not correct aligned */
-	CMP_ERR_SRC_NULL = 16,		 /**< Source buffer pointer is NULL */
-	CMP_ERR_SRC_SIZE_WRONG = 17,	 /**< Source buffer size doesn't match expected size */
-	CMP_ERR_WORK_BUF_UNALIGNED = 18, /**< Work buffer is unaligned */
+	CMP_ERR_DST_TOO_SMALL = 30, /**< Destination buffer is too small */
+	CMP_ERR_DST_NULL = 31,	    /**< Destination buffer pointer is NULL */
+	CMP_ERR_DST_UNALIGNED = 32, /**< Destination buffer not correct aligned */
 
-	/* Runtime errors (30-39) */
-	CMP_ERR_DST_TOO_SMALL = 30,	/**< Destination buffer is too small */
-	CMP_ERR_SRC_SIZE_MISMATCH = 31, /**< Source data size changed with model preprocessing */
-	CMP_ERR_TIMESTAMP_INVALID = 32, /**< Invalid timestamp provided */
+	CMP_ERR_SRC_SIZE_WRONG = 40,	/**< Source buffer size doesn't match expected size */
+	CMP_ERR_SRC_NULL = 41,		/**< Source buffer pointer is NULL */
+	CMP_ERR_SRC_SIZE_MISMATCH = 42, /**< Source data size changed with model preprocessing */
 
-	CMP_ERR_HDR_CMP_SIZE_TOO_LARGE = 40, /**< Compressed size exceeds header field limit */
-	CMP_ERR_HDR_ORIGINAL_TOO_LARGE = 41, /**< Original size exceeds header field limit */
+	CMP_ERR_WORK_BUF_TOO_SMALL = 50, /**< Work buffer is too small */
+	CMP_ERR_WORK_BUF_NULL = 51,	 /**< Work buffer is NULL but required */
+	CMP_ERR_WORK_BUF_UNALIGNED = 52, /**< Work buffer is unaligned */
 
-	/* Internal errors (100-109) */
+	CMP_ERR_HDR_CMP_SIZE_TOO_LARGE = 60, /**< Compressed size exceeds header field limit */
+	CMP_ERR_HDR_ORIGINAL_TOO_LARGE = 61, /**< Original size exceeds header field limit */
+
+	CMP_ERR_CONTEXT_INVALID = 70,	/**< Invalid compression context */
+	CMP_ERR_TIMESTAMP_INVALID = 71, /**< Invalid timestamp provided */
+
 	CMP_ERR_INT_HDR = 100,	     /**< Internal header processing error */
 	CMP_ERR_INT_ENCODER = 101,   /**< Internal data encoder error */
 	CMP_ERR_INT_BITSTREAM = 102, /**< Internal bitstream error */

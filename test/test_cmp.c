@@ -174,7 +174,7 @@ void test_compression_detects_missing_context(void)
 
 	uint32_t const cmp_size = cmp_compress_u16(NULL, dst, sizeof(dst), src, sizeof(src));
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_CONTEXT_INVALID, cmp_size);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, cmp_size);
 }
 
 
@@ -289,7 +289,7 @@ void test_compression_reset_detect_missing_context(void)
 {
 	uint32_t const return_val = cmp_reset(NULL);
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_CONTEXT_INVALID, return_val);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, return_val);
 }
 
 
