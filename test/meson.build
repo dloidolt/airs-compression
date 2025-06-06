@@ -100,3 +100,6 @@ foreach test : cli_tests
     depends : airsapcecli,
     env : test_env)
 endforeach
+
+
+subdir('fuzz')

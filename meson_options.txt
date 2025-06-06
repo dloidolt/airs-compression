@@ -1,0 +1,2 @@
+option('fuzzer',              type : 'feature', value : 'disabled',         description : 'Build for fuzzing')
+option('fuzzer_ldflags',      type : 'string', value : '-fsanitize=fuzzer', description : 'Extra LDFLAGS used during linking of fuzzing binaries')

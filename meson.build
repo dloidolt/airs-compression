@@ -17,6 +17,12 @@ compiler = meson.get_compiler('c')
 # Built-in options
 use_debug = get_option('debug')
 
+# Custom option
+if get_option('fuzzer').enabled()
+  add_global_arguments('-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', language: ['c', 'cpp'])
+endif
+
+
 # Compiler flags
 add_global_arguments('-Wno-long-long', language: 'c')
 
