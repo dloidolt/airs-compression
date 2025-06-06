@@ -19,6 +19,8 @@
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
 
+#define CMP_MAGIC 34021395 /* arbitrary magic number I like */
+
 /**
  * @brief  fall back dummy implementation of a get_current_timestamp() function
  *
@@ -181,6 +183,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	ctx->params = *params;
 	ctx->work_buf = work_buf;
 	ctx->work_buf_size = work_buf_size;
+	ctx->magic = CMP_MAGIC; /* add some magic */
 
 	return cmp_reset(ctx);
 }
@@ -327,6 +330,9 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	if (ctx == NULL)
 		return CMP_ERROR(GENERIC);
 
+	if (ctx->magic != CMP_MAGIC)
+		return CMP_ERROR(CONTEXT_INVALID);
+
 	if (cmp_is_error_int(dst_capacity))
 		return CMP_ERROR(GENERIC);
 
@@ -373,6 +379,9 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 
 	if (ctx == NULL)
 		return CMP_ERROR(GENERIC);
+
+	if (ctx->magic != CMP_MAGIC)
+		return CMP_ERROR(CONTEXT_INVALID);
 
 	if (timestamp > ((uint64_t)1 << CMP_HDR_BITS_IDENTIFIER) - 1)
 		return CMP_ERROR(TIMESTAMP_INVALID);

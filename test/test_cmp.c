@@ -686,3 +686,29 @@ void test_compress_u16_fails_when_capacity_is_an_error(void)
 	TEST_ASSERT_CMP_FAILURE(bound_error);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, cmp_size);
 }
+
+
+void test_detect_uninitialise_context_in_compression(void)
+{
+	uint64_t dst[5] = { 0 };
+	const uint16_t src[] = { 0x0010 };
+	struct cmp_context ctx;
+	uint32_t cmp_size;
+
+	cmp_deinitialise(&ctx);
+	cmp_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src, sizeof(src));
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_CONTEXT_INVALID, cmp_size);
+}
+
+
+void test_detect_uninitialise_context_in_reset(void)
+{
+	uint32_t return_val;
+	struct cmp_context ctx = { 0 };
+
+	cmp_deinitialise(&ctx);
+	return_val = cmp_reset(&ctx);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_CONTEXT_INVALID, return_val);
+}

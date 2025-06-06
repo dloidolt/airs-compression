@@ -123,6 +123,7 @@ struct cmp_params {
  */
 
 struct cmp_context {
+	uint32_t magic;		  /**< Magic number to prevent use of uninitialized contexts */
 	struct cmp_params params; /**< Compression parameters used in the current context */
 	void *work_buf;		  /**< Pointer to the working buffer */
 	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
