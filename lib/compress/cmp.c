@@ -368,7 +368,7 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 	if (ctx == NULL)
 		return CMP_ERROR(GENERIC);
 
-	if (timestamp > ((uint64_t)1 << 48) - 1)
+	if (timestamp > ((uint64_t)1 << CMP_HDR_BITS_IDENTIFIER) - 1)
 		return CMP_ERROR(TIMESTAMP_INVALID);
 
 	ctx->sequence_number = 0;
