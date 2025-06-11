@@ -299,8 +299,8 @@ int main(int argc, char *argv[])
 		STDOUT_OPT = CHAR_MAX + 1,
 		COLOR_OPT,
 		NO_COLOR_OPT,
-		DEBUG_STDIN_CONSOL_OPT,
-		DEBUG_STDOUT_CONSOL_OPT
+		DEBUG_STDIN_CONSOLE_OPT,
+		DEBUG_STDOUT_CONSOLE_OPT
 	};
 	static struct option long_options[] = {
 		{ "compress", no_argument, NULL, 'c' },
@@ -311,8 +311,8 @@ int main(int argc, char *argv[])
 		{ "no-color", no_argument, NULL, NO_COLOR_OPT },
 		{ "version",  no_argument, NULL, 'V' },
 		{ "help",     no_argument, NULL, 'h' },
-		{ "debug-stdin-is-consol",  no_argument, NULL, DEBUG_STDIN_CONSOL_OPT },
-		{ "debug-stdout-is-consol", no_argument, NULL, DEBUG_STDOUT_CONSOL_OPT },
+		{ "debug-stdin-is-consol",  no_argument, NULL, DEBUG_STDIN_CONSOLE_OPT },
+		{ "debug-stdout-is-consol", no_argument, NULL, DEBUG_STDOUT_CONSOLE_OPT },
 		{ NULL, 0, NULL, 0 }
 	};
 
@@ -360,11 +360,11 @@ int main(int argc, char *argv[])
 		case 'h':
 			print_usage(stdout, program_name);
 			return EXIT_SUCCESS;
-		case DEBUG_STDIN_CONSOL_OPT:
-			util_force_stdin_consol();
+		case DEBUG_STDIN_CONSOLE_OPT:
+			util_force_stdin_console();
 			break;
-		case DEBUG_STDOUT_CONSOL_OPT:
-			util_force_stdout_consol();
+		case DEBUG_STDOUT_CONSOLE_OPT:
+			util_force_stdout_console();
 			break;
 		default:
 			print_usage(stderr, program_name);

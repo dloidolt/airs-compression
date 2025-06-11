@@ -200,7 +200,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	uint32_t selected_outlier;
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
-	const struct preprocessing_method *prepocess;
+	const struct preprocessing_method *preprocess;
 	int model_is_needed = 0;
 	struct cmp_hdr hdr = { 0 };
 
@@ -264,16 +264,16 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	if (cmp_is_error_int(ret))
 		return ret;
 
-	prepocess = preprocessing_get_method(selected_preprocessing);
-	if (prepocess == NULL)
+	preprocess = preprocessing_get_method(selected_preprocessing);
+	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	n_values = prepocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size);
+	n_values = preprocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size);
 	if (cmp_is_error_int(n_values))
 		return n_values;
 
 	for (i = 0; i < n_values; i++) {
-		int16_t const value = prepocess->process(i, src, ctx->work_buf);
+		int16_t const value = preprocess->process(i, src, ctx->work_buf);
 
 		ret = cmp_encoder_encode_s16(&enc, value, &bs);
 		if (cmp_is_error_int(ret))
