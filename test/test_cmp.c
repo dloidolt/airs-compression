@@ -566,6 +566,7 @@ void test_primary_compression_fallback_for_incompressible_data(void)
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
 }
 
+
 void test_secondary_compression_fallback_for_incompressible_data(void)
 {
 	const uint16_t input_1[] = { 0, 0, 0, 0 };
@@ -669,4 +670,19 @@ void test_fallback_works_with_checksum_enabled(void)
 	expected_hdr.encoder_param = 1;
 	expected_hdr.encoder_outlier = 16;
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
+}
+
+
+void test_compress_u16_fails_when_capacity_is_an_error(void)
+{
+	struct cmp_context ctx_uncompressed = create_uncompressed_context();
+	uint16_t data[2] = { 0 };
+	uint64_t dst_dummy[1] = { 0 };
+
+	uint32_t const bound_error = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
+	uint32_t const cmp_size =
+		cmp_compress_u16(&ctx_uncompressed, dst_dummy, bound_error, data, sizeof(data));
+
+	TEST_ASSERT_CMP_FAILURE(bound_error);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, cmp_size);
 }

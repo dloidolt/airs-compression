@@ -463,3 +463,22 @@ void test_params_invalid_error_has_priority_over_work_buffer_error(void)
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, return_value);
 }
+
+
+void test_init_fails_if_workbufer_size_is_a_propagated_error(void)
+{
+	struct cmp_params params_invalid = { 0 };
+	struct cmp_params params_valid = { 0 };
+	struct cmp_context ctx;
+	uint32_t buf_size_error_code, return_value;
+	uint16_t work_buf_dummy[1];
+
+	params_invalid.primary_preprocessing = INVALID_PREPROCESSING;
+	params_valid.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	buf_size_error_code = cmp_cal_work_buf_size(&params_invalid, 41);
+	return_value = cmp_initialise(&ctx, &params_valid, work_buf_dummy, buf_size_error_code);
+
+	TEST_ASSERT_CMP_FAILURE(buf_size_error_code);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, return_value);
+}

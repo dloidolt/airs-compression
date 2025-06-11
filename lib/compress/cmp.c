@@ -140,6 +140,9 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	if (params == NULL)
 		return CMP_ERROR(GENERIC);
 
+	if (cmp_is_error_int(work_buf_size))
+		return CMP_ERROR(GENERIC);
+
 	if (params->secondary_iterations >= (1ULL << CMP_HDR_BITS_SEQUENCE_NUMBER))
 		return CMP_ERROR(PARAMS_INVALID);
 
@@ -322,6 +325,9 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	uint32_t ret;
 
 	if (ctx == NULL)
+		return CMP_ERROR(GENERIC);
+
+	if (cmp_is_error_int(dst_capacity))
 		return CMP_ERROR(GENERIC);
 
 	if (ctx->params.checksum_enabled)
