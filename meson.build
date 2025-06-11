@@ -18,7 +18,7 @@ compiler = meson.get_compiler('c')
 use_debug = get_option('debug')
 
 # Compiler flags
-add_project_arguments('-Wno-long-long', language: 'c')
+add_global_arguments('-Wno-long-long', language: 'c')
 
 cc_flags = []
 non_testing_flags = []

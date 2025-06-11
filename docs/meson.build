@@ -1,4 +1,5 @@
 doxygen = find_program('doxygen', required : false)
+dot = find_program('dot', required : false)
 if doxygen.found()
   cdata = configuration_data()
   cdata.set('VERSION', meson.project_version())
@@ -15,7 +16,6 @@ if doxygen.found()
   cdata.set('EXCLUDE', ' '.join(exclude_path))
   cdata.set('EXCLUDE_PATTERNS', '*/*build*/*')
 
-  dot = find_program('dot', required : false)
   if dot.found()
     cdata.set('HAVE_DOT', 'YES')
   else

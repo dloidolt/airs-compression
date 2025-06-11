@@ -28,7 +28,7 @@ toc::[]
 * Support for multiple compression configurations
 * Comprehensive error handling with detailed error codes
 * Portable:
-** Written in ANSI C{empty}footnote:[With some extension: like inline]
+** Written in ANSI C{empty}footnote:[With some extension: like inline or long long]
 ** Zero dynamic memory allocation (no internal `malloc()` calls)
 * Command line utility
 
