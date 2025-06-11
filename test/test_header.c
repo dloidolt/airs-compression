@@ -22,14 +22,14 @@
 
 void test_serialize_header_with_extended_header(void)
 {
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	struct cmp_hdr hdr = { 0 };
-	uint8_t buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	uint32_t hdr_size;
 	int i;
 	struct bitstream_writer bs;
 
 	memset(buf, 0xAB, sizeof(buf));
-	bitstream_writer_init(&bs, buf, sizeof(buf));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
 	hdr.version_flag = 0x00;
 	hdr.version_id = 0x0001;
 	hdr.compressed_size = 0x020304;
@@ -53,14 +53,14 @@ void test_serialize_header_with_extended_header(void)
 
 void test_serialize_header_without_extended_header(void)
 {
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	struct cmp_hdr hdr = { 0 };
-	uint8_t buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	uint32_t hdr_size;
 	int i;
 	struct bitstream_writer bs;
 
 	memset(buf, 0xAB, sizeof(buf));
-	bitstream_writer_init(&bs, buf, sizeof(buf));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
 	hdr.version_flag = 0x00;
 	hdr.version_id = 0x0001;
 	hdr.compressed_size = 0x020304;
@@ -88,9 +88,9 @@ void test_serialize_header_without_extended_header(void)
 
 void test_deserialize_header_with_extended_header(void)
 {
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	struct cmp_hdr hdr = { 0 };
 	struct cmp_hdr expected_hdr;
-	uint8_t buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	uint32_t hdr_size;
 	int i;
 
@@ -130,9 +130,9 @@ void test_deserialize_header_with_extended_header(void)
 
 void test_deserialize_header_without_extended_header(void)
 {
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	struct cmp_hdr hdr = { 0 };
 	struct cmp_hdr expected_hdr;
-	uint8_t buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
 	uint32_t hdr_size;
 	int i;
 
@@ -175,11 +175,11 @@ void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 {
 #define TEST_HDR_FIELD_TOO_BIG(field, bits_for_field, exp_error)                              \
 	do {                                                                                  \
-		struct cmp_hdr hdr = { 0 };                                                   \
 		uint64_t buf[(CMP_HDR_MAX_SIZE + CMP_DST_ALIGNMENT - 1) / CMP_DST_ALIGNMENT]; \
+		struct cmp_hdr hdr = { 0 };                                                   \
 		uint32_t hdr_size;                                                            \
 		struct bitstream_writer bs;                                                   \
-		bitstream_writer_init(&bs, buf, sizeof(buf));                                 \
+		TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));        \
 		TEST_ASSERT(bits_for_field < bitsizeof(long long));                           \
 		TEST_ASSERT(bits_for_field > 0);                                              \
 		hdr.preprocessing = CMP_PREPROCESS_DIFF;                                      \
@@ -221,11 +221,11 @@ void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 
 void test_detect_null_hdr_during_serialize(void)
 {
-	uint8_t buf[CMP_HDR_SIZE];
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE];
 	struct bitstream_writer bs;
 	uint32_t ret;
 
-	bitstream_writer_init(&bs, buf, sizeof(buf));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
 
 	ret = cmp_hdr_serialize(&bs, NULL);
 
@@ -235,7 +235,7 @@ void test_detect_null_hdr_during_serialize(void)
 
 void test_detect_null_hdr_during_deserialize(void)
 {
-	uint8_t buf[CMP_HDR_SIZE] = { 0 };
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE] = { 0 };
 	uint32_t ret;
 
 	ret = cmp_hdr_deserialize(buf, sizeof(buf), NULL);

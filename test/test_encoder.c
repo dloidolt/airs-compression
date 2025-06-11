@@ -24,7 +24,7 @@ void test_bitstream_write_nothing(void)
 	struct bitstream_writer bsw;
 	DST_ALIGNED_U8 buffer[1] = { 0xFF };
 
-	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
 	size = bitstream_flush(&bsw);
 
@@ -38,7 +38,7 @@ void test_bitstream_write_single_bit_one(void)
 	struct bitstream_writer bsw;
 	DST_ALIGNED_U8 buffer[1] = { 0xFF };
 
-	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
 	bitstream_write32(&bsw, 1, 1);
 	size = bitstream_flush(&bsw);
@@ -54,7 +54,7 @@ void test_bitstream_write_two_bits_zero_one(void)
 	struct bitstream_writer bsw;
 	DST_ALIGNED_U8 buffer[1] = { 0xFF };
 
-	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
 	bitstream_write32(&bsw, 0, 1);
 	bitstream_write32(&bsw, 1, 1);
@@ -74,7 +74,7 @@ void test_bitstream_write_10bytes(void)
 
 	memset(buffer, 0xFF, sizeof(buffer));
 
-	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
 	bitstream_write32(&bsw, 0x0001, 16);
 	bitstream_write32(&bsw, 0x0203, 16);
@@ -94,7 +94,7 @@ void test_detect_bitstream_overflow(void)
 	struct bitstream_writer bsw;
 	DST_ALIGNED_U8 buffer[1] = { 0xFF };
 
-	bitstream_writer_init(&bsw, buffer, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
 	bitstream_write32(&bsw, 0x1F, 9);
 	size = bitstream_flush(&bsw);
