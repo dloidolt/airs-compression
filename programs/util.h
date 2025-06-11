@@ -34,14 +34,14 @@ int util_is_console(FILE *std_stream);
  * @brief forces the stdin stream to be treated as a console. Intended for test purposes.
  */
 
-void util_force_stdin_consol(void);
+void util_force_stdin_console(void);
 
 
 /**
  * @brief forces the stdout stream to be treated as a console. Intended for test purposes.
  */
 
-void util_force_stdout_consol(void);
+void util_force_stdout_console(void);
 
 
 /**

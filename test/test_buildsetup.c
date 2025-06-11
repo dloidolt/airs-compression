@@ -21,7 +21,7 @@
 #endif
 
 
-void test_vesion_matches(void)
+void test_version_matches(void)
 {
 	enum { MAX_PATH_SIZE = 256, CONTENT_SIZE = 200 };
 	char file_path[256] = { 0 };

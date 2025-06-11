@@ -124,7 +124,7 @@ class TestCompression(unittest.TestCase):
             bytes.fromhex("0003"), cmp_small_file[self.CMP_HDR_SIZE:], result.args
         )
 
-    def test_abort_when_reading_from_stdin_on_consol(self):
+    def test_abort_when_reading_from_stdin_on_console(self):
         for arg in [["-"], []]:
             with self.subTest(arg=arg):
 
@@ -139,7 +139,7 @@ class TestCompression(unittest.TestCase):
             stderr_match_mode="contains",
         )
 
-    def test_abort_when_writing_to_stdout_on_consol(self):
+    def test_abort_when_writing_to_stdout_on_console(self):
         for arg in [["-"], []]:
             with self.subTest(arg=arg):
 

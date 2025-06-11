@@ -28,13 +28,13 @@ static int g_force_stdin_console;
 static int g_force_stdout_console;
 
 
-void util_force_stdin_consol(void)
+void util_force_stdin_console(void)
 {
 	g_force_stdin_console = 1;
 }
 
 
-void util_force_stdout_consol(void)
+void util_force_stdout_console(void)
 {
 	g_force_stdout_console = 1;
 }

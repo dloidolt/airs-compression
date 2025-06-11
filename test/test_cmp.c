@@ -367,14 +367,14 @@ void test_compress_bound_provides_sufficient_buffer_size(void)
 	uint64_t dst[5];
 	const uint16_t worst_case_data[2] = { 0xAAAA, 0xBBBB };
 	struct cmp_context ctx;
-	struct cmp_params worst_case_parmas = { 0 };
+	struct cmp_params worst_case_params = { 0 };
 	uint32_t bound;
 
-	worst_case_parmas.primary_encoder_type = CMP_ENCODER_GOLOMB_MULTI;
-	worst_case_parmas.primary_encoder_param = 1;
-	worst_case_parmas.primary_encoder_outlier = 32;
-	worst_case_parmas.checksum_enabled = 1;
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &worst_case_parmas, NULL, 0));
+	worst_case_params.primary_encoder_type = CMP_ENCODER_GOLOMB_MULTI;
+	worst_case_params.primary_encoder_param = 1;
+	worst_case_params.primary_encoder_outlier = 32;
+	worst_case_params.checksum_enabled = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &worst_case_params, NULL, 0));
 
 	bound = cmp_compress_bound(sizeof(worst_case_data) - 1);
 
