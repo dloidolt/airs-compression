@@ -17,9 +17,10 @@
 void test_cmp_is_error(void)
 {
 	TEST_ASSERT_FALSE(cmp_is_error(0));
-	TEST_ASSERT_FALSE(cmp_is_error(CMP_ERROR(MAX_CODE))); /* This error code is not used for a error */
+	/* This error code is not used for a error */
+	TEST_ASSERT_FALSE(cmp_is_error(CMP_ERROR(MAX_CODE)));
 
-	TEST_ASSERT_TRUE(cmp_is_error(CMP_ERROR(MAX_CODE)+1));
+	TEST_ASSERT_TRUE(cmp_is_error(CMP_ERROR(MAX_CODE) + 1));
 	TEST_ASSERT_TRUE(cmp_is_error(-1U));
 }
 

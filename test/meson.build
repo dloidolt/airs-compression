@@ -51,23 +51,27 @@ if ruby.found()
 
   # use the test runner generator script
   gen_test_runner = subproject('unity').get_variable('gen_test_runner')
+  test_lib = static_library('test_common_lib',
+    files(['test_common.c']),
+    dependencies : [unity_dep])
 
   unit_test_src = files([
+    'test_initialisation.c',
     'test_cmp.c',
     'test_header.c',
     'test_cmp_errors.c',
     'test_preprocessing.c',
+    'test_encoder.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
     test_name = fs.name(test_file).split('.')[0]
 
-    test_runner = gen_test_runner.process(test_file,
-      extra_args : '--use_param_tests=1')
-    test_exe = executable(test_name,
-      test_file, test_runner, src_common, src_compress,
+    test_runner = gen_test_runner.process(test_file)
+    test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
       c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
+      link_with : [test_lib, cmp_lib],
       dependencies : [unity_dep])
 
     test(test_name.replace('test_', '') + ' units tests',

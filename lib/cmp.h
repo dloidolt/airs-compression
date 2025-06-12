@@ -9,7 +9,7 @@
  *
  * @brief Data Compression API
  *
- * - Setup: Initialise context with cmp_initialise()
+ * - Setup: Create a compression context with cmp_initialise()
  * - Process: Compress data using cmp_compress_u16()
  * - Reset compression context using cmp_reset()
  * - Clean-up: Optionally destroy context with cmp_deinitialise()
@@ -18,7 +18,6 @@
  *
  * @warning The interface is not frozen yet and may change in future versions.
  * Changes may include:
- *    - Additional compression modes
  *    - New compression parameters
  *    - Change/Extended API functionality
  */
@@ -26,7 +25,6 @@
 #ifndef CMP_H
 #define CMP_H
 
-/* ======   Dependency   ====== */
 #include <stdint.h>
 
 /* ====== Utility Macros  ====== */
@@ -36,37 +34,25 @@
 #define CMP_EXPAND_AND_QUOTE(str) CMP_QUOTE(str)
 
 /* ====== Version Information ====== */
-#define CMP_VERSION_MAJOR    0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR    2 /**< minor part of the version ID */
-#define CMP_VERSION_RELEASE  0 /**< release part of the version ID */
+#define CMP_VERSION_MAJOR 0   /**< major part of the version ID */
+#define CMP_VERSION_MINOR 3   /**< minor part of the version ID */
+#define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
  * @brief complete version number
  */
-#define CMP_VERSION_NUMBER (CMP_VERSION_MAJOR*100*100 + CMP_VERSION_MINOR*100 + CMP_VERSION_RELEASE)
+#define CMP_VERSION_NUMBER \
+	(CMP_VERSION_MAJOR * 100 * 100 + CMP_VERSION_MINOR * 100 + CMP_VERSION_RELEASE)
 
 /**
  * @brief complete version string
  */
-#define CMP_VERSION_STRING CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
-
-/* ====== Compression Parameters Limits ====== */
-#define CMP_MAX_SECONDARY_PASSES_MAX UINT8_MAX
+#define CMP_VERSION_STRING \
+	CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
 
 /* ====== Parameter Selection ====== */
 /**
- * @brief available compression modes
- * @note additional compression modes will follow
- */
-
-enum cmp_mode {
-	CMP_MODE_UNCOMPRESSED	/**< Uncompressed mode */
-};
-
-
-/**
- * @brief Preprocessing techniques for compression
- * @note additional compression modes will follow
+ * @brief Preprocessing techniques for encoding
  *
  * This enum defines the available preprocessing methods that can be applied
  * before encoding. Preprocessing techniques aim to improve compression
@@ -77,26 +63,52 @@ enum cmp_preprocessing {
 	CMP_PREPROCESS_NONE, /**< No preprocessing is applied to the data */
 	CMP_PREPROCESS_DIFF, /**< Differences between neighbouring values are computed */
 	CMP_PREPROCESS_IWT,  /**< Integer Wavelet Transform preprocessing */
-	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data */
+	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data, only for secondary_preprocessing allowed */
 };
 
 
 /**
- * @brief contains the parameters used for compression.
+ * @brief available compression encoders
+ */
+
+enum cmp_encoder_type {
+	CMP_ENCODER_UNCOMPRESSED, /**< Uncompressed mode */
+	CMP_ENCODER_GOLOMB_ZERO,  /**< Golomb encoder with zero escape mechanism */
+	CMP_ENCODER_GOLOMB_MULTI  /**< Golomb encoder with multi escape mechanism */
+};
+
+
+/**
+ * @brief Compression parameters
  *
- * @warning number and names of the compression parameters are TBD
+ * Supports independent configuration of preprocessing and encoders
+ * for a primary compression pass and optional secondary passes.
+ *
+ * @warning Parameter names and behaviour may change in future versions.
  */
 
 struct cmp_params {
-	/* Preprocessing Settings */
-	enum cmp_preprocessing primary_preprocessing;   /**< Preprocessing applied on the first pass */
-	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing applied on subsequent passes */
-	uint32_t max_secondary_passes; /**< Maximum repeats for secondary preprocessing (0 disables secondary_preprocessing) */
-	uint32_t model_rate;           /**< Rate at which the model adapts during model-based preprocessing */
+	/*
+	 * Primary (initial pass) settings
+	 */
+	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing for the first pass */
+	enum cmp_encoder_type primary_encoder_type;   /**< Encoder used in the first pass */
+	uint32_t primary_encoder_param;		      /**< Parameter for the primary encoder */
+	uint32_t primary_encoder_outlier; /**< Primary outlier parameter for CMP_ENCODER_GOLOMB_MULTI */
 
-	/* Data Encoding Settings */
-	enum cmp_mode mode;         /**< Compression mode */
-	uint32_t compression_par;   /**< Compression parameter */
+	/*
+	 * Secondary (subsequent passes) settings (if any)
+	 */
+	uint32_t secondary_iterations;			/**< Max secondary passes (0 = disabled) */
+	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
+	enum cmp_encoder_type secondary_encoder_type;	/**< Encoder for secondary passes */
+	uint32_t secondary_encoder_param;		/**< Parameter for the secondary encoder */
+	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
+	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
+
+	/* Additional Options */
+	uint8_t checksum_enabled; /**< Enable checksum generation of original data if non-zero */
+	uint8_t uncompressed_fallback_enabled; /**< Fall back to uncompressed storage if compression is ineffective */
 };
 
 
@@ -111,12 +123,13 @@ struct cmp_params {
  */
 
 struct cmp_context {
+	uint32_t magic;		  /**< Magic number to prevent use of uninitialized contexts */
 	struct cmp_params params; /**< Compression parameters used in the current context */
-	void *work_buf;           /**< Pointer to the working buffer */
-	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
-	uint32_t pass_count;      /**< Number of compression passes performed since the last reset */
-	uint64_t model_id;        /**< Identifier for the compression model */
-	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
+	void *work_buf;		  /**< Pointer to the working buffer */
+	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
+	uint32_t model_size;	  /**< Size of the model used in the model-based preprocessing */
+	uint64_t identifier;	  /**< Identifier for the compression model */
+	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
 };
 
 
@@ -193,9 +206,8 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_initialise(struct cmp_context *ctx,
-			const struct cmp_params *params,
-			void *work_buf, uint32_t work_buf_size);
+uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
+			uint32_t work_buf_size);
 
 /**
  * @brief compresses an unsigned 16-bit data buffer
@@ -204,7 +216,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx,
  *
  * @param ctx		pointer to a compression context; must have been
  *			initialised once with cmp_initialise()
- * @param dst		the buffer to compress the src buffers into
+ * @param dst		the buffer to compress the src buffers into, MUST be 8-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
  *			cmp_compress_bound(src_size) is guaranteed to be large
  *			enough

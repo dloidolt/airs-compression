@@ -18,7 +18,7 @@ compiler = meson.get_compiler('c')
 use_debug = get_option('debug')
 
 # Compiler flags
-add_project_arguments('-Wno-long-long', language: 'c')
+add_global_arguments('-Wno-long-long', language: 'c')
 
 cc_flags = []
 non_testing_flags = []
@@ -41,7 +41,6 @@ if use_debug
     '-Wdeclaration-after-statement',
     '-Wwrite-strings',
     '-Wold-style-definition',
-    '-Waggregate-return',
     '-Wmissing-include-dirs',
     '-Wundef',
     '-Wdouble-promotion',
@@ -86,7 +85,7 @@ if asciidoctor.found()
   custom_target(
     input : asciidoc_files,
     output : html_files,
-    command : [asciidoctor, '--destination-dir=@OUTDIR@', '@INPUT@']
+    command : [asciidoctor, '--destination-dir=@OUTDIR@', '--attribute', 'imagesdir=@SOURCE_ROOT@/docs', '@INPUT@']
   )
 endif
 

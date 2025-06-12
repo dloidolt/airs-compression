@@ -13,50 +13,117 @@
 
 #include <stdint.h>
 
-/** maximum allowed compressed data size in bytes */
-#define CMP_MAX_CMP_SIZE 0xFFFFFF
+#include "bitstream_writer.h"
+#include "../cmp.h"
 
-/** maximum allowed size to compress in bytes */
-#define CMP_MAX_ORIGINAL_SIZE 0xFFFFFF
+/*
+ * Maximum values that can be stored in the size fields
+ */
+#define CMP_HDR_MAX_COMPRESSED_SIZE ((1ULL << CMP_HDR_BITS_COMPRESSED_SIZE) - 1)
+#define CMP_HDR_MAX_ORIGINAL_SIZE ((1ULL << CMP_HDR_BITS_ORIGINAL_SIZE) - 1)
 
-/** size of the compression header in bytes TBD */
-#define CMP_HDR_SIZE 18
+/*
+ * Bit length of the different header fields
+ */
+#define CMP_HDR_BITS_VERSION (CMP_HDR_BITS_VERSION_FLAG + CMP_HDR_BITS_VERSION_ID)
+#define CMP_HDR_BITS_VERSION_FLAG 1
+#define CMP_HDR_BITS_VERSION_ID 15
+#define CMP_HDR_BITS_COMPRESSED_SIZE 24
+#define CMP_HDR_BITS_ORIGINAL_SIZE 24
+
+#define CMP_HDR_BITS_IDENTIFIER 48
+#define CMP_HDR_BITS_SEQUENCE_NUMBER 8
+
+#define CMP_HDR_BITS_METHOD                                                         \
+	(CMP_HDR_BITS_METHOD_PREPROCESSING + CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED + \
+	 CMP_HDR_BITS_METHOD_ENCODER_TYPE)
+#define CMP_HDR_BITS_METHOD_PREPROCESSING 4
+#define CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED 1
+#define CMP_HDR_BITS_METHOD_ENCODER_TYPE 3
+
+#define CMP_EXT_HDR_BITS_MODEL_ADAPTATION 8
+#define CMP_EXT_HDR_BITS_ENCODER_PARAM 16
+#define CMP_EXT_HDR_BITS_ENCODER_OUTLIER 24
+
+/*
+ * Byte offsets of the different header fields
+ */
+#define CMP_HDR_OFFSET_VERSION 0
+#define CMP_HDR_OFFSET_COMPRESSED_SIZE 2
+#define CMP_HDR_OFFSET_ORIGINAL_SIZE 5
+#define CMP_HDR_OFFSET_IDENTIFIER 8
+#define CMP_HDR_OFFSET_SEQUENCE_NUMBER 14
+#define CMP_HDR_OFFSET_METHOD 15
+
+/* Extended header offsets */
+#define CMP_EXT_HDR_OFFSET_MODEL_RATE 16
+#define CMP_EXT_HDR_OFFSET_ENCODER_PARAM 17
+#define CMP_EXT_HDR_OFFSET_OUTLIER_PARAM 19
+
+/** Size of the compression header in bytes TBC */
+#define CMP_HDR_SIZE                                                                         \
+	((CMP_HDR_BITS_VERSION + CMP_HDR_BITS_COMPRESSED_SIZE + CMP_HDR_BITS_ORIGINAL_SIZE + \
+	  CMP_HDR_BITS_IDENTIFIER + CMP_HDR_BITS_SEQUENCE_NUMBER + CMP_HDR_BITS_METHOD) /    \
+	 8)
+
+/** Size of the compression extension headers in bytes TBC */
+#define CMP_EXT_HDR_SIZE                                                       \
+	((CMP_EXT_HDR_BITS_MODEL_ADAPTATION + CMP_EXT_HDR_BITS_ENCODER_PARAM + \
+	  CMP_EXT_HDR_BITS_ENCODER_OUTLIER) /                                  \
+	 8)
+
+/** Size of the basic compression plus the extension headers in bytes TBC */
+#define CMP_HDR_MAX_SIZE (CMP_HDR_SIZE + CMP_EXT_HDR_SIZE)
+
+
+/** Seed value used for initializing the checksum computation, arbitrarily chosen*/
+#define CHECKSUM_SEED 419764627
+
+/** Size of the optional checksum in byes */
+#define CMP_CHECKSUM_SIZE sizeof(uint32_t)
 
 
 /**
  * @brief compression header structure
  *
- * Stores essential metadata for the compressed data.
+ * Contains metadata describing compressed data
+ *
+ * @note this is not the on-disk format - use cmp_hdr_serialize() and
+ * cmp_hdr_deserialize() for conversion to/from the actual header format.
  */
 
 struct cmp_hdr {
-	/* minimum header fields, sufficient for uncompressed data*/
-	uint32_t version;       /**< Compression library version identifier */
-	uint32_t cmp_size;      /**< Size of the compressed data including header in bytes */
-	uint32_t original_size; /**< Size of the original uncompressed data in bytes */
-	uint32_t mode;          /**< Compression mode applied */
-	uint32_t preprocess;    /**< Preprocessing technique applied */
-	/* additional fields needed for decompression */
-	uint32_t model_rate;    /**< Rate at which the model adapts during model-based preprocessing */
-	uint64_t model_id;      /**< Unique identifier for the baseline model */
-	uint32_t pass_count;    /**< Number of compression passes performed since the last reset */
+	/* Core header fields */
+	uint8_t version_flag;
+	uint16_t version_id;
+	uint32_t compressed_size;
+	uint32_t original_size;
+	uint64_t identifier;
+	uint8_t sequence_number;
+
+	/* Compression method */
+	enum cmp_preprocessing preprocessing;
+	uint8_t checksum_enabled;
+	enum cmp_encoder_type encoder_type;
+
+	/* Extended compression parameters (optional) */
+	uint32_t model_rate;
+	uint32_t encoder_param;
+	uint32_t encoder_outlier;
 };
 
 
 /**
  * @brief serialize compression header to a byte buffer
  *
- * Data are written in big-endian byte order.
- *
- * @param dst		destination buffer to write serialized header
- * @param dst_size	size of destination buffer
- * @param hdr		Pointer to header structure to serialize
+ * @param bs	Pointer to a initialized bitstream writer structure
+ * @param hdr	Pointer to header structure to serialize
  *
  * @returns the compression header size or an error, which can be checked using
  *	cmp_is_error()
  */
 
-uint32_t cmp_hdr_serialize(void *dst, uint32_t dst_size, const struct cmp_hdr *hdr);
+uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hdr);
 
 
 /**
@@ -74,17 +141,14 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 
 
 /**
- * @brief retrieve pointer to compressed data following the header
+ * @brief Calculates a checksum for an array of 16-bit values
  *
- * @warning Assumes the compressed data block starts with a valid header.
+ * @param data	Pointer a data buffer (array of 16-bit values)
+ * @param size	Size of the data buffer in bytes.
  *
- * @param cmp_data	pointer to the start of the compressed data (header)
- *
- * @returns a pointer to the first byte of compressed data after the header
- *
+ * @returns a 32-bit checksum of the data buffer
  */
 
-void *cmp_hdr_get_cmp_data(void *cmp_data);
-
+uint32_t cmp_checksum(const uint16_t *data, uint32_t size);
 
 #endif /* CMP_HEADER_H */

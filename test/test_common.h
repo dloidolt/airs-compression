@@ -7,27 +7,20 @@
  * @brief Utilities for testing the compression library
  */
 
-#include <stdio.h>
+#ifndef TEST_COMMON_H
+#define TEST_COMMON_H
 
 #include <unity.h>
-
 #include "../lib/cmp_errors.h"
+#include "../lib/common/compiler.h"
+#include "../lib/common/bitstream_writer.h"
+
+/** uint8_t type with the required compression destination buffer alignment */
+#define DST_ALIGNED_U8 ALIGNED_TYPE(CMP_DST_ALIGNMENT, uint8_t)
 
 
-/**
- * @brief Asserts compression error code equality
- *
- * @param expected_CMP_ERROR	expected error code
- * @param cmp_ret_code		compression library return code
- */
-#define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code)		\
-	do {									\
-		uint32_t _cmp_err_ret = (cmp_ret_code);				\
-		TEST_ASSERT_EQUAL_INT_MESSAGE(expected_CMP_ERROR,		\
-			cmp_get_error_code(_cmp_err_ret),			\
-			gen_cmp_error_message(expected_CMP_ERROR,		\
-					     cmp_get_error_code(_cmp_err_ret)));\
-	} while (0)
+void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp_ret_code,
+				     int line);
 
 
 /**
@@ -35,10 +28,10 @@
  *
  * @param cmp_ret_code	return code from compression library function
  */
-#define TEST_ASSERT_CMP_SUCCESS(cmp_ret_code)				\
-	do {								\
-		uint32_t _cmp_ret = (cmp_ret_code);			\
-		TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_NO_ERROR, _cmp_ret);\
+#define TEST_ASSERT_CMP_SUCCESS(cmp_ret_code)                            \
+	do {                                                             \
+		uint32_t _cmp_ret = (cmp_ret_code);                      \
+		TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_NO_ERROR, _cmp_ret); \
 	} while (0)
 
 
@@ -51,66 +44,75 @@
 
 
 /**
- * @brief Converts compression error enum to string
+ * @brief Asserts compression error code equality
  *
- * @param error		Compression error code
- *
- * @returns error code string
+ * @param expected_CMP_ERROR	expected error code
+ * @param cmp_ret_code		compression library return code
  */
 
-static __inline const char *cmp_error_enum_to_str(enum cmp_error error)
-{
-	switch (error) {
-	case CMP_ERR_NO_ERROR:
-		return "CMP_ERR_NO_ERROR";
-	case CMP_ERR_GENERIC:
-		return "CMP_ERR_GENERIC";
-	case CMP_ERR_PARAMS_INVALID:
-		return "CMP_ERR_PARAMS_INVALID";
-	case CMP_ERR_CONTEXT_INVALID:
-		return "CMP_ERR_CONTEXT_INVALID";
-	case CMP_ERR_WORK_BUF_NULL:
-		return "CMP_ERR_WORK_BUF_NULL";
-	case CMP_ERR_WORK_BUF_TOO_SMALL:
-		return "CMP_ERR_WORK_BUF_TOO_SMALL";
-	case CMP_ERR_DST_NULL:
-		return "CMP_ERR_DST_NULL";
-	case CMP_ERR_SRC_NULL:
-		return "CMP_ERR_SRC_NULL";
-	case CMP_ERR_SRC_SIZE_WRONG:
-		return "CMP_ERR_SRC_SIZE_WRONG";
-	case CMP_ERR_DST_TOO_SMALL:
-		return "CMP_ERR_DST_TOO_SMALL";
-	case CMP_ERR_SRC_SIZE_MISMATCH:
-		return "CMP_ERR_SRC_SIZE_MISMATCH";
-	case CMP_ERR_TIMESTAMP_INVALID:
-		return "CMP_ERR_TIMESTAMP_INVALID";
-	case CMP_ERR_INT_HDR:
-		return "CMP_ERR_INT_HDR";
-	case CMP_ERR_MAX_CODE:
-	default:
-		TEST_FAIL_MESSAGE("Missing error name");
-		return "Unknown error";
-	}
-}
+#define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code) \
+	assert_equal_cmp_error_internal(expected_CMP_ERROR, cmp_ret_code, __LINE__)
 
 
 /**
- * @brief Generates a descriptive error message
+ * @brief Asserts that a compressed data header matches the expected header
  *
- * @param expected	expected error code
- * @param actual	actual error code
+ * The model_id is ignored.
  *
- * @returns formatted error message string
+ * @param compressed_data	pointer to the compressed data buffer
+ * @param size			size of the compressed data buffer
+ * @param expected_hdr		constant pointer to the expected cmp_hdr structure
  */
 
-static __inline const char *gen_cmp_error_message(enum cmp_error expected,
-						  enum cmp_error actual)
-{
-	enum{ CMP_TEST_MESSAGE_BUF_SIZE = 128 };
-	static char message[CMP_TEST_MESSAGE_BUF_SIZE];
+#define TEST_ASSERT_CMP_HDR(compressed_data, size, expected_hdr)                                   \
+	do {                                                                                       \
+		struct cmp_hdr assert_hdr;                                                         \
+		TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(compressed_data, size, &assert_hdr));  \
+		expected_hdr.version_flag = 1;		      /* always expected */                \
+		expected_hdr.version_id = CMP_VERSION_NUMBER; /* always expected */                \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.version_flag, assert_hdr.version_flag,      \
+					  "Version cmp lib flag mismatch");                        \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.version_id, assert_hdr.version_id,          \
+					  "header version ID mismatch");                           \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.compressed_size,                            \
+					  assert_hdr.compressed_size,                              \
+					  "header compressed data size mismatch");                 \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.original_size, assert_hdr.original_size,    \
+					  "header original size mismatch");                        \
+		assert_hdr.identifier = expected_hdr.identifier; /* ignore this field */           \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.sequence_number,                            \
+					  assert_hdr.sequence_number,                              \
+					  "header sequence number mismatch");                      \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.preprocessing, assert_hdr.preprocessing,    \
+					  "header preprocessing mismatch");                        \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.checksum_enabled,                           \
+					  assert_hdr.checksum_enabled,                             \
+					  "Checksum enable mismatch");                             \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.encoder_type, assert_hdr.encoder_type,      \
+					  "header encoder mismatch");                              \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.model_rate, assert_hdr.model_rate,          \
+					  "header model adaptation rate mismatch");                \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.encoder_param, assert_hdr.encoder_param,    \
+					  "header encoder parameter mismatch");                    \
+		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.encoder_outlier,                            \
+					  assert_hdr.encoder_outlier,                              \
+					  "header outlier parameter mismatch");                    \
+		TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&expected_hdr, &assert_hdr, sizeof(expected_hdr), \
+						 "header mismatch");                               \
+	} while (0)
 
-	snprintf(message, sizeof(message), "Expected %s Was %s.",
-		 cmp_error_enum_to_str(expected), cmp_error_enum_to_str(actual));
-	return message;
-}
+
+/**
+ * @brief retrieve pointer to compressed data following the header
+ *
+ * @warning Assumes the compressed data block starts with a valid header.
+ *
+ * @param cmp_data	pointer to the start of the compressed data (header)
+ *
+ * @returns a pointer to the first byte of compressed data after the header
+ *
+ */
+
+void *cmp_hdr_get_cmp_data(void *cmp_data);
+
+#endif /* TEST_COMMON_H */

@@ -11,107 +11,234 @@
 #include <string.h>
 
 #include <unity.h>
+#include "test_common.h"
 
 #include "../lib/common/header.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/cmp.h"
+#include "../lib/common/bitstream_writer.h"
+#include "../lib/common/compiler.h"
 
 
-void test_serialize_header(void)
+void test_serialize_header_with_extended_header(void)
 {
-	struct cmp_hdr hdr = {0};
-	uint8_t buf[CMP_HDR_SIZE];
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
+	struct cmp_hdr hdr = { 0 };
 	uint32_t hdr_size;
 	int i;
+	struct bitstream_writer bs;
 
 	memset(buf, 0xAB, sizeof(buf));
-	hdr.version = 0x0001;
-	hdr.cmp_size = 0x020304;
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
+	hdr.version_flag = 0x00;
+	hdr.version_id = 0x0001;
+	hdr.compressed_size = 0x020304;
 	hdr.original_size = 0x050607;
-	hdr.mode = 0x08;
-	hdr.preprocess = 0x09;
-	hdr.model_rate = 0x0A;
-	hdr.model_id = 0x0B0C0D0E0F10;
-	hdr.pass_count = 0x11;
+	hdr.identifier = 0x08090A0B0C0D;
+	hdr.sequence_number = 0xE;
+	hdr.preprocessing = 0x00;
+	hdr.checksum_enabled = 0x01;
+	hdr.encoder_type = 0x07;
+	hdr.model_rate = 0x10;
+	hdr.encoder_param = 0x1112;
+	hdr.encoder_outlier = 0x131415;
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+	hdr_size = cmp_hdr_serialize(&bs, &hdr);
 
-	TEST_ASSERT_FALSE(cmp_is_error(hdr_size));
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE, hdr_size);
-	for (i = 0; i < CMP_HDR_SIZE; i++)
+	TEST_ASSERT_CMP_SUCCESS(hdr_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + CMP_EXT_HDR_SIZE, hdr_size);
+	for (i = 0; i < CMP_HDR_SIZE + CMP_EXT_HDR_SIZE; i++)
 		TEST_ASSERT_EQUAL_HEX8(i, buf[i]);
 }
 
-
-void test_deserialize_header(void)
+void test_serialize_header_without_extended_header(void)
 {
-	struct cmp_hdr hdr = {0};
-	uint8_t buf[CMP_HDR_SIZE];
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
+	struct cmp_hdr hdr = { 0 };
 	uint32_t hdr_size;
 	int i;
+	struct bitstream_writer bs;
 
-	for (i = 0; i < CMP_HDR_SIZE; i++)
-		buf[i] = (uint8_t)i;
+	memset(buf, 0xAB, sizeof(buf));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
+	hdr.version_flag = 0x00;
+	hdr.version_id = 0x0001;
+	hdr.compressed_size = 0x020304;
+	hdr.original_size = 0x050607;
+	hdr.identifier = 0x08090A0B0C0D;
+	hdr.sequence_number = 0xE;
+	hdr.preprocessing = CMP_PREPROCESS_NONE;
+	hdr.checksum_enabled = 0;
+	hdr.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	hdr.model_rate = 0x10;
+	hdr.encoder_param = 0x1112;
+	hdr.encoder_outlier = 0x131415;
 
+	hdr_size = cmp_hdr_serialize(&bs, &hdr);
 
-	hdr_size = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
-
-	TEST_ASSERT_FALSE(cmp_is_error(hdr_size));
+	TEST_ASSERT_CMP_SUCCESS(hdr_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE, hdr_size);
-	TEST_ASSERT_EQUAL_HEX(hdr.version, 0x0001);
-	TEST_ASSERT_EQUAL_HEX(hdr.cmp_size, 0x020304);
-	TEST_ASSERT_EQUAL_HEX(hdr.original_size, 0x050607);
-	TEST_ASSERT_EQUAL_HEX(hdr.mode, 0x08);
-	TEST_ASSERT_EQUAL_HEX(hdr.preprocess, 0x09);
-	TEST_ASSERT_EQUAL_HEX(hdr.model_rate, 0x0A);
-	TEST_ASSERT_EQUAL_HEX(hdr.model_id, 0x0B0C0D0E0F10);
-	TEST_ASSERT_EQUAL_HEX(hdr.pass_count, 0x11);
+	for (i = 0; i < CMP_HDR_SIZE - 1; i++)
+		TEST_ASSERT_EQUAL_HEX8(i, buf[i]);
+	TEST_ASSERT_EQUAL_HEX8(0, buf[i++]);
+	for (; i < CMP_HDR_SIZE + CMP_EXT_HDR_SIZE; i++)
+		TEST_ASSERT_EQUAL_HEX8(0xAB, buf[i]);
 }
 
 
-void test_hdr_serialize_returns_error_when_parmertes_are_to_big(void)
+void test_deserialize_header_with_extended_header(void)
 {
-	struct cmp_hdr hdr = {0};
-	uint8_t buf[CMP_HDR_SIZE];
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
+	struct cmp_hdr hdr = { 0 };
+	struct cmp_hdr expected_hdr;
 	uint32_t hdr_size;
+	int i;
 
-	hdr.version = UINT16_MAX+1;
+	expected_hdr.version_flag = 0x00;
+	expected_hdr.version_id = 0x0001;
+	expected_hdr.compressed_size = 0x020304;
+	expected_hdr.original_size = 0x050607;
+	expected_hdr.identifier = 0x08090A0B0C0D;
+	expected_hdr.sequence_number = 0xE;
+	expected_hdr.preprocessing = 0x00;
+	expected_hdr.checksum_enabled = 0x01;
+	expected_hdr.encoder_type = 0x07;
+	expected_hdr.model_rate = 0x10;
+	expected_hdr.encoder_param = 0x1112;
+	expected_hdr.encoder_outlier = 0x131415;
+	for (i = 0; i < CMP_HDR_SIZE + CMP_EXT_HDR_SIZE; i++)
+		buf[i] = (uint8_t)i;
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+	hdr_size = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
 
-	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+	TEST_ASSERT_CMP_SUCCESS(hdr_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + CMP_EXT_HDR_SIZE, hdr_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.version_flag, hdr.version_flag);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.version_id, hdr.version_id);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.compressed_size, hdr.compressed_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.original_size, hdr.original_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.identifier, hdr.identifier);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.sequence_number, hdr.sequence_number);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.preprocessing, hdr.preprocessing);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.checksum_enabled, hdr.checksum_enabled);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_type, hdr.encoder_type);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.model_rate, hdr.model_rate);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_param, hdr.encoder_param);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_outlier, hdr.encoder_outlier);
+}
 
-	hdr.version = UINT16_MAX;
-	hdr.cmp_size = CMP_MAX_CMP_SIZE+1;
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+void test_deserialize_header_without_extended_header(void)
+{
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE + CMP_EXT_HDR_SIZE];
+	struct cmp_hdr hdr = { 0 };
+	struct cmp_hdr expected_hdr;
+	uint32_t hdr_size;
+	int i;
 
-	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+	expected_hdr.version_flag = 0x00;
+	expected_hdr.version_id = 0x0001;
+	expected_hdr.compressed_size = 0x020304;
+	expected_hdr.original_size = 0x050607;
+	expected_hdr.identifier = 0x08090A0B0C0D;
+	expected_hdr.sequence_number = 0xE;
+	expected_hdr.preprocessing = CMP_PREPROCESS_NONE;
+	expected_hdr.checksum_enabled = 0;
+	expected_hdr.encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	expected_hdr.model_rate = 0;
+	expected_hdr.encoder_param = 0;
+	expected_hdr.encoder_outlier = 0;
+	for (i = 0; i < CMP_HDR_SIZE + CMP_EXT_HDR_SIZE; i++)
+		buf[i] = (uint8_t)i;
+	buf[CMP_HDR_SIZE - 1] = 0;
 
-	hdr.cmp_size = CMP_MAX_CMP_SIZE;
-	hdr.original_size = CMP_MAX_ORIGINAL_SIZE+1;
+	hdr_size = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+	TEST_ASSERT_CMP_SUCCESS(hdr_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE, hdr_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.version_flag, hdr.version_flag);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.version_id, hdr.version_id);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.compressed_size, hdr.compressed_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.original_size, hdr.original_size);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.identifier, hdr.identifier);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.sequence_number, hdr.sequence_number);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.preprocessing, hdr.preprocessing);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.checksum_enabled, hdr.checksum_enabled);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_type, hdr.encoder_type);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.model_rate, hdr.model_rate);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_param, hdr.encoder_param);
+	TEST_ASSERT_EQUAL_HEX(expected_hdr.encoder_outlier, hdr.encoder_outlier);
+}
 
-	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
 
-	hdr.original_size = CMP_MAX_ORIGINAL_SIZE;
-	hdr.mode = UINT8_MAX + 1;
+void test_hdr_serialize_detects_when_a_field_is_too_big(void)
+{
+#define TEST_HDR_FIELD_TOO_BIG(field, bits_for_field, exp_error)                              \
+	do {                                                                                  \
+		uint64_t buf[(CMP_HDR_MAX_SIZE + CMP_DST_ALIGNMENT - 1) / CMP_DST_ALIGNMENT]; \
+		struct cmp_hdr hdr = { 0 };                                                   \
+		uint32_t hdr_size;                                                            \
+		struct bitstream_writer bs;                                                   \
+		TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));        \
+		TEST_ASSERT(bits_for_field < bitsizeof(long long));                           \
+		TEST_ASSERT(bits_for_field > 0);                                              \
+		hdr.preprocessing = CMP_PREPROCESS_DIFF;                                      \
+		hdr.field = 1ULL << bits_for_field;                                           \
+		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
+		TEST_ASSERT_EQUAL_CMP_ERROR(exp_error, hdr_size);                             \
+		/* now it should work */                                                      \
+		bitstream_rewind(&bs);                                                        \
+		hdr.field--;                                                                  \
+		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
+		TEST_ASSERT_CMP_SUCCESS(hdr_size);                                            \
+	} while (0)
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+	TEST_HDR_FIELD_TOO_BIG(version_id, CMP_HDR_BITS_VERSION_ID, CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(version_flag, CMP_HDR_BITS_VERSION_FLAG, CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(compressed_size, CMP_HDR_BITS_COMPRESSED_SIZE,
+			       CMP_ERR_HDR_CMP_SIZE_TOO_LARGE);
+	TEST_HDR_FIELD_TOO_BIG(original_size, CMP_HDR_BITS_ORIGINAL_SIZE,
+			       CMP_ERR_HDR_ORIGINAL_TOO_LARGE);
+	TEST_HDR_FIELD_TOO_BIG(identifier, CMP_HDR_BITS_IDENTIFIER, CMP_ERR_TIMESTAMP_INVALID);
+	/* TEST_HDR_FIELD_TOO_BIG(sequence_number, CMP_HDR_BITS_SEQUENCE_NUMBER, */
+	/*		       CMP_ERR_INT_BITSTREAM); */
+	TEST_HDR_FIELD_TOO_BIG(preprocessing, CMP_HDR_BITS_METHOD_PREPROCESSING,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(checksum_enabled, CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(encoder_type, CMP_HDR_BITS_METHOD_ENCODER_TYPE,
+			       CMP_ERR_INT_BITSTREAM);
 
-	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+	TEST_HDR_FIELD_TOO_BIG(model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM,
+			       CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER,
+			       CMP_ERR_INT_BITSTREAM);
+#undef TEST_HDR_FIELD_TOO_BIG
+}
 
-	hdr.mode = UINT8_MAX;
-	hdr.preprocess = UINT8_MAX + 1;
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+void test_detect_null_hdr_during_serialize(void)
+{
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE];
+	struct bitstream_writer bs;
+	uint32_t ret;
 
-	TEST_ASSERT_EQUAL(CMP_ERR_INT_HDR, cmp_get_error_code(hdr_size));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));
 
-	hdr.preprocess = UINT8_MAX;
+	ret = cmp_hdr_serialize(&bs, NULL);
 
-	hdr_size = cmp_hdr_serialize(buf, sizeof(buf), &hdr);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_HDR, ret);
+}
 
-	TEST_ASSERT_EQUAL(CMP_ERR_NO_ERROR, cmp_get_error_code(hdr_size));
+
+void test_detect_null_hdr_during_deserialize(void)
+{
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE] = { 0 };
+	uint32_t ret;
+
+	ret = cmp_hdr_deserialize(buf, sizeof(buf), NULL);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_HDR, ret);
 }

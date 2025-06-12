@@ -10,8 +10,8 @@
  *	git-compat-util.h by @author Linus Torvalds et al.
  */
 
-#ifndef COMPAT_UTIL_H
-#define COMPAT_UTIL_H
+#ifndef COMPILER_H
+#define COMPILER_H
 
 /**
  * @brief Convenience macros to test the versions of gcc (or a compatible compiler)
@@ -23,12 +23,15 @@
  *	#endif
  */
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
-# define CMP_GNUC_PREREQ(maj, min) \
-	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#  define CMP_GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
 #else
- #define CMP_GNUC_PREREQ(maj, min) 0
+#  define CMP_GNUC_PREREQ(maj, min) 0
 #endif
 
+/**
+ * @brief a C89 compile time assertion mechanism
+ */
+#define compile_time_assert(cond, msg) UNUSED typedef char ASSERT_##msg[(cond) ? 1 : -1]
 
 /**
  * @brieg assert a build-time dependency, as an expression.
@@ -43,8 +46,7 @@
  *		 ((char *)(foo)						\
  *		  + BUILD_ASSERT_OR_ZERO(offsetof(struct foo, string) == 0))
  */
-#define BUILD_ASSERT_OR_ZERO(cond) \
-	(sizeof(char [1 - 2*!(cond)]) - 1)
+#define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - 2 * !(cond)]) - 1)
 
 
 /**
@@ -53,12 +55,12 @@
  */
 
 #if CMP_GNUC_PREREQ(3, 1)
- /* &arr[0] degrades to a pointer: a different type from an array */
-# define BARF_UNLESS_AN_ARRAY(arr)						\
-	BUILD_ASSERT_OR_ZERO(!__builtin_types_compatible_p(__typeof__(arr), \
-							   __typeof__(&(arr)[0])))
+/* &arr[0] degrades to a pointer: a different type from an array */
+#  define BARF_UNLESS_AN_ARRAY(arr) \
+	  BUILD_ASSERT_OR_ZERO(     \
+		  !__builtin_types_compatible_p(__typeof__(arr), __typeof__(&(arr)[0])))
 #else
-# define BARF_UNLESS_AN_ARRAY(arr) 0
+#  define BARF_UNLESS_AN_ARRAY(arr) 0
 #endif
 
 
@@ -72,6 +74,11 @@
  * will cause a build error (see the BUILD_ASSERT_OR_ZERO macro).
  */
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]) + BARF_UNLESS_AN_ARRAY(x))
+
+/**
+ * We assume that a byte as 8 bits
+ */
+#define bitsizeof(x) (8 * sizeof(x))
 
 
 /**
@@ -90,13 +97,11 @@
  */
 
 #if CMP_GNUC_PREREQ(4, 5) || defined(__clang__)
-#define UNUSED __attribute__((unused)) \
-	__attribute__((deprecated("parameter declared as UNUSED")))
+#  define UNUSED __attribute__((unused)) __attribute__((deprecated("parameter declared as UNUSED")))
 #elif defined(__GNUC__)
-#define UNUSED __attribute__((unused)) \
-	__attribute__((deprecated))
+#  define UNUSED __attribute__((unused)) __attribute__((deprecated))
 #else
-#define UNUSED
+#  define UNUSED
 #endif
 
 
@@ -116,4 +121,35 @@
 
 #define MAYBE_UNUSED __attribute__((__unused__))
 
-#endif /*  COMPAT_UTIL_H */
+
+/**
+ * @brief Defines an aligned type
+ *
+ * @code{.c}
+ * ALIGNED_TYPE(16, uint16_t) aligned_int = 42;
+ * ALIGNED_TYPE(32, uint8_t) aligned_array[128];
+ *
+ * // The default-alignment equivalent would be
+ * uint16_t aligned_int = 42;
+ * uint8_t aligned_array[128];
+ * @endcode
+ * @see FFmpeg DECLARE_ALIGNED in libavutil/mem_internal.h
+ *
+ * @param n Minimum alignment in bytes
+ * @param t Type
+ */
+
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+#  define ALIGNED_TYPE(n, t) _Alignas((n)) t
+#elif defined(__INTEL_COMPILER) && __INTEL_COMPILER < 1110 || defined(__SUNPRO_C)
+#  define ALIGNED_TYPE(n, t) t __attribute__((aligned(n)))
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ALIGNED_TYPE(n, t) t __attribute__((aligned(n)))
+#elif defined(_MSC_VER)
+#  define ALIGNED_TYPE(n, t) __declspec(align(n)) t
+#else
+#  warning "ALIGNED_TYPE: Compiler does not support explicit alignment. Array may not be aligned."
+#  define ALIGNED_TYPE(n, t) t
+#endif
+
+#endif /*  COMPILER_H */

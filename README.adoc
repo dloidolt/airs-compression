@@ -5,8 +5,9 @@ ifdef::env-github[]
 :caution-caption: :warning:
 :warning-caption: :warning:
 endif::[]
+:imagesdir: docs
 
-= AIRS Data Compression
+image::AIRSPACE_Logo.svg[]
 :toc: macro
 
 *AIRS* **P**ort**A**ble **C**ompression **E**ngine (*AIRSPACE*) is a
@@ -28,7 +29,7 @@ toc::[]
 * Support for multiple compression configurations
 * Comprehensive error handling with detailed error codes
 * Portable:
-** Written in ANSI C{empty}footnote:[With some extension: like inline]
+** Written in ANSI C{empty}footnote:[With some extension: like inline or long long]
 ** Zero dynamic memory allocation (no internal `malloc()` calls)
 * Command line utility
 
