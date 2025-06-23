@@ -13,7 +13,7 @@
 #include <unity.h>
 #include "../lib/cmp_errors.h"
 #include "../lib/common/compiler.h"
-#include "../lib/common/bitstream_writer.h"
+#include "../lib/common/header_private.h"
 
 /** uint8_t type with the required compression destination buffer alignment */
 #define DST_ALIGNED_U8 ALIGNED_TYPE(CMP_DST_ALIGNMENT, uint8_t)

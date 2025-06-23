@@ -14,7 +14,7 @@
 
 #include "../lib/cmp.h"
 #include "../lib/cmp_errors.h"
-#include "../lib/common/header.h"
+#include "../lib/common/header_private.h"
 #include "../lib/common/bitstream_writer.h"
 
 
