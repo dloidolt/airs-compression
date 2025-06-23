@@ -15,7 +15,7 @@
 
 #include "test_common.h"
 #include "../lib/cmp_errors.h"
-#include "../lib/common/header.h"
+#include "../lib/common/header_private.h"
 
 
 void *cmp_hdr_get_cmp_data(void *header)

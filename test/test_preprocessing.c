@@ -15,7 +15,7 @@
 #include "test_common.h"
 
 #include "../lib/cmp.h"
-#include "../lib/common/header.h"
+#include "../lib/common/header_private.h"
 #include "../lib/common/compiler.h"
 
 #define TEST_ASSERT_PREPROCCESSING_DATA(expected_output, num_elements, compressed_data) \

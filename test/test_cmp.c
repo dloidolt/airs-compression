@@ -16,7 +16,7 @@
 
 #include "../lib/cmp.h"
 #include "../lib/cmp_errors.h"
-#include "../lib/common/header.h"
+#include "../lib/common/header_private.h"
 
 
 static struct cmp_context create_uncompressed_context(void)

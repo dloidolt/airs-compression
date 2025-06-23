@@ -13,7 +13,7 @@
 #include <unity.h>
 #include "test_common.h"
 
-#include "../lib/common/header.h"
+#include "../lib/common/header_private.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/cmp.h"
 #include "../lib/common/bitstream_writer.h"

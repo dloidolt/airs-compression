@@ -15,7 +15,7 @@
 #include "../cmp.h"
 #include "../common/err_private.h"
 #include "../common/bitstream_writer.h"
-#include "../common/header.h"
+#include "../common/header_private.h"
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
 

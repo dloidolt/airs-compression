@@ -5,66 +5,30 @@
  *
  * @copyright GPL-2.0
  *
- * @brief Compression header structure and functions
+ * @brief Extended compression header structure and header functions
  */
 
-#ifndef CMP_HEADER_H
-#define CMP_HEADER_H
+#ifndef CMP_HEADER_PRIVATE_H
+#define CMP_HEADER_PRIVATE_H
 
 #include <stdint.h>
 
 #include "bitstream_writer.h"
 #include "../cmp.h"
+#include "../cmp_header.h"
 
-/*
- * Maximum values that can be stored in the size fields
- */
-#define CMP_HDR_MAX_COMPRESSED_SIZE ((1ULL << CMP_HDR_BITS_COMPRESSED_SIZE) - 1)
-#define CMP_HDR_MAX_ORIGINAL_SIZE ((1ULL << CMP_HDR_BITS_ORIGINAL_SIZE) - 1)
 
-/*
- * Bit length of the different header fields
- */
-#define CMP_HDR_BITS_VERSION (CMP_HDR_BITS_VERSION_FLAG + CMP_HDR_BITS_VERSION_ID)
-#define CMP_HDR_BITS_VERSION_FLAG 1
-#define CMP_HDR_BITS_VERSION_ID 15
-#define CMP_HDR_BITS_COMPRESSED_SIZE 24
-#define CMP_HDR_BITS_ORIGINAL_SIZE 24
-
-#define CMP_HDR_BITS_IDENTIFIER 48
-#define CMP_HDR_BITS_SEQUENCE_NUMBER 8
-
-#define CMP_HDR_BITS_METHOD                                                         \
-	(CMP_HDR_BITS_METHOD_PREPROCESSING + CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED + \
-	 CMP_HDR_BITS_METHOD_ENCODER_TYPE)
-#define CMP_HDR_BITS_METHOD_PREPROCESSING 4
-#define CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED 1
-#define CMP_HDR_BITS_METHOD_ENCODER_TYPE 3
-
+/* Bit length of the different extended header fields */
 #define CMP_EXT_HDR_BITS_MODEL_ADAPTATION 8
 #define CMP_EXT_HDR_BITS_ENCODER_PARAM 16
 #define CMP_EXT_HDR_BITS_ENCODER_OUTLIER 24
 
-/*
- * Byte offsets of the different header fields
- */
-#define CMP_HDR_OFFSET_VERSION 0
-#define CMP_HDR_OFFSET_COMPRESSED_SIZE 2
-#define CMP_HDR_OFFSET_ORIGINAL_SIZE 5
-#define CMP_HDR_OFFSET_IDENTIFIER 8
-#define CMP_HDR_OFFSET_SEQUENCE_NUMBER 14
-#define CMP_HDR_OFFSET_METHOD 15
 
 /* Extended header offsets */
 #define CMP_EXT_HDR_OFFSET_MODEL_RATE 16
 #define CMP_EXT_HDR_OFFSET_ENCODER_PARAM 17
 #define CMP_EXT_HDR_OFFSET_OUTLIER_PARAM 19
 
-/** Size of the compression header in bytes TBC */
-#define CMP_HDR_SIZE                                                                         \
-	((CMP_HDR_BITS_VERSION + CMP_HDR_BITS_COMPRESSED_SIZE + CMP_HDR_BITS_ORIGINAL_SIZE + \
-	  CMP_HDR_BITS_IDENTIFIER + CMP_HDR_BITS_SEQUENCE_NUMBER + CMP_HDR_BITS_METHOD) /    \
-	 8)
 
 /** Size of the compression extension headers in bytes TBC */
 #define CMP_EXT_HDR_SIZE                                                       \
@@ -72,15 +36,13 @@
 	  CMP_EXT_HDR_BITS_ENCODER_OUTLIER) /                                  \
 	 8)
 
+
 /** Size of the basic compression plus the extension headers in bytes TBC */
 #define CMP_HDR_MAX_SIZE (CMP_HDR_SIZE + CMP_EXT_HDR_SIZE)
 
 
 /** Seed value used for initializing the checksum computation, arbitrarily chosen*/
 #define CHECKSUM_SEED 419764627
-
-/** Size of the optional checksum in byes */
-#define CMP_CHECKSUM_SIZE sizeof(uint32_t)
 
 
 /**
@@ -151,4 +113,4 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 
 uint32_t cmp_checksum(const uint16_t *data, uint32_t size);
 
-#endif /* CMP_HEADER_H */
+#endif /* CMP_HEADER_PRIVATE_H */

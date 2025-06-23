@@ -69,11 +69,11 @@ See the xref:programs/README.adoc[CLI documentation] for details.
 * xref:INSTALL.adoc[`INSTALL.adoc`] - Installation Guide
 * link:lib/cmp.h[`lib/cmp.h`] - Public Compression API
 * link:examples/[`examples/` directory] - Compression Usage Examples
-* xref:programs/README.adoc[`programs/README.adoc`] - CLI utility README
+* xref:programs/README.adoc[`programs/README.adoc`] - CLI Utility README
 
 === Technical Details
-* link:lib/cmp_errors.h[`lib/cmp_errors.h`] - Error codes Reference
-* Compression Data Format Documentation - Coming soon
+* link:lib/cmp_errors.h[`lib/cmp_errors.h`] - Error Codes Reference
+* link:lib/cmp_header.h[`lib/cmp_header.h`] - Main Compression Header Definition
 
 == Contact
 * *Issues*: Please link:https://github.com/uviespace/airs-compression/issues/new[open an issue]

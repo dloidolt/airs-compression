@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "header.h"
+#include "header_private.h"
 #include "err_private.h"
 #include "bitstream_writer.h"
 
