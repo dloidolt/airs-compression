@@ -17,10 +17,16 @@
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 #define CMP_GOLOMB_MAX_CODEWORD_BITS 32
 
+#define CMP_MAX_BITS_ZERO_ESCAPE \
+	(31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE)
 /* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
-#define CMP_MAX_BITS_PER_SAMPLE (CMP_GOLOMB_MAX_CODEWORD_BITS + CMP_NUM_BITS_PER_SAMPLE)
+#define CMP_MAX_BITS_MULTI_ESCAPE (CMP_GOLOMB_MAX_CODEWORD_BITS + CMP_NUM_BITS_PER_SAMPLE)
+
+#define CMP_MAX_BITS_PER_SAMPLE MAX(CMP_MAX_BITS_ZERO_ESCAPE, CMP_MAX_BITS_MULTI_ESCAPE)
 
 
 /**
@@ -340,11 +346,13 @@ uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 			/* add 1 for non-outlier values to make space for 0 as escape symbol */
 			ret = golomb_encode((uint32_t)mapped + 1, enc->g_par, enc->g_par_log2, bs);
 		} else {
-			/* encoded 0 indites that encoded mapped data are following */
-			ret = golomb_encode(0, enc->g_par, enc->g_par_log2, bs);
-			if (cmp_is_error_int(ret))
-				return ret;
-			ret = bitstream_write32(bs, mapped, bitsizeof(value));
+			/* A Golomb codeword of 0 indicates raw (unencoded) mapped data follows.
+			 * Combine Golomb(0) and raw data into a single write for efficiency.
+			 */
+			compile_time_assert(CMP_MAX_BITS_ZERO_ESCAPE <= 32, zero_escape_too_large);
+			unsigned int const len = enc->g_par_log2 + 1 + bitsizeof(value);
+
+			ret = bitstream_write32(bs, mapped, len);
 		}
 		break;
 	}
