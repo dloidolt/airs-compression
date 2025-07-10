@@ -40,7 +40,7 @@ struct bitstream_writer {
 	uint8_t *start;	      /**< Beginning of bitstream */
 	uint8_t *ptr;	      /**< Current write position */
 	uint8_t *end;	      /**< End of the bitstream pointer */
-	int overflow;	      /**< Set to non-zero if buffer overflows */
+	uint32_t error;	      /**< Sticky error code */
 };
 
 
@@ -62,18 +62,16 @@ static __inline uint32_t bitstream_writer_init(struct bitstream_writer *bs, void
 	memset(bs, 0, sizeof(*bs));
 
 	if (!dst)
-		return CMP_ERROR(DST_NULL);
+		return bs->error = CMP_ERROR(DST_NULL);
 	if ((uintptr_t)dst & (CMP_DST_ALIGNMENT - 1))
-		return CMP_ERROR(DST_UNALIGNED);
+		return bs->error = CMP_ERROR(DST_UNALIGNED);
 
 	bs->cache = 0;
 	bs->bit_cap = 64;
 	bs->start = dst;
 	bs->ptr = dst;
 	bs->end = (uint8_t *)dst + size;
-	bs->overflow = 0;
-
-	return CMP_ERROR(NO_ERROR);
+	return bs->error = CMP_ERROR(NO_ERROR);
 }
 
 
@@ -97,32 +95,56 @@ static __inline void put_be64(void *ptr, uint64_t val)
 
 
 /**
- * @brief Write up to 32 bits to the bitstream
+ * @brief Get the current error status of the bitstream writer
  *
- * @param bs		pointer to a initialised bitstream_writer structure
- * @param value		bits to write to the bitstream
- * @param nb_bits	number of bits to write from value
- *
- * @returns an error code, which can be checked using cmp_is_error()
+ * @returns the first occurred error code, which can be checked using cmp_is_error()
  */
 
-static __inline uint32_t bitstream_write32(struct bitstream_writer *bs, uint32_t value,
-					   unsigned int nb_bits)
+static __inline uint32_t bitstream_error(const struct bitstream_writer *bs)
 {
 	if (!bs)
 		return CMP_ERROR(INT_BITSTREAM);
-	if (nb_bits > 32)
-		return CMP_ERROR(INT_BITSTREAM);
-	if (nb_bits < 32 && (value >> nb_bits))
-		return CMP_ERROR(INT_BITSTREAM);
-	if (bs->overflow)
-		return CMP_ERROR(DST_TOO_SMALL);
+	return bs->error;
+}
+
+
+/**
+ * @brief Adds up to 32 bits to the bitstream
+ *
+ * @note This function writes bits into an internal cache, which is only flushed to
+ *       the output buffer when full or when bitstream_flush() is explicitly called.
+ *       As a result, after completing a sequence of writes, the caller **must** call
+ *       bitstream_flush() to ensure all bits are properly written to the buffer.
+ * @note This function uses sticky error handling - once an error occurs, subsequent
+ *       calls are ignored. Possible error conditions can be tested with
+ *       bitstream_error() or bitstream_flush().
+ *
+ * @param bs		pointer to an initialised bitstream_writer structure
+ * @param value		bits to write to the bitstream; must be "clean", meaning
+ *			all high bits above nbBits are 0
+ * @param nb_bits	number of bits to write from value; must be <= 32
+ */
+
+static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t value,
+					  unsigned int nb_bits)
+{
+	if (cmp_is_error_int(bitstream_error(bs)))
+		return;
+
+	if (nb_bits > 32) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
+	if (nb_bits < 32 && (value >> nb_bits)) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
 
 	/* Fast path: bits fit in current cache */
 	if (nb_bits < bs->bit_cap) {
 		bs->cache = (bs->cache << nb_bits) | value;
 		bs->bit_cap -= nb_bits;
-		return CMP_ERROR(NO_ERROR);
+		return;
 	}
 
 	/* Slow path: need to flush cache */
@@ -134,44 +156,28 @@ static __inline uint32_t bitstream_write32(struct bitstream_writer *bs, uint32_t
 		bs->ptr += 8;
 		bs->cache = value;
 		bs->bit_cap += 64 - nb_bits;
-		return CMP_ERROR(NO_ERROR);
+	} else {
+		bs->error = CMP_ERROR(DST_TOO_SMALL);
 	}
-
-	bs->overflow = 1;
-	return CMP_ERROR(DST_TOO_SMALL);
 }
 
 
 /**
- * @brief Write up to 64 bits to the bitstream
- *
- * @param bs		pointer to a initialised bitstream_writer structure
- * @param value		bits to write to the bitstream
- * @param nb_bits	number of bits to write from value
- *
- * @returns an error code, which can be checked using cmp_is_error()
+ * @brief Same as bitstream_write32() but for 64 bits
  */
 
-static __inline uint32_t bitstream_write64(struct bitstream_writer *bs, uint64_t value,
-					   unsigned int nb_bits)
+static __inline void bitstream_add_bits64(struct bitstream_writer *bs, uint64_t value,
+					  unsigned int nb_bits)
 {
-	uint32_t ret;
-
-	if (nb_bits > 64)
-		return CMP_ERROR(INT_BITSTREAM);
-
 	if (nb_bits <= 32) {
-		ret = bitstream_write32(bs, (uint32_t)value, nb_bits);
+		bitstream_add_bits32(bs, (uint32_t)value, nb_bits);
 	} else {
 		uint32_t hi = (uint32_t)(value >> 32);
 		uint32_t lo = (uint32_t)value;
 
-		ret = bitstream_write32(bs, hi, nb_bits - 32);
-		if (cmp_is_error_int(ret))
-			return ret;
-		ret = bitstream_write32(bs, lo, 32);
+		bitstream_add_bits32(bs, hi, nb_bits - 32);
+		bitstream_add_bits32(bs, lo, 32);
 	}
-	return ret;
 }
 
 
@@ -186,7 +192,7 @@ static __inline void bitstream_pad_last_byte(struct bitstream_writer *bs)
 	unsigned int const bits_in_last_byte = (64 - bs->bit_cap) % 8;
 
 	if (bits_in_last_byte != 0)
-		(void)bitstream_write32(bs, 0, 8 - bits_in_last_byte);
+		bitstream_add_bits32(bs, 0, 8 - bits_in_last_byte);
 }
 
 
@@ -205,10 +211,8 @@ static __inline uint32_t bitstream_flush(struct bitstream_writer *bs)
 	unsigned int bytes;
 	uint8_t *cursor;
 
-	if (!bs)
-		return CMP_ERROR(INT_BITSTREAM);
-	if (bs->overflow)
-		return CMP_ERROR(DST_TOO_SMALL);
+	if (cmp_is_error_int(bitstream_error(bs)))
+		return bitstream_error(bs);
 
 	cursor = bs->ptr;
 	bytes = (64 - bs->bit_cap + 7) / 8;
@@ -216,10 +220,8 @@ static __inline uint32_t bitstream_flush(struct bitstream_writer *bs)
 		uint64_t tmp = bs->cache << bs->bit_cap;
 
 		while (bytes--) {
-			if (cursor >= bs->end) {
-				bs->overflow = 1;
-				return CMP_ERROR(DST_TOO_SMALL);
-			}
+			if (cursor >= bs->end)
+				return bs->error = CMP_ERROR(DST_TOO_SMALL);
 			*cursor++ = (uint8_t)(tmp >> (64 - 8));
 			tmp <<= 8;
 		}
@@ -240,10 +242,8 @@ static __inline uint32_t bitstream_flush(struct bitstream_writer *bs)
 
 static __inline uint32_t bitstream_size(const struct bitstream_writer *bs)
 {
-	if (!bs)
-		return CMP_ERROR(INT_BITSTREAM);
-	if (bs->overflow)
-		return CMP_ERROR(DST_TOO_SMALL);
+	if (cmp_is_error_int(bitstream_error(bs)))
+		return bitstream_error(bs);
 
 	return (uint32_t)(bs->ptr - bs->start) + (64 - (uint32_t)bs->bit_cap + 7) / 8;
 }
@@ -259,14 +259,8 @@ static __inline uint32_t bitstream_size(const struct bitstream_writer *bs)
 
 static __inline uint32_t bitstream_rewind(struct bitstream_writer *bs)
 {
-	uint32_t ret;
+	uint32_t const ret = bitstream_flush(bs);
 
-	if (!bs)
-		return CMP_ERROR(INT_BITSTREAM);
-	if (bs->overflow)
-		return CMP_ERROR(DST_TOO_SMALL);
-
-	ret = bitstream_flush(bs);
 	if (cmp_is_error_int(ret))
 		return ret;
 

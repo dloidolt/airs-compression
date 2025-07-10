@@ -40,7 +40,7 @@ void test_bitstream_write_single_bit_one(void)
 
 	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
-	bitstream_write32(&bsw, 1, 1);
+	bitstream_add_bits32(&bsw, 1, 1);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_UINT8(0x80, buffer[0]);
@@ -56,8 +56,8 @@ void test_bitstream_write_two_bits_zero_one(void)
 
 	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
-	bitstream_write32(&bsw, 0, 1);
-	bitstream_write32(&bsw, 1, 1);
+	bitstream_add_bits32(&bsw, 0, 1);
+	bitstream_add_bits32(&bsw, 1, 1);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_UINT8(0x40, buffer[0]);
@@ -76,11 +76,11 @@ void test_bitstream_write_10bytes(void)
 
 	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
-	bitstream_write32(&bsw, 0x0001, 16);
-	bitstream_write32(&bsw, 0x0203, 16);
-	bitstream_write32(&bsw, 0x0405, 16);
-	bitstream_write32(&bsw, 0x0607, 16);
-	bitstream_write32(&bsw, 0x0809, 16);
+	bitstream_add_bits32(&bsw, 0x0001, 16);
+	bitstream_add_bits32(&bsw, 0x0203, 16);
+	bitstream_add_bits32(&bsw, 0x0405, 16);
+	bitstream_add_bits32(&bsw, 0x0607, 16);
+	bitstream_add_bits32(&bsw, 0x0809, 16);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
@@ -96,7 +96,7 @@ void test_detect_bitstream_overflow(void)
 
 	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
-	bitstream_write32(&bsw, 0x1F, 9);
+	bitstream_add_bits32(&bsw, 0x1F, 9);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);

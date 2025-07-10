@@ -59,18 +59,19 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 /**
  * @brief Encode a 16-bit signed sample
  *
- * @param enc		Pointer to initialised encoder structure
+ * @param enc		Pointer to a successful initialised encoder structure
  * @param value		16-bit signed sample to encode
  * @param bs		Pointer to a bitstream writer; must be initialised and
  *			provided by the caller
  *
  * @note The caller is responsible for flushing the bitstream when encoding is
- *       complete to ensure all buffered bits are written
- * @returns an error code, which can be checked using cmp_is_error()
+ *       complete to ensure all buffered bits are written. This function can
+ *       only fail if the bitstream is small than cmp_compress_bound(), checking
+ *       for this can be done with bitstream_error() or bitstream_flush().
  */
 
-uint32_t cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
-				struct bitstream_writer *bs);
+void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
+			    struct bitstream_writer *bs);
 
 
 /**

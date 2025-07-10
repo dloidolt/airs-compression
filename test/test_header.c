@@ -187,7 +187,7 @@ void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
 		TEST_ASSERT_EQUAL_CMP_ERROR(exp_error, hdr_size);                             \
 		/* now it should work */                                                      \
-		bitstream_rewind(&bs);                                                        \
+		TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bs, buf, sizeof(buf)));        \
 		hdr.field--;                                                                  \
 		hdr_size = cmp_hdr_serialize(&bs, &hdr);                                      \
 		TEST_ASSERT_CMP_SUCCESS(hdr_size);                                            \
