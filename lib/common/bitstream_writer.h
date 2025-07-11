@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "../common/err_private.h"
+#include "../common/byteorder.h"
 
 #define CMP_DST_ALIGNMENT sizeof(uint64_t)
 
@@ -77,20 +78,15 @@ static __inline uint32_t bitstream_writer_init(struct bitstream_writer *bs, void
 
 /**
  * @brief Stores a 64-bit integer as big-endian bytes
+ *
+ * @param ptr	8 byte aligned address to write
+ * @param val	value to write
  */
 
-static __inline void put_be64(void *ptr, uint64_t val)
+static __inline void put_be64_aligned(void *ptr, uint64_t val)
 {
-	uint8_t *p = ptr;
-
-	p[0] = (uint8_t)(val >> 56);
-	p[1] = (uint8_t)(val >> 48);
-	p[2] = (uint8_t)(val >> 40);
-	p[3] = (uint8_t)(val >> 32);
-	p[4] = (uint8_t)(val >> 24);
-	p[5] = (uint8_t)(val >> 16);
-	p[6] = (uint8_t)(val >> 8);
-	p[7] = (uint8_t)val;
+	val = cpu_to_be64(val);
+	*(uint64_t *)ptr = val;
 }
 
 
@@ -151,7 +147,7 @@ static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t 
 	if (bs->end - bs->ptr >= 8) {
 		bs->cache <<= bs->bit_cap;
 		bs->cache |= value >> (nb_bits - bs->bit_cap);
-		put_be64(bs->ptr, bs->cache);
+		put_be64_aligned(bs->ptr, bs->cache);
 
 		bs->ptr += 8;
 		bs->cache = value;

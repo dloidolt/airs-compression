@@ -17,7 +17,7 @@
 
 #include "file.h"
 #include "log.h"
-#include "byteorder.h"
+#include "../lib/common/byteorder.h"
 #include "../lib/cmp.h"
 #include "../lib/cmp_header.h"
 #include "../lib/common/err_private.h"
