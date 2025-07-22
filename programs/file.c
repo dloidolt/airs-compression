@@ -35,12 +35,16 @@
  */
 
 #if defined(MSDOS) || defined(OS2) || defined(_WIN32)
-#  include <fcntl.h>   /* _O_BINARY */
-#  include <io.h>      /* _setmode, _fileno, _get_osfhandle */
+#  include <fcntl.h> /* _O_BINARY */
+#  include <io.h>    /* _setmode, _fileno, _get_osfhandle */
 #  if !defined(__DJGPP__)
-#    include <windows.h> /* DeviceIoControl, HANDLE, FSCTL_SET_SPARSE */
+#    include <windows.h>  /* DeviceIoControl, HANDLE, FSCTL_SET_SPARSE */
 #    include <winioctl.h> /* FSCTL_SET_SPARSE */
-#    define SET_BINARY_MODE(file) { int const unused = _setmode(_fileno(file), _O_BINARY); (void)unused; }
+#    define SET_BINARY_MODE(file)                                      \
+	do {                                                           \
+		int const unused = _setmode(_fileno(file), _O_BINARY); \
+		(void)unused;                                          \
+	} while (0)
 #  else
 #    define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
 #  endif
@@ -118,7 +122,7 @@ static int file_read_stdin(void *blob, size_t *blob_size)
 	static uint8_t *buffer;
 	static size_t buffer_size;
 
-	size_t buffer_capacity = 4096;  /* Start with 4KB */
+	size_t buffer_capacity = 4096; /* Start with 4KB */
 
 	assert(blob_size);
 
@@ -135,7 +139,8 @@ static int file_read_stdin(void *blob, size_t *blob_size)
 		while (1) {
 			size_t bytes_read;
 
-			bytes_read = fread(buffer + buffer_size, 1, buffer_capacity - buffer_size, stdin);
+			bytes_read = fread(buffer + buffer_size, 1, buffer_capacity - buffer_size,
+					   stdin);
 			buffer_size += bytes_read;
 
 			if (buffer_size != buffer_capacity)
@@ -147,7 +152,8 @@ static int file_read_stdin(void *blob, size_t *blob_size)
 
 				if (!new_buffer) {
 					free(buffer);
-					LOG_ERROR_WITH_ERRNO("Failed to reallocate memory for stdin");
+					LOG_ERROR_WITH_ERRNO(
+						"Failed to reallocate memory for stdin");
 					buffer_size = 0;
 					return -1;
 				}
@@ -168,7 +174,7 @@ static int file_read_stdin(void *blob, size_t *blob_size)
 		if (buffer_size < buffer_capacity) {
 			void *trimmed_buffer = realloc(buffer, buffer_size);
 
-			if (trimmed_buffer)  /* It's okay if trimming fails */
+			if (trimmed_buffer) /* It's okay if trimming fails */
 				buffer = trimmed_buffer;
 		}
 	}
@@ -266,8 +272,8 @@ int file_get_size_u32(const char *filename, uint32_t *file_size32)
 
 	/* Check if the file size fits into a uint32_t */
 	if (file_size > UINT32_MAX) {
-		LOG_ERROR("File '%s' is too large to read in (size: %llu bytes)",
-			  filename, (unsigned long long)file_size);
+		LOG_ERROR("File '%s' is too large to read in (size: %llu bytes)", filename,
+			  (unsigned long long)file_size);
 		return -1;
 	}
 
@@ -418,8 +424,7 @@ static int file_save(const char *filename, const void *buffer, size_t size)
  *
  */
 
-uint32_t file_compress(struct cmp_context *ctx, const char *dst_filename,
-		       const char *src_filename)
+uint32_t file_compress(struct cmp_context *ctx, const char *dst_filename, const char *src_filename)
 {
 	uint32_t return_val = CMP_ERROR(GENERIC);
 

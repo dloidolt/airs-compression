@@ -56,9 +56,9 @@ enum log_color_status { LOG_COLOR_DISABLED = 0, LOG_COLOR_ENABLED };
 
 __extension__
 #define LOG_F(stream, ...) fprintf(stream, __VA_ARGS__)
-#define LOG_STDOUT(...) LOG_F(stdout, __VA_ARGS__)
-#define LOG_STREAM stderr
-#define LOG_STDERR(...) LOG_F(LOG_STREAM, __VA_ARGS__)
+#define LOG_STDOUT(...)    LOG_F(stdout, __VA_ARGS__)
+#define LOG_STREAM         stderr
+#define LOG_STDERR(...)    LOG_F(LOG_STREAM, __VA_ARGS__)
 #define LOG_PLAIN(level, ...)                    \
 	do {                                     \
 		if (log_get_level() >= (level))  \
@@ -66,13 +66,13 @@ __extension__
 	} while (0)
 
 #define LOG_PREFIX_NAME "airspace"
-#define LOG_PREFIX(level, level_name, color, ...)                        \
-	do {                                                             \
-		LOG_PLAIN(level, "%s: %s%s%s: ", LOG_PREFIX_NAME,        \
-			  (color), (level_name), LOG_COLOR_RESET);           \
-		if (log_get_level() >= LOG_LEVEL_MAX)                    \
-			LOG_PLAIN(level, "%s:%d: ", __FILE__, __LINE__); \
-		LOG_PLAIN(level, __VA_ARGS__);                           \
+#define LOG_PREFIX(level, level_name, color, ...)                                    \
+	do {                                                                         \
+		LOG_PLAIN(level, "%s: %s%s%s: ", LOG_PREFIX_NAME, color, level_name, \
+			  LOG_COLOR_RESET);                                          \
+		if (log_get_level() >= LOG_LEVEL_MAX)                                \
+			LOG_PLAIN(level, "%s:%d: ", __FILE__, __LINE__);             \
+		LOG_PLAIN(level, __VA_ARGS__);                                       \
 	} while (0)
 
 #define LOG_MSG(level, level_name, color, ...)                     \
@@ -92,11 +92,10 @@ __extension__
  * @brief logs an error message with errno information
  * @param ... format string and arguments for the message
  */
-#define LOG_ERROR_WITH_ERRNO(...)                                               \
-	do {                                                                    \
-		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__); \
-		LOG_PLAIN(LOG_LEVEL_ERROR, ": %s (os error: %d)\n",             \
-			  strerror(errno), errno);                              \
+#define LOG_ERROR_WITH_ERRNO(...)                                                            \
+	do {                                                                                 \
+		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__);          \
+		LOG_PLAIN(LOG_LEVEL_ERROR, ": %s (os error: %d)\n", strerror(errno), errno); \
 	} while (0)
 
 /**
@@ -104,13 +103,13 @@ __extension__
  * @param cmp_ret_val	return value from a (de)compression library function
  * @param ...		format string and arguments for the message
  */
-#define LOG_ERROR_CMP(cmp_ret_val, ...)                                         \
-	do {                                                                    \
-		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__); \
-		LOG_PLAIN(LOG_LEVEL_ERROR, "%s (error: %d)\n",                  \
-			  cmp_get_error_message(cmp_ret_val),                   \
-			  cmp_get_error_code(cmp_ret_val));                     \
+#define LOG_ERROR_CMP(cmp_ret_val, ...)                                                            \
+	do {                                                                                       \
+		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__);                \
+		LOG_PLAIN(LOG_LEVEL_ERROR, "%s (error: %d)\n", cmp_get_error_message(cmp_ret_val), \
+			  cmp_get_error_code(cmp_ret_val));                                        \
 	} while (0)
+
 
 /** @brief increases the verbosity level by one step */
 void log_increase_verbosity(void);

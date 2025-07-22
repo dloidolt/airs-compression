@@ -17,8 +17,17 @@
 #define CMP_MIN_GOLOMB_PAR 1
 #define CMP_MAX_GOLOMB_PAR UINT16_MAX
 
-/* The current plan is to only decode uint16_t values */
+#define CMP_MAX_BITS_GOLOMB_CW 32
+
+/* The current plan is to only encode uint16_t values */
 #define CMP_NUM_BITS_PER_SAMPLE bitsizeof(uint16_t)
+
+/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
+#define CMP_MAX_BITS_ZERO_ESCAPE_CW \
+	(31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE)
+#define CMP_MAX_BITS_MULTI_ESCAPE_CW (CMP_MAX_BITS_GOLOMB_CW + CMP_NUM_BITS_PER_SAMPLE)
+
+#define CMP_MAX_BITS_CODEWORD MAX(CMP_MAX_BITS_ZERO_ESCAPE_CW, CMP_MAX_BITS_MULTI_ESCAPE_CW)
 
 
 /**
@@ -32,7 +41,7 @@ struct cmp_encoder {
 	enum cmp_encoder_type encoder_type; /** Algorithm used for encoding samples */
 
 	/* Golomb parameters (used only in GOLOMB modes, otherwise ignored) */
-	uint32_t g_par;	     /**< Golomb parameter */
+	uint32_t g_par;      /**< Golomb parameter */
 	uint32_t g_par_log2; /**< Precomputed log2(Golomb parameter) for performance */
 	uint32_t outlier;    /**< Threshold value for encoding outliers */
 };

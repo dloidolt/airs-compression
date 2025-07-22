@@ -26,6 +26,7 @@
 #  define AIRSPACE_VERSION "v" CMP_VERSION_STRING
 #endif
 #define AIRSPACE_EXTENSION ".air"
+
 #define AUTHOR "Dominik Loidolt"
 #define AIRSPACE_WELCOME_MESSAGE                                                    \
 	"*** %s (%d-bit) %s, by %s ***\n", PROGRAM_NAME, (int)(sizeof(size_t) * 8), \
@@ -41,8 +42,7 @@ static void *malloc_safe(size_t size)
 	void *ptr = malloc(size);
 
 	if (!ptr) {
-		LOG_ERROR_WITH_ERRNO("Memory allocation failed for size %lu",
-				     (unsigned long)size);
+		LOG_ERROR_WITH_ERRNO("Memory allocation failed for size %lu", (unsigned long)size);
 		exit(EXIT_FAILURE);
 	}
 	return ptr;
@@ -109,7 +109,8 @@ static void log_summery(const char **input_files, int num_files, size_t sum_inpu
 			const char *output_name, size_t sum_output_size)
 {
 	if (num_files == 1) { /* one file -> display the file status instead of the summery */
-		if (log_get_level() < LOG_LEVEL_DEBUG) { /* if not already done in the log file status */
+		/* if not already done in the log file status */
+		if (log_get_level() < LOG_LEVEL_DEBUG) {
 			log_file_status(LOG_LEVEL_INFO, input_files[0], (uint32_t)sum_input_size,
 					output_name, (uint32_t)sum_output_size);
 		}
@@ -303,17 +304,17 @@ int main(int argc, char *argv[])
 		DEBUG_STDOUT_CONSOLE_OPT
 	};
 	static struct option long_options[] = {
-		{ "compress", no_argument, NULL, 'c' },
-		{ "stdout",   no_argument, NULL, STDOUT_OPT },
-		{ "verbose",  no_argument, NULL, 'v' },
-		{ "quiet",    no_argument, NULL, 'q' },
-		{ "color",    no_argument, NULL, COLOR_OPT },
-		{ "no-color", no_argument, NULL, NO_COLOR_OPT },
-		{ "version",  no_argument, NULL, 'V' },
-		{ "help",     no_argument, NULL, 'h' },
-		{ "debug-stdin-is-consol",  no_argument, NULL, DEBUG_STDIN_CONSOLE_OPT },
+		{ "compress",               no_argument, NULL, 'c'                      },
+		{ "stdout",                 no_argument, NULL, STDOUT_OPT               },
+		{ "verbose",                no_argument, NULL, 'v'                      },
+		{ "quiet",                  no_argument, NULL, 'q'                      },
+		{ "color",                  no_argument, NULL, COLOR_OPT                },
+		{ "no-color",               no_argument, NULL, NO_COLOR_OPT             },
+		{ "version",                no_argument, NULL, 'V'                      },
+		{ "help",                   no_argument, NULL, 'h'                      },
+		{ "debug-stdin-is-consol",  no_argument, NULL, DEBUG_STDIN_CONSOLE_OPT  },
 		{ "debug-stdout-is-consol", no_argument, NULL, DEBUG_STDOUT_CONSOLE_OPT },
-		{ NULL, 0, NULL, 0 }
+		{ NULL,                     0,           NULL, 0                        }
 	};
 
 	const char *program_name;
