@@ -68,6 +68,7 @@ if ruby.found()
     'test_cmp_errors.c',
     'test_preprocessing.c',
     'test_encoder.c',
+    'test_params_parse.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
@@ -77,7 +78,7 @@ if ruby.found()
     test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
       c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
-      link_with : [test_lib, cmp_lib],
+      link_with : [test_lib, cmp_lib, cli_lib],
       dependencies : [unity_dep])
 
     test(test_name.replace('test_', '') + ' units tests',
