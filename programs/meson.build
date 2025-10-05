@@ -5,7 +5,7 @@ cli_src = files([
   'util.c'
 ])
 
-airsapcecli = executable('airsapce',
+airspacecli = executable('airspace',
   cli_src,
   include_directories : inc_cmp,
   implicit_include_directories: false,

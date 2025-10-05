@@ -101,8 +101,8 @@ foreach test : cli_tests
   # test('CLI Basic Test',
   test(test_name,
     find_program(test),
-    args : ['--cli', airsapcecli.full_path(),
+    args : ['--cli', airspacecli.full_path(),
             '--test-root',  meson.current_build_dir()],
-    depends : airsapcecli,
+    depends : airspacecli,
     env : test_env)
 endforeach

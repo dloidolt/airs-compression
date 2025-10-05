@@ -106,7 +106,7 @@ To build the xref:programs/README.adoc[CLI utility], run:
 
 [source,bash]
 ----
-ninja programs/airsapce
+ninja programs/airspace
 ----
 The `airspace` binary will be located in the `programs` folder of your build directory.
 
