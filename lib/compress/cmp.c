@@ -203,6 +203,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	const struct preprocessing_method *preprocess;
 	int model_is_needed = 0;
 	struct cmp_hdr hdr = { 0 };
+	uint32_t compress_bound;
 
 	if (ctx->sequence_number == 0 || ctx->sequence_number > ctx->params.secondary_iterations) {
 		ret = cmp_reset(ctx);
@@ -264,6 +265,10 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	if (cmp_is_error_int(ret))
 		return ret;
 
+	compress_bound = cmp_compress_bound(src_size);
+	if (cmp_is_error_int(compress_bound))
+		compress_bound = ~0U;
+
 	preprocess = preprocessing_get_method(selected_preprocessing);
 	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
@@ -275,9 +280,10 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	for (i = 0; i < n_values; i++) {
 		int16_t const value = preprocess->process(i, src, ctx->work_buf);
 
-		ret = cmp_encoder_encode_s16(&enc, value, &bs);
-		if (cmp_is_error_int(ret))
-			return ret;
+		cmp_encoder_encode_s16(&enc, value, &bs);
+		if (dst_capacity < compress_bound)
+			if (cmp_is_error_int(bitstream_error(&bs)))
+				break;
 
 		if (model_is_needed) {
 			uint16_t *model = ctx->work_buf;
@@ -293,9 +299,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 		uint32_t const checksum = cmp_checksum(src, src_size);
 
 		bitstream_pad_last_byte(&bs);
-		ret = bitstream_write32(&bs, checksum, bitsizeof(checksum));
-		if (cmp_is_error_int(ret))
-			return ret;
+		bitstream_add_bits32(&bs, checksum, bitsizeof(checksum));
 	}
 
 	hdr.compressed_size = bitstream_flush(&bs);
