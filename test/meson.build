@@ -23,6 +23,12 @@ if get_option('b_sanitize').contains('address')
 
   if compiler.has_argument('-fsanitize=leak')
     test_env.append('ASAN_OPTIONS', 'detect_leaks=1')
+    # workaround for https://github.com/llvm/llvm-project/issues/115992
+    if target_machine.system() == 'darwin' and target_machine.cpu_family() == 'aarch64'
+      test_env.set('LSAN_OPTIONS',
+        'suppressions=' + meson.current_source_dir()+'/.leak.suppress',
+        'print_suppressions=0')
+    endif
   endif
 endif
 
@@ -95,8 +101,8 @@ foreach test : cli_tests
   # test('CLI Basic Test',
   test(test_name,
     find_program(test),
-    args : ['--cli', airsapcecli.full_path(),
+    args : ['--cli', airspacecli.full_path(),
             '--test-root',  meson.current_build_dir()],
-    depends : airsapcecli,
+    depends : airspacecli,
     env : test_env)
 endforeach

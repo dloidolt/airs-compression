@@ -29,13 +29,13 @@
 
 /* ====== Utility Macros  ====== */
 /** Convert a token to a string literal */
-#define CMP_QUOTE(str) #str
+#define CMP_QUOTE(str)            #str
 /** Expand a macro and convert the result to a string literal */
 #define CMP_EXPAND_AND_QUOTE(str) CMP_QUOTE(str)
 
 /* ====== Version Information ====== */
-#define CMP_VERSION_MAJOR 0   /**< major part of the version ID */
-#define CMP_VERSION_MINOR 3   /**< minor part of the version ID */
+#define CMP_VERSION_MAJOR   0 /**< major part of the version ID */
+#define CMP_VERSION_MINOR   3 /**< minor part of the version ID */
 #define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
@@ -93,16 +93,16 @@ struct cmp_params {
 	 */
 	enum cmp_preprocessing primary_preprocessing; /**< Preprocessing for the first pass */
 	enum cmp_encoder_type primary_encoder_type;   /**< Encoder used in the first pass */
-	uint32_t primary_encoder_param;		      /**< Parameter for the primary encoder */
+	uint32_t primary_encoder_param;               /**< Parameter for the primary encoder */
 	uint32_t primary_encoder_outlier; /**< Primary outlier parameter for CMP_ENCODER_GOLOMB_MULTI */
 
 	/*
 	 * Secondary (subsequent passes) settings (if any)
 	 */
-	uint32_t secondary_iterations;			/**< Max secondary passes (0 = disabled) */
+	uint32_t secondary_iterations;                  /**< Max secondary passes (0 = disabled) */
 	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
-	enum cmp_encoder_type secondary_encoder_type;	/**< Encoder for secondary passes */
-	uint32_t secondary_encoder_param;		/**< Parameter for the secondary encoder */
+	enum cmp_encoder_type secondary_encoder_type;   /**< Encoder for secondary passes */
+	uint32_t secondary_encoder_param;               /**< Parameter for the secondary encoder */
 	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
 	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
 
@@ -123,12 +123,12 @@ struct cmp_params {
  */
 
 struct cmp_context {
-	uint32_t magic;		  /**< Magic number to prevent use of uninitialized contexts */
+	uint32_t magic;           /**< Magic number to prevent use of uninitialized contexts */
 	struct cmp_params params; /**< Compression parameters used in the current context */
-	void *work_buf;		  /**< Pointer to the working buffer */
-	uint32_t work_buf_size;	  /**< Size of the working buffer in bytes */
-	uint32_t model_size;	  /**< Size of the model used in the model-based preprocessing */
-	uint64_t identifier;	  /**< Identifier for the compression model */
+	void *work_buf;           /**< Pointer to the working buffer */
+	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
+	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
+	uint64_t identifier;      /**< Identifier for the compression model */
 	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
 };
 

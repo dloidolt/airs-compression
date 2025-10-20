@@ -51,12 +51,12 @@ static int simple_compression(void)
 	};
 
 	struct cmp_params params = { 0 }; /* Parameters for compression configuration */
-	struct cmp_context ctx = { 0 };	  /* Context to maintain compression state */
+	struct cmp_context ctx = { 0 };   /* Context to maintain compression state */
 
 	uint8_t *dst = NULL;   /* Destination buffer for compressed data */
 	uint32_t dst_capacity; /* Maximum size of destination buffer */
 
-	void *work_buf = NULL;	/* Working buffer for compression algorithm */
+	void *work_buf = NULL;  /* Working buffer for compression algorithm */
 	uint32_t work_buf_size; /* Size of working buffer */
 
 	uint32_t cmp_size; /* Actual size of compressed data */

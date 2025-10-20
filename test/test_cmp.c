@@ -388,7 +388,7 @@ void test_compress_bound_provides_sufficient_buffer_size(void)
 }
 
 
-void test_bound_size_calculation_detects_to_large_src_size(void)
+void test_bound_size_calculation_detects_too_large_src_size(void)
 {
 	uint32_t const bound = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
 

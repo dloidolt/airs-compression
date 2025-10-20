@@ -36,12 +36,12 @@
  */
 
 struct bitstream_writer {
-	uint64_t cache;	      /**< Local bit cache  */
+	uint64_t cache;       /**< Local bit cache  */
 	unsigned int bit_cap; /**< Bit capacity left in the cache */
-	uint8_t *start;	      /**< Beginning of bitstream */
-	uint8_t *ptr;	      /**< Current write position */
-	uint8_t *end;	      /**< End of the bitstream pointer */
-	uint32_t error;	      /**< Sticky error code */
+	uint8_t *start;       /**< Beginning of bitstream */
+	uint8_t *ptr;         /**< Current write position */
+	uint8_t *end;         /**< End of the bitstream pointer */
+	uint32_t error;       /**< Sticky error code */
 };
 
 

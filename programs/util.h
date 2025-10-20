@@ -49,9 +49,9 @@ void util_force_stdout_console(void);
  */
 
 struct hr_fmt {
-	double value;        /**< Numeric value */
-	int precision;       /**< Precision for displaying the value */
-	const char *suffix;  /**< Unit suffix (e.g., "KB", "MB") */
+	double value;       /**< Numeric value */
+	int precision;      /**< Precision for displaying the value */
+	const char *suffix; /**< Unit suffix (e.g., "KB", "MB") */
 };
 
 

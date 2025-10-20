@@ -412,9 +412,9 @@ static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
 const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessing type)
 {
 	static const struct preprocessing_method preprocessing_methods[] = {
-		{ CMP_PREPROCESS_NONE, none_get_work_buf_size, none_init, none_process },
-		{ CMP_PREPROCESS_DIFF, none_get_work_buf_size, none_init, diff_process },
-		{ CMP_PREPROCESS_IWT, iwt_get_work_buf_size, iwt_init, iwt_process },
+		{ CMP_PREPROCESS_NONE,  none_get_work_buf_size,  none_init,  none_process  },
+		{ CMP_PREPROCESS_DIFF,  none_get_work_buf_size,  none_init,  diff_process  },
+		{ CMP_PREPROCESS_IWT,   iwt_get_work_buf_size,   iwt_init,   iwt_process   },
 		{ CMP_PREPROCESS_MODEL, model_get_work_buf_size, model_init, model_process }
 	};
 	size_t i;

@@ -15,10 +15,10 @@ root:
 # Run this in the project root
 meson setup build_release --buildtype=release
 cd build_release
-meson compile programs/airsapce
+meson compile programs/airspace
 
 # And voila! The AIRSPACE CLI tool is now ready to use.
-./programs/airsapce --help
+./programs/airspace --help
 ----
 
 For detailed build instructions, see the xref:../INSTALL.adoc[Installation Guide].
@@ -28,7 +28,7 @@ Here's a quick rundown of the available options:
 
 [source,bash]
 ----
-Usage: ./programs/airsapce [OPTIONS...] [FILE... | -] [-o OUTPUT]
+Usage: ./programs/airspace [OPTIONS...] [FILE... | -] [-o OUTPUT]
 (De)compress AIRS science data FILE(s).
 
 With no FILE, or when FILE is -, read standard input.

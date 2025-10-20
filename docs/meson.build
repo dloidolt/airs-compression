@@ -31,7 +31,7 @@ if doxygen.found()
     input : [doxyfile, src_common, src_compress, cli_src, asciidoc_files],
     output : ['html'],
     command : [doxygen, doxyfile],
-    depends : [cmp_lib, airsapcecli],
+    depends : [cmp_lib, airspacecli],
     install : true,
     install_dir : join_paths(get_option('datadir'), 'docs')
   )
