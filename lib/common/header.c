@@ -33,9 +33,6 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 	if (hdr->original_size > CMP_HDR_MAX_ORIGINAL_SIZE)
 		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
 
-	if (hdr->identifier > ((uint64_t)1 << CMP_HDR_BITS_IDENTIFIER) - 1)
-		return CMP_ERROR(TIMESTAMP_INVALID);
-
 	start_size = bitstream_size(bs);
 	if (cmp_is_error_int(start_size))
 		return start_size;

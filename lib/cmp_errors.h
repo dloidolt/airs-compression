@@ -48,7 +48,6 @@ enum cmp_error {
 	CMP_ERR_HDR_ORIGINAL_TOO_LARGE = 61, /**< Original size exceeds header field limit */
 
 	CMP_ERR_CONTEXT_INVALID = 70,   /**< Invalid compression context */
-	CMP_ERR_TIMESTAMP_INVALID = 71, /**< Invalid timestamp provided */
 
 	CMP_ERR_INT_HDR = 100,       /**< Internal header processing error */
 	CMP_ERR_INT_ENCODER = 101,   /**< Internal data encoder error */

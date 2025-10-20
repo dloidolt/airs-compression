@@ -68,8 +68,6 @@ const char *cmp_get_error_string(enum cmp_error code)
 
 	case CMP_ERR_CONTEXT_INVALID:
 		return "Compression context uninitialised or corrupted";
-	case CMP_ERR_TIMESTAMP_INVALID:
-		return "Invalid timestamp provided";
 
 	case CMP_ERR_INT_HDR:
 		return "Internal header processing error";

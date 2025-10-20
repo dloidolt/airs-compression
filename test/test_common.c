@@ -67,8 +67,6 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_DST_TOO_SMALL";
 	case CMP_ERR_SRC_SIZE_MISMATCH:
 		return "CMP_ERR_SRC_SIZE_MISMATCH";
-	case CMP_ERR_TIMESTAMP_INVALID:
-		return "CMP_ERR_TIMESTAMP_INVALID";
 	case CMP_ERR_INT_HDR:
 		return "CMP_ERR_INT_HDR";
 	case CMP_ERR_INT_ENCODER:
