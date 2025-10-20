@@ -103,11 +103,11 @@ __extension__
  * @param cmp_ret_val	return value from a (de)compression library function
  * @param ...		format string and arguments for the message
  */
-#define LOG_ERROR_CMP(cmp_ret_val, ...)                                                            \
-	do {                                                                                       \
-		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__);                \
-		LOG_PLAIN(LOG_LEVEL_ERROR, "%s (error: %d)\n", cmp_get_error_message(cmp_ret_val), \
-			  cmp_get_error_code(cmp_ret_val));                                        \
+#define LOG_ERROR_CMP(cmp_ret_val, ...)                                                         \
+	do {                                                                                    \
+		LOG_PREFIX(LOG_LEVEL_ERROR, "error", LOG_COLOR_ERROR, __VA_ARGS__);             \
+		LOG_PLAIN(LOG_LEVEL_ERROR, ": %s (compression error: %d)\n",                    \
+			  cmp_get_error_message(cmp_ret_val), cmp_get_error_code(cmp_ret_val)); \
 	} while (0)
 
 

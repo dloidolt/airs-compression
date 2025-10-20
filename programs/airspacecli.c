@@ -19,6 +19,7 @@
 #include "file.h"
 #include "log.h"
 #include "util.h"
+#include "params_parse.h"
 
 /* Program information */
 #define PROGRAM_NAME "AIRSPACE CLI"
@@ -304,17 +305,18 @@ int main(int argc, char *argv[])
 		DEBUG_STDOUT_CONSOLE_OPT
 	};
 	static struct option long_options[] = {
-		{ "compress",               no_argument, NULL, 'c'                      },
-		{ "stdout",                 no_argument, NULL, STDOUT_OPT               },
-		{ "verbose",                no_argument, NULL, 'v'                      },
-		{ "quiet",                  no_argument, NULL, 'q'                      },
-		{ "color",                  no_argument, NULL, COLOR_OPT                },
-		{ "no-color",               no_argument, NULL, NO_COLOR_OPT             },
-		{ "version",                no_argument, NULL, 'V'                      },
-		{ "help",                   no_argument, NULL, 'h'                      },
-		{ "debug-stdin-is-consol",  no_argument, NULL, DEBUG_STDIN_CONSOLE_OPT  },
-		{ "debug-stdout-is-consol", no_argument, NULL, DEBUG_STDOUT_CONSOLE_OPT },
-		{ NULL,                     0,           NULL, 0                        }
+		{ "compress",               no_argument,       NULL, 'c'                      },
+		{ "params",                 required_argument, NULL, 'p'                      },
+		{ "stdout",                 no_argument,       NULL, STDOUT_OPT               },
+		{ "verbose",                no_argument,       NULL, 'v'                      },
+		{ "quiet",                  no_argument,       NULL, 'q'                      },
+		{ "color",                  no_argument,       NULL, COLOR_OPT                },
+		{ "no-color",               no_argument,       NULL, NO_COLOR_OPT             },
+		{ "version",                no_argument,       NULL, 'V'                      },
+		{ "help",                   no_argument,       NULL, 'h'                      },
+		{ "debug-stdin-is-consol",  no_argument,       NULL, DEBUG_STDIN_CONSOLE_OPT  },
+		{ "debug-stdout-is-consol", no_argument,       NULL, DEBUG_STDOUT_CONSOLE_OPT },
+		{ NULL,                     0,                 NULL, 0                        }
 	};
 
 	const char *program_name;
@@ -336,6 +338,12 @@ int main(int argc, char *argv[])
 		switch (ch) {
 		case 'c':
 			mode = MODE_COMPRESS;
+			break;
+		case 'p':
+			if (cmp_params_parse(optarg, &params) != CMP_PARSE_OK) {
+				LOG_ERROR("Incorrect parameter option: %s", argv[optind-1]);
+				return EXIT_FAILURE;
+			}
 			break;
 		case 'o':
 			output_filename = optarg;

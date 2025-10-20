@@ -80,6 +80,8 @@
  */
 #define bitsizeof(x) (8 * sizeof(x))
 
+#define maximum_signed_value_of_type(a) (INTMAX_MAX >> (bitsizeof(intmax_t) - bitsizeof(a)))
+#define maximum_unsigned_value_of_type(a) (UINTMAX_MAX >> (bitsizeof(uintmax_t) - bitsizeof(a)))
 
 /**
  * @brief marks a function parameter that is always unused.
