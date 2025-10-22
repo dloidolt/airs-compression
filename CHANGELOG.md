@@ -1,26 +1,27 @@
 [![AIRSPACE Logo](docs/AIRSPACE_Logo.svg)](https://github.com/uviespace/airs-compression)
 
-## [unreleased]
+## [0.4.0](https://github.com/uviespace/airs-compression/compare/v0.3.0..v0.4.0) - 2025-10-22
 
 ### 🚀 Features
 
-- *(cli)* Implement compression parameter parsing - ([02de0ed](https://github.com/uviespace/airs-compression/commit/02de0ed8202631a2a189d071b909d40d77324929))
-- Add BCC2 GR712RC cross-compile support - ([b9a36a3](https://github.com/uviespace/airs-compression/commit/b9a36a31f9b80a94205caaa1b2f7c56c689cd6a6))
+- *(cli)* Implement compression parameter parsing - ([74cd818](https://github.com/uviespace/airs-compression/commit/74cd81828ae923f158b529f0b71dcaf590aab94c))
+- *(lib/cmp.h)* [**breaking**] Make timestamp provider API explicit - ([0e3fc85](https://github.com/uviespace/airs-compression/commit/0e3fc85692f1fe939af96d2eb0d0515bd0f3add4))
+- Add BCC2 GR712RC cross-compile support - ([cd7a23d](https://github.com/uviespace/airs-compression/commit/cd7a23dd442adcff25933e9be0d181dc53fe0568))
 
 ### 🐛 Bug Fixes
 
-- Improve compression error log formatting - ([519e02a](https://github.com/uviespace/airs-compression/commit/519e02a64a6cfef2832567c6855e213152decfd7))
+- Improve compression error log formatting - ([0134f6e](https://github.com/uviespace/airs-compression/commit/0134f6e69590b9e41c84e716c0ffe44335fc1f07))
 
-### 🔭 Other
+### ✨ Refactor
 
-- Refactor compiler flags to handle unit tests - ([833324b](https://github.com/uviespace/airs-compression/commit/833324b1f49246425fa6f53c2501605ee2f1f0c0))
-- Centralize _POSIX_C_SOURCE for Linux - ([13e02a9](https://github.com/uviespace/airs-compression/commit/13e02a906ed54c6fcf35cd5fb1ff538d3a6fabd0))
+- *(examples)* Update example to use model compression - ([a376a64](https://github.com/uviespace/airs-compression/commit/a376a6410c7fc416c300572400f40a41752508b8))
 
 ### 📚 Documentation
 
-- Improve INSTALL.adoc readability and build setup descriptions - ([ffae2d9](https://github.com/uviespace/airs-compression/commit/ffae2d91c8f8bd0e718d12c574009262e651caba))
-- Add git-cliff for automated changelog generation - ([6ab845a](https://github.com/uviespace/airs-compression/commit/6ab845aa8b2dba463c12d4830bc7cbfea952ec96))
-- Add initial CHANGELOG.md - ([2e55885](https://github.com/uviespace/airs-compression/commit/2e55885237b7a3dc42c8b110d04717b8c883b93a))
+- Improve INSTALL.adoc readability and build setup descriptions - ([fad1ff0](https://github.com/uviespace/airs-compression/commit/fad1ff0a034ce0e71ea7639420edeb460b84a342))
+- Add git-cliff for automated changelog generation - ([61d40ea](https://github.com/uviespace/airs-compression/commit/61d40ea004b66b3315f18275d1028aa0dafd46ea))
+- Add initial CHANGELOG.md - ([b09b55d](https://github.com/uviespace/airs-compression/commit/b09b55d2d216bd114a7cccf30e08d9f152b62529))
+- Refine and clarify API documentation - ([3e80311](https://github.com/uviespace/airs-compression/commit/3e803119d6f54b417d806973fcc16bcca84abd57))
 
 ### ⚡ Performance
 
@@ -38,8 +39,10 @@
 
 ### ⚙️ Miscellaneous Tasks
 
-- Fix typos - ([6842819](https://github.com/uviespace/airs-compression/commit/6842819cbe20bc3a30f2e35b9dc14077f7a0dfe7))
-- Automate releases with GitHub Actions - ([8514f16](https://github.com/uviespace/airs-compression/commit/8514f16402f1cc22651198cdb96a47995af4304b))
+- Fix typos - ([21c8873](https://github.com/uviespace/airs-compression/commit/21c887346dddf69877ac84b680e5e2cd89f1e8a7))
+- Refactor compiler flags to handle unit tests - ([80de616](https://github.com/uviespace/airs-compression/commit/80de616746923a3d9822962dff936162f791010e))
+- Define _POSIX_C_SOURCE=200809 for snprintf - ([99744d0](https://github.com/uviespace/airs-compression/commit/99744d09e4dc61f74d31c70116fddc0361d305d3))
+- Automate releases with GitHub Actions - ([def7947](https://github.com/uviespace/airs-compression/commit/def79470b99765e7acc720c3e2671809576651b8))
 ## [0.3.0](https://github.com/uviespace/airs-compression/compare/v0.2.0..v0.3.0) - 2025-06-23
 
 ### 🚀 Features
@@ -55,6 +58,10 @@
 - *(docs)* Integrate Doxygen documentation generation into build system - ([895cf33](https://github.com/uviespace/airs-compression/commit/895cf33907f614344cbfb5a335d393790807a204))
 - *(errors)* Add CMP_ERR_TIMESTAMP_INVALID and timestamp range check - ([7ec9f02](https://github.com/uviespace/airs-compression/commit/7ec9f02e28387ea77072dcb0a2f009b74d5709ea))
 - Add Golomb Zero encoding mode with bitstream writer and encoder - ([61df88f](https://github.com/uviespace/airs-compression/commit/61df88f9b5b862a0b0ac38b5f2b66a89bf06897a))
+- Feat (cmp): Use generic error for null parameters
+
+- Replace CMP_ERR_PARAMS_INVALID with CMP_ERR_GENERIC for null parameter checks
+- Update corresponding tests - ([59e0781](https://github.com/uviespace/airs-compression/commit/59e078116216d1528b3da9fa17fdf4c0783d27a9))
 
 ### 🐛 Bug Fixes
 
@@ -73,8 +80,6 @@
 ### 🔭 Other
 
 - Improve build and example - ([92d6e29](https://github.com/uviespace/airs-compression/commit/92d6e293c69b6a6e36ab289b3f7b8b895e26a74c))
-- Move dot program detection and fix compiler flag scope - ([0da2be0](https://github.com/uviespace/airs-compression/commit/0da2be00a39bc79df7d6d75728659604dd9c55d1))
-- Split public and internal header definitions - ([31061ac](https://github.com/uviespace/airs-compression/commit/31061ac7de56fa514f8f16cf7322d9543c628883))
 
 ### ✨ Refactor
 
@@ -88,6 +93,13 @@
 - *(test)* Remove Unity parametrized tests for C89 compatibility - ([b6e60a7](https://github.com/uviespace/airs-compression/commit/b6e60a7c4fe2e5e627534083b28bc152fad0c461))
 - Standardize code documentation and style - ([51e7019](https://github.com/uviespace/airs-compression/commit/51e70193a4fa5d54f012e32d6875924b352c6cf2))
 - Move uncompressed context creation to helper function - ([7c4555c](https://github.com/uviespace/airs-compression/commit/7c4555c28bbccae259df11a3f941aff1025bab0d))
+- Refactor(compress) bitstream handling and header serialization
+
+- Replace custom header serialization with direct bitstream writer usage
+- Rename and move bitstream_write.h to common/bitstream_writer.h for clarity
+- Add 64-bit support with bitstream_write64() and bitstream_rewind()
+- Replace magic constants with bit field size definitions (CMP_HDR_BITS_*) - ([b2ab2e4](https://github.com/uviespace/airs-compression/commit/b2ab2e44f06ca2bdb6ceaf627dcadc0f5511593c))
+- Split public and internal header definitions - ([31061ac](https://github.com/uviespace/airs-compression/commit/31061ac7de56fa514f8f16cf7322d9543c628883))
 
 ### 📚 Documentation
 
@@ -105,6 +117,7 @@
 
 ### ⚙️ Miscellaneous Tasks
 
+- Move dot program detection and fix compiler flag scope - ([0da2be0](https://github.com/uviespace/airs-compression/commit/0da2be00a39bc79df7d6d75728659604dd9c55d1))
 - Bump version to 0.3.0 - ([4fd4491](https://github.com/uviespace/airs-compression/commit/4fd449160520224d2078d7d9e213aab7ff5dd463))
 ## [0.2.0](https://github.com/uviespace/airs-compression/compare/v0.1.0..v0.2.0) - 2025-03-17
 
@@ -123,10 +136,27 @@
 
 ### 🔭 Other
 
-- *(meson)* Add Asciidoctor for HTML generation - ([0bf71e7](https://github.com/uviespace/airs-compression/commit/0bf71e70750c9cdee85fda5d34d4aa4d734a0031))
+- Improve error handling and code consistency
+
+- Refactored error checking functions
+- Improve compiler flags handling
+- Standardized error code format specifiers and added <inttypes.h> for portability
+- Updated version release to 1.1.1 - ([c6fdd68](https://github.com/uviespace/airs-compression/commit/c6fdd68ca780749323b4f3249972408be0669010))
+- Update README.adoc
+
+Add a ⚠️ to CAUTION note - ([c1b4475](https://github.com/uviespace/airs-compression/commit/c1b44753fb1dd701bc752a781d6f494c45235dba))
 
 ### ✨ Refactor
 
+- Refactor cmp library to enhance error handling and modularity
+
+- Move error number function declarations from `cmp.h` to `cmp_errors.h`
+- Added `cmp_errors.h` include in `multi_pass_compression.c` and `single_pass_compression.c` examples - ([de8cc93](https://github.com/uviespace/airs-compression/commit/de8cc938ca173d24ea1d28e17e0ae9a4b6424b70))
+- Refactor and update meson.build files, fix includes, and add error tests
+
+- Refactor include directories
+- Added new test file `test/test_cmp_errors.c`
+- Improved test names - ([1b64219](https://github.com/uviespace/airs-compression/commit/1b64219c8448dfd9b1fb8ee0f2f310734cd9568c))
 - Update include directives for consistency - ([dce76d7](https://github.com/uviespace/airs-compression/commit/dce76d721b12da0c9150cc86cfb581f60a376000))
 
 ### 🎨 Styling
@@ -139,5 +169,12 @@
 
 ### ⚙️ Miscellaneous Tasks
 
+- *(meson)* Add Asciidoctor for HTML generation - ([0bf71e7](https://github.com/uviespace/airs-compression/commit/0bf71e70750c9cdee85fda5d34d4aa4d734a0031))
 - Add .clang-format configuration for Linux Kernel Style - ([6a11590](https://github.com/uviespace/airs-compression/commit/6a115906048992b3e52dad7a680bcd46920050b2))
 ## [0.1.0] - 2025-02-04
+
+### 🔭 Other
+
+-  Initial commit
+
+The one where it all started - ([98a70fd](https://github.com/uviespace/airs-compression/commit/98a70fd948c2c18e71b53abe8c1526959d60e348))
