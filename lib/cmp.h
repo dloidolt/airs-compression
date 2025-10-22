@@ -39,13 +39,13 @@
 #define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
- * @brief complete version number
+ * @brief Complete version number
  */
 #define CMP_VERSION_NUMBER \
 	(CMP_VERSION_MAJOR * 100 * 100 + CMP_VERSION_MINOR * 100 + CMP_VERSION_RELEASE)
 
 /**
- * @brief complete version string
+ * @brief Complete version string
  */
 #define CMP_VERSION_STRING \
 	CMP_EXPAND_AND_QUOTE(CMP_VERSION_MAJOR.CMP_VERSION_MINOR.CMP_VERSION_RELEASE)
@@ -63,12 +63,14 @@ enum cmp_preprocessing {
 	CMP_PREPROCESS_NONE, /**< No preprocessing is applied to the data */
 	CMP_PREPROCESS_DIFF, /**< Differences between neighbouring values are computed */
 	CMP_PREPROCESS_IWT,  /**< Integer Wavelet Transform preprocessing */
-	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data, only for secondary_preprocessing allowed */
+	CMP_PREPROCESS_MODEL /**< Subtracts a model based on previously compressed data,
+			      *   only allowed as a secondary preprocessing step
+			      */
 };
 
 
 /**
- * @brief available compression encoders
+ * @brief Available compression encoders
  */
 
 enum cmp_encoder_type {
@@ -104,7 +106,7 @@ struct cmp_params {
 	enum cmp_encoder_type secondary_encoder_type;   /**< Encoder for secondary passes */
 	uint32_t secondary_encoder_param;               /**< Parameter for the secondary encoder */
 	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
-	uint32_t model_rate; /**< Model Adaptation rate (used with CMP_PREPROCESS_MODEL) */
+	uint32_t model_rate; /**< Model adaptation rate (used with CMP_PREPROCESS_MODEL) */
 
 	/* Additional Options */
 	uint8_t checksum_enabled; /**< Enable checksum generation of original data if non-zero */
@@ -113,7 +115,7 @@ struct cmp_params {
 
 
 /**
- * @brief compression context
+ * @brief Compression context
  *
  * This structure maintains the state of an ongoing compression process.
  *
@@ -123,7 +125,7 @@ struct cmp_params {
  */
 
 struct cmp_context {
-	uint32_t magic;           /**< Magic number to prevent use of uninitialized contexts */
+	uint32_t magic;           /**< Magic number to prevent use of uninitialised contexts */
 	struct cmp_params params; /**< Compression parameters used in the current context */
 	void *work_buf;           /**< Pointer to the working buffer */
 	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
@@ -135,7 +137,7 @@ struct cmp_context {
 
 /* ======  Setup Functions   ====== */
 /**
- * @brief sets a custom function to retrieve the current timestamp
+ * @brief Sets a custom function to retrieve the current timestamp
  *
  * This function allows the library to use a user-provided function for
  * generating model identifiers. The callback function must populate the
@@ -152,7 +154,7 @@ void cmp_set_timestamp_func(void (*get_current_timestamp_func)(uint32_t *coarse,
 
 /* ====== Compression Helper Functions ====== */
 /**
- * @brief tells if a result is an error code
+ * @brief Tells if a result is an error code
  *
  * @param code	return value to check
  *
@@ -163,7 +165,7 @@ unsigned int cmp_is_error(uint32_t code);
 
 
 /**
- * @brief get the maximum compressed size in a worst-case scenario
+ * @brief Get the maximum compressed size in a worst-case scenario
  *
  * In this scenario the input data are not compressible. This function is
  * primarily useful for memory allocation purposes (destination buffer size).
@@ -171,22 +173,26 @@ unsigned int cmp_is_error(uint32_t code);
  * @param size	size of the data to compress
  *
  * @returns the compressed size in the worst-case scenario or an error if the
- *	bound size is larger than the maximum compressed size (CMP_MAX_CMP_SIZE),
- *	which can be checked using cmp_is_error()
+ *	bound size is larger than the maximum compressed size
+ *	(CMP_HDR_MAX_COMPRESSED_SIZE), which can be checked using cmp_is_error()
  */
 
 uint32_t cmp_compress_bound(uint32_t size);
 
 
 /**
- * @brief calculates the size needed for the compression working buffer
+ * @brief Calculates the size needed for the compression working buffer
+ *
+ * Some preprocessing methods (like CMP_PREPROCESS_MODEL) need extra memory to
+ * store intermediate calculations or a predictive model. The working buffer
+ * provides that temporary storage space.
  *
  * @param params	pointer to a compression parameters struct used to
  *			compress the data
  * @param src_size	size of a source data buffer in bytes
  *
  * @returns the minimum size needed for a compression working buffer (can be 0
- *	is no working buffer is needed) or an error, which can be checked using
+ *	if no working buffer is needed) or an error, which can be checked using
  *	cmp_is_error()
  */
 
@@ -195,14 +201,24 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 
 /* ======   Compression Functions   ====== */
 /**
- * @brief initialises a compression context
+ * @brief Initialises a compression context
+ *
+ * The compression context stores the configuration and internal state required
+ * for a compression. It must be initialised before any data is compressed. The
+ * context MUST NOT be read or manipulated by any external code. Always use the
+ * provided API functions to interact with it.
  *
  * @param ctx		pointer to a compression context struct to initialise
  * @param params	pointer to a compression parameters struct used to
  *			compress the data
- * @param work_buf	pointer to a working buffer (can be NULL if not needed)
+ * @param work_buf	pointer to a working buffer (can be NULL if
+ *			work_buf_size is 0)
  * @param work_buf_size	size of the working buffer in bytes; needed size can be
- *			calculated with cmp_cal_work_buf_size(src_size)
+ *			calculated with cmp_cal_work_buf_size(params, src_size)
+ *
+ * @warning The caller is responsible for managing the memory of the working
+ *	buffer. It must remain valid for the entire lifetime of the context, as
+ *	the library only stores a pointer to it.
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
@@ -211,13 +227,14 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 			uint32_t work_buf_size);
 
 /**
- * @brief compresses an unsigned 16-bit data buffer
+ * @brief Compresses an unsigned 16-bit data buffer
  *
  * You can use this function repeatedly to compress more data of the same size.
  *
  * @param ctx		pointer to a compression context; must have been
  *			initialised once with cmp_initialise()
- * @param dst		the buffer to compress the src buffers into, MUST be 8-byte aligned
+ * @param dst		the buffer to compress the src buffer into, MUST be
+ *			8-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
  *			cmp_compress_bound(src_size) is guaranteed to be large
  *			enough
@@ -234,7 +251,14 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 
 /**
- * @brief resets the compression context
+ * @brief Resets the compression context
+ *
+ * This ensures that the next compression uses the primary parameters.
+ * If used with MODEL preprocessing, it clears the internal predictive model,
+ * allowing you to start fresh with new data. Use this when compressing
+ * independent datasets or when you want to ensure that the model does not
+ * carry over patterns from previous data, for example at the start of a new
+ * acquisition series.
  *
  * @param ctx	pointer to a compression context to reset
  *
@@ -245,9 +269,14 @@ uint32_t cmp_reset(struct cmp_context *ctx);
 
 
 /**
- * @brief destroys a compression context
+ * @brief Destroys a compression context
  *
- * This function is optional and can be used if the context is no longer needed.
+ * Ends the lifetime of the compression context and discards all internal
+ * state. After this call, the context is no longer initialised and must be
+ * reinitialised with cmp_initialise() before further use.
+ *
+ * @note This function does NOT free any caller-owned memory such as the working
+ *	buffer or any other buffers.
  *
  * @param ctx	pointer to the compression context to be destroyed
  */

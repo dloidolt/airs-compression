@@ -7,7 +7,7 @@
  *
  * @brief Main compression header definitions
  *
- * Based on PLATO-UVIE-PL-UM-0001 Issue 0.2
+ * Based on ARIEL-UVIE-PL-TN-004 Issue 0.2
  */
 
 #ifndef CMP_HEADER_H

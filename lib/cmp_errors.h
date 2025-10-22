@@ -20,9 +20,9 @@
 
 
 /**
- * @brief enumeration of all error codes
+ * @brief Enumeration of all error codes
  *
- * @warning error name and value are TBC
+ * @warning Error name and value are TBC
  */
 
 enum cmp_error {
@@ -61,9 +61,9 @@ enum cmp_error {
 
 
 /**
- * @brief convert a function result into an error code
+ * @brief Convert a function result into an error code
  *
- * Can handle the same return values with are also suitable for cmp_is_error()
+ * Can handle the same return values that are also suitable for cmp_is_error()
  * function.
  *
  * @param code	return value to get the error code
@@ -75,27 +75,31 @@ enum cmp_error cmp_get_error_code(uint32_t code);
 
 
 /**
- * @brief get a human-readable error message from a return value
+ * @brief Get a human-readable error message from a return value
  *
  * Useful for debugging and logging purposes.
+ * Can handle the same return values that are also suitable for cmp_is_error()
+ * function.
  *
  * @param code	compression return value to describe
  *
- * @returns a pointer to a string literal that describes the error code.
+ * @returns a pointer to a string literal that describes the error code. Do not
+ *	modify or free it.
  */
 
 const char *cmp_get_error_message(uint32_t code);
 
 
 /**
- * @brief get a human-readable error message from an error code
+ * @brief Get a human-readable error message from an error code
  *
  * Returns the same as cmp_get_error_message() function but for the error code
  * instead of a return value code.
  *
  * @param code	the error code to describe, obtain with cmp_get_error_code()
  *
- * @returns a pointer to a string literal that describes the error code.
+ * @returns a pointer to a string literal that describes the error code. Do not
+ *	modify or free it.
  */
 
 const char *cmp_get_error_string(enum cmp_error code);
