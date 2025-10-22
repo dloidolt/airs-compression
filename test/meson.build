@@ -23,6 +23,12 @@ if get_option('b_sanitize').contains('address')
 
   if compiler.has_argument('-fsanitize=leak')
     test_env.append('ASAN_OPTIONS', 'detect_leaks=1')
+    # workaround for https://github.com/llvm/llvm-project/issues/115992
+    if target_machine.system() == 'darwin' and target_machine.cpu_family() == 'aarch64'
+      test_env.set('LSAN_OPTIONS',
+        'suppressions=' + meson.current_source_dir()+'/.leak.suppress',
+        'print_suppressions=0')
+    endif
   endif
 endif
 
@@ -43,6 +49,17 @@ if get_option('b_sanitize').contains('memory')
     'dedup_token_length=3')
 endif
 
+# Unity test runner generates implementation-only sources without headers,
+# so we suppress prototype/declaration warnings for unit tests
+unit_testing_flags = [
+    '-Wno-missing-declarations',
+    '-Wno-missing-prototypes',
+    '-Wno-redundant-decls',
+    '-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"',
+    # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
+    # see feature_test_macros(7)
+    '-D_POSIX_C_SOURCE=200809L',
+]
 
 # setup the Unity Test framework
 ruby = find_program('ruby', required : false)
@@ -62,6 +79,7 @@ if ruby.found()
     'test_cmp_errors.c',
     'test_preprocessing.c',
     'test_encoder.c',
+    'test_params_parse.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
@@ -70,8 +88,8 @@ if ruby.found()
     test_runner = gen_test_runner.process(test_file)
     test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
-      c_args : ['-DCMP_MESON_BUILD_ROOT="' + meson.project_build_root() + '/"'],
-      link_with : [test_lib, cmp_lib],
+      c_args : unit_testing_flags,
+      link_with : [test_lib, cmp_lib, cli_lib],
       dependencies : [unity_dep])
 
     test(test_name.replace('test_', '') + ' units tests',
@@ -95,8 +113,8 @@ foreach test : cli_tests
   # test('CLI Basic Test',
   test(test_name,
     find_program(test),
-    args : ['--cli', airsapcecli.full_path(),
+    args : ['--cli', airspacecli.full_path(),
             '--test-root',  meson.current_build_dir()],
-    depends : airsapcecli,
+    depends : airspacecli,
     env : test_env)
 endforeach

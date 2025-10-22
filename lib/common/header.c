@@ -33,42 +33,30 @@ uint32_t cmp_hdr_serialize(struct bitstream_writer *bs, const struct cmp_hdr *hd
 	if (hdr->original_size > CMP_HDR_MAX_ORIGINAL_SIZE)
 		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
 
-	if (hdr->identifier > ((uint64_t)1 << CMP_HDR_BITS_IDENTIFIER) - 1)
-		return CMP_ERROR(TIMESTAMP_INVALID);
-
 	start_size = bitstream_size(bs);
 	if (cmp_is_error_int(start_size))
 		return start_size;
 
-#define CMP_DO_WRITE_OR_RETURN(bs_ptr, val_to_write, len_to_write)                            \
-	do {                                                                                  \
-		uint32_t write_err_code;                                                      \
-		write_err_code = bitstream_write64((bs_ptr), (val_to_write), (len_to_write)); \
-		if (cmp_is_error_int(write_err_code))                                         \
-			return write_err_code;                                                \
-	} while (0)
+	bitstream_add_bits64(bs, hdr->version_flag, CMP_HDR_BITS_VERSION_FLAG);
+	bitstream_add_bits64(bs, hdr->version_id, CMP_HDR_BITS_VERSION_ID);
 
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->version_flag, CMP_HDR_BITS_VERSION_FLAG);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->version_id, CMP_HDR_BITS_VERSION_ID);
+	bitstream_add_bits64(bs, hdr->compressed_size, CMP_HDR_BITS_COMPRESSED_SIZE);
+	bitstream_add_bits64(bs, hdr->original_size, CMP_HDR_BITS_ORIGINAL_SIZE);
 
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->compressed_size, CMP_HDR_BITS_COMPRESSED_SIZE);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->original_size, CMP_HDR_BITS_ORIGINAL_SIZE);
-
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->identifier, CMP_HDR_BITS_IDENTIFIER);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->sequence_number, CMP_HDR_BITS_SEQUENCE_NUMBER);
+	bitstream_add_bits64(bs, hdr->identifier, CMP_HDR_BITS_IDENTIFIER);
+	bitstream_add_bits64(bs, hdr->sequence_number, CMP_HDR_BITS_SEQUENCE_NUMBER);
 
 	/* internal structure of the compression method */
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->preprocessing, CMP_HDR_BITS_METHOD_PREPROCESSING);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->checksum_enabled, CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED);
-	CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_type, CMP_HDR_BITS_METHOD_ENCODER_TYPE);
+	bitstream_add_bits64(bs, hdr->preprocessing, CMP_HDR_BITS_METHOD_PREPROCESSING);
+	bitstream_add_bits64(bs, hdr->checksum_enabled, CMP_HDR_BITS_METHOD_CHECKSUM_ENABLED);
+	bitstream_add_bits64(bs, hdr->encoder_type, CMP_HDR_BITS_METHOD_ENCODER_TYPE);
 
 	if (hdr->preprocessing != CMP_PREPROCESS_NONE ||
 	    hdr->encoder_type != CMP_ENCODER_UNCOMPRESSED) {
-		CMP_DO_WRITE_OR_RETURN(bs, hdr->model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION);
-		CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM);
-		CMP_DO_WRITE_OR_RETURN(bs, hdr->encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER);
+		bitstream_add_bits64(bs, hdr->model_rate, CMP_EXT_HDR_BITS_MODEL_ADAPTATION);
+		bitstream_add_bits64(bs, hdr->encoder_param, CMP_EXT_HDR_BITS_ENCODER_PARAM);
+		bitstream_add_bits64(bs, hdr->encoder_outlier, CMP_EXT_HDR_BITS_ENCODER_OUTLIER);
 	}
-#undef CMP_DO_WRITE_OR_RETURN
 
 	end_size = bitstream_flush(bs);
 	if (cmp_is_error_int(end_size))

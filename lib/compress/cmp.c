@@ -21,34 +21,31 @@
 
 #define CMP_MAGIC 34021395 /* arbitrary magic number I like */
 
-/**
- * @brief  fall back dummy implementation of a get_current_timestamp() function
- *
- * @returns 0
- */
 
-static uint64_t fallback_get_current_timestamp(void)
+/* Fallback monotonic counter implementation for g_get_timestamp() */
+static void fallback_get_timestamp(uint32_t *coarse, uint16_t *fine)
 {
 	static uint64_t cnt;
 
-	return cnt++;
+	*coarse = (uint32_t)(cnt >> 16);
+	*fine = (uint16_t)cnt;
+	cnt++;
 }
 
 
 /**
- * Function pointer to a function returning a current 48-bit timestamp
- * initialised with the cmp_set_timestamp_func() function
+ * Function pointer to a function providing a timestamp initialised with
+ * cmp_set_timestamp_func()
  */
+static void (*g_get_timestamp)(uint32_t *coarse, uint16_t *fine) = fallback_get_timestamp;
 
-static uint64_t (*g_get_current_timestamp)(void) = fallback_get_current_timestamp;
 
-
-void cmp_set_timestamp_func(uint64_t (*get_current_timestamp_func)(void))
+void cmp_set_timestamp_func(void (*get_current_timestamp_func)(uint32_t *coarse, uint16_t *fine))
 {
 	if (get_current_timestamp_func)
-		g_get_current_timestamp = get_current_timestamp_func;
+		g_get_timestamp = get_current_timestamp_func;
 	else
-		g_get_current_timestamp = fallback_get_current_timestamp;
+		g_get_timestamp = fallback_get_timestamp;
 }
 
 
@@ -203,6 +200,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	const struct preprocessing_method *preprocess;
 	int model_is_needed = 0;
 	struct cmp_hdr hdr = { 0 };
+	uint32_t compress_bound;
 
 	if (ctx->sequence_number == 0 || ctx->sequence_number > ctx->params.secondary_iterations) {
 		ret = cmp_reset(ctx);
@@ -264,6 +262,10 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	if (cmp_is_error_int(ret))
 		return ret;
 
+	compress_bound = cmp_compress_bound(src_size);
+	if (cmp_is_error_int(compress_bound))
+		compress_bound = ~0U;
+
 	preprocess = preprocessing_get_method(selected_preprocessing);
 	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
@@ -275,9 +277,10 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	for (i = 0; i < n_values; i++) {
 		int16_t const value = preprocess->process(i, src, ctx->work_buf);
 
-		ret = cmp_encoder_encode_s16(&enc, value, &bs);
-		if (cmp_is_error_int(ret))
-			return ret;
+		cmp_encoder_encode_s16(&enc, value, &bs);
+		if (dst_capacity < compress_bound)
+			if (cmp_is_error_int(bitstream_error(&bs)))
+				break;
 
 		if (model_is_needed) {
 			uint16_t *model = ctx->work_buf;
@@ -293,9 +296,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 		uint32_t const checksum = cmp_checksum(src, src_size);
 
 		bitstream_pad_last_byte(&bs);
-		ret = bitstream_write32(&bs, checksum, bitsizeof(checksum));
-		if (cmp_is_error_int(ret))
-			return ret;
+		bitstream_add_bits32(&bs, checksum, bitsizeof(checksum));
 	}
 
 	hdr.compressed_size = bitstream_flush(&bs);
@@ -373,21 +374,30 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 }
 
 
+static uint64_t cmp_get_new_identifier(void)
+{
+	uint32_t coarse = 0;
+	uint16_t fine = 0;
+
+	compile_time_assert(bitsizeof(coarse) + bitsizeof(fine) == CMP_HDR_BITS_IDENTIFIER,
+			    cmp_hdr_identifier_timestamp_mismatch);
+
+	g_get_timestamp(&coarse, &fine);
+
+	return ((uint64_t)coarse << 16) | (uint64_t)fine;
+}
+
+
 uint32_t cmp_reset(struct cmp_context *ctx)
 {
-	uint64_t const timestamp = g_get_current_timestamp();
-
 	if (ctx == NULL)
 		return CMP_ERROR(GENERIC);
 
 	if (ctx->magic != CMP_MAGIC)
 		return CMP_ERROR(CONTEXT_INVALID);
 
-	if (timestamp > ((uint64_t)1 << CMP_HDR_BITS_IDENTIFIER) - 1)
-		return CMP_ERROR(TIMESTAMP_INVALID);
-
 	ctx->sequence_number = 0;
-	ctx->identifier = timestamp;
+	ctx->identifier = cmp_get_new_identifier();
 	ctx->model_size = 0;
 
 	return CMP_ERROR(NO_ERROR);

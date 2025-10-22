@@ -68,7 +68,7 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
 	do {                                                                                       \
 		struct cmp_hdr assert_hdr;                                                         \
 		TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(compressed_data, size, &assert_hdr));  \
-		expected_hdr.version_flag = 1;		      /* always expected */                \
+		expected_hdr.version_flag = 1;                /* always expected */                \
 		expected_hdr.version_id = CMP_VERSION_NUMBER; /* always expected */                \
 		TEST_ASSERT_EQUAL_MESSAGE(expected_hdr.version_flag, assert_hdr.version_flag,      \
 					  "Version cmp lib flag mismatch");                        \

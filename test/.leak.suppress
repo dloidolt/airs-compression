@@ -1,0 +1,3 @@
+# workaround for https://github.com/llvm/llvm-project/issues/115992
+leak:*_fetchInitializingClassList*
+leak:*dyld4::RuntimeState::_instantiateTLVs*
