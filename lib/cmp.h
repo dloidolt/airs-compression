@@ -105,7 +105,7 @@ struct cmp_params {
 	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
 	enum cmp_encoder_type secondary_encoder_type;   /**< Encoder for secondary passes */
 	uint32_t secondary_encoder_param;               /**< Parameter for the secondary encoder */
-	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
+	uint32_t secondary_encoder_outlier; /**< Secondary outlier parameter for CMP_ENCODER_GOLOMB_MULTI */
 	uint32_t model_rate; /**< Model adaptation rate (used with CMP_PREPROCESS_MODEL) */
 
 	/* Additional Options */
@@ -169,6 +169,7 @@ unsigned int cmp_is_error(uint32_t code);
  *
  * In this scenario the input data are not compressible. This function is
  * primarily useful for memory allocation purposes (destination buffer size).
+ * Assumes a worst case configuration.
  *
  * @param size	size of the data to compress
  *
@@ -191,9 +192,9 @@ uint32_t cmp_compress_bound(uint32_t size);
  *			compress the data
  * @param src_size	size of a source data buffer in bytes
  *
- * @returns the minimum size needed for a compression working buffer (can be 0
- *	if no working buffer is needed) or an error, which can be checked using
- *	cmp_is_error()
+ * @returns the minimum size in bytes needed for a compression working buffer
+ *	(can be 0 if no working buffer is needed) or an error, which can be
+ *	checked using cmp_is_error()
  */
 
 uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size);
