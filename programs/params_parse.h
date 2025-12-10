@@ -10,9 +10,9 @@
 #ifndef PARAMS_PARSE_H
 #define PARAMS_PARSE_H
 
-#include "cmp.h"
+#include <cmp.h>
 #include "log.h"
-#include "arena.h"
+#include "../lib/decompress/arena.h"
 
 enum cmp_parse_status {
 	CMP_PARSE_OK = 0,

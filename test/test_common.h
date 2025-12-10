@@ -14,6 +14,7 @@
 #include "../lib/cmp_errors.h"
 #include "../lib/common/compiler.h"
 #include "../lib/common/header_private.h"
+#include "../lib/decompress/arena.h"
 
 /** uint8_t type with the required compression destination buffer alignment */
 #define DST_ALIGNED_U8 ALIGNED_TYPE(CMP_DST_ALIGNMENT, uint8_t)
@@ -114,5 +115,19 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  */
 
 void *cmp_hdr_get_cmp_data(void *cmp_data);
+
+
+/**
+ * @brief Clears and returns the test arena for memory allocation
+ *
+ * The arena's state is completely reset on each call, providing a fresh scratch
+ * space for the caller. Consequently, any data allocated from the arena
+ * in previous calls becomes invalid.
+ *
+ * @warning Call it only once in a test.
+ *
+ * @returns Pointer to the cleared arena instance
+ */
+struct arena *clear_test_arena(void);
 
 #endif /* TEST_COMMON_H */

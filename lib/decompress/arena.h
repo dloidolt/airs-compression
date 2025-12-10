@@ -5,6 +5,13 @@
  * @copyright GPL-2.0
  *
  * @brief A simple, single-threaded, linear memory arena (bump allocator)
+
+ * This arena provides fast, contiguous memory allocation with no individual
+ * deallocation. All allocations are freed simultaneously when the arena
+ * is reset or goes out of scope.
+ *
+ * Allocated memory is zero-initialized.
+ * OOM behavior can be customized with arena_set_oom_handler().
  *
  * @see for more details https://nullprogram.com/blog/2023/09/27/
  */
@@ -15,6 +22,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdlib.h> /* for exit */
 
 #include <assert.h>
 
@@ -26,10 +34,31 @@ struct arena {
 	uint8_t *end;
 };
 
-#include <stdlib.h>
-static void __attribute__((noreturn)) oom(void)
+
+/**
+ * @brief Default out of memory handler
+ */
+static void __attribute__((noreturn)) default_oom(void)
 {
 	exit(3);
+}
+
+/** Global OOM handler - can be customized by user */
+static void (*arena_oom_handler)(void) = &default_oom;
+
+
+/**
+ * @brief Sets a custom out-of-memory handler
+ *
+ * @param handler Function to call on out-of-memory conditions, or NULL to reset to default
+ */
+
+static __inline void arena_set_oom_handler(void (*handler)(void))
+{
+	if (handler)
+		arena_oom_handler = handler;
+	else
+		arena_oom_handler = &default_oom;
 }
 
 
@@ -53,10 +82,11 @@ static __inline void *arena_alloc(struct arena *a, ptrdiff_t count, ptrdiff_t si
 	assert(size > 0);
 	assert(align > 0 && (align & (align - 1)) == 0 && "Alignment must be a power of two");
 
+	/* Calculate padding needed to align allocation to the specified boundary */
 	padding = (ptrdiff_t)-(size_t)a->beg & (align - 1);
 	available = a->end - a->beg - padding;
 	if (available < 0 || count > available / size)
-		oom();
+		arena_oom_handler();
 
 	r = a->beg + padding;
 	a->beg += padding + count * size;

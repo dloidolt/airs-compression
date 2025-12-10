@@ -1,10 +1,11 @@
-subdir('common')
-subdir('compress')
-
 xxhash_inc = subproject(
   'xxhash',
   default_options: ['cli=false','default_library=static']
 ).get_variable('inc')
+
+subdir('common')
+subdir('compress')
+subdir('decompress')
 
 inc_cmp = include_directories('.')
 install_headers('cmp.h', 'cmp_errors.h', 'cmp_header.h')

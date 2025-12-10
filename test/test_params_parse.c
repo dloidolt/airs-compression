@@ -19,7 +19,7 @@
  * space for the caller. Consequently, any data allocated from the arena
  * in previous calls becomes invalid.
  */
-static struct arena *create_test_arena(void)
+static struct arena *clear_test_arena(void)
 {
 	static uint8_t mem[1 << 10];
 	static struct arena a;
@@ -49,7 +49,7 @@ void test_parse_preprocess_enums(void)
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -97,7 +97,7 @@ void test_parse_encoder_types_enums(void)
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -146,7 +146,7 @@ void test_parse_boolean_types(void)
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -427,7 +427,7 @@ void test_detect_no_keys(void)
 
 void test_stringify_all_parameters(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *str;
 
@@ -470,7 +470,7 @@ void test_stringify_all_parameters(void)
 
 void test_to_string_bools_are_normalized(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *s;
 
@@ -484,7 +484,7 @@ void test_to_string_bools_are_normalized(void)
 
 void test_stringify_invalid_enum_values(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *str;
 
@@ -504,7 +504,7 @@ void test_stringify_invalid_enum_values(void)
 
 void test_to_string_parse_roundtrip(void)
 {
-	struct arena *arena = create_test_arena();
+	struct arena *arena = clear_test_arena();
 	struct cmp_params a = { 0 };
 	struct cmp_params b = { 0 };
 	const char *str;

@@ -10,11 +10,13 @@
 #include <string.h>
 #include <assert.h>
 
+#include <cmp.h>
+
 #include "../lib/common/compiler.h"
-#include "cmp.h"
+#include "../lib/decompress/arena.h"
 #include "log.h"
 #include "params_parse.h"
-#include "arena.h"
+
 #define STR_SLICE_IMPLEMENTATION
 #define STR_SLICE_API static __inline
 #include "str_slice.h"

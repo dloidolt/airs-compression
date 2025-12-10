@@ -16,6 +16,7 @@
 #include "test_common.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/common/header_private.h"
+#include "../lib/decompress/arena.h"
 
 
 void *cmp_hdr_get_cmp_data(void *header)
@@ -118,4 +119,25 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
 	const char *message = gen_cmp_error_message(expected_error, actual_error);
 
 	UNITY_TEST_ASSERT_EQUAL_INT(expected_error, actual_error, line, message);
+}
+
+
+/* Test-specific OOM handler that fails the test instead of exiting */
+static void test_oom_handler(void)
+{
+	TEST_FAIL_MESSAGE("Arena allocation failed: out of memory");
+}
+
+
+struct arena *clear_test_arena(void)
+{
+	static uint8_t mem[1 << 10];
+	static struct arena a;
+
+	arena_set_oom_handler(test_oom_handler);
+
+	memset(mem, 0x1D, ARRAY_SIZE(mem)); /* poison arena memory */
+	a.beg = mem;
+	a.end = mem + ARRAY_SIZE(mem);
+	return &a;
 }

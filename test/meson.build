@@ -81,6 +81,7 @@ if ruby.found()
     'test_preprocessing.c',
     'test_encoder.c',
     'test_params_parse.c',
+    'test_decmp.c',
     'test_buildsetup.c'])
 
   foreach test_file : unit_test_src
@@ -90,7 +91,7 @@ if ruby.found()
     test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
       c_args : unit_testing_flags,
-      link_with : [test_lib, cmp_lib, cli_lib],
+      link_with : [test_lib, cmp_lib, cli_lib, decmp_lib],
       dependencies : [unity_dep])
 
     test(test_name.replace('test_', '') + ' units tests',
