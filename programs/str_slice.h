@@ -73,6 +73,9 @@ STR_SLICE_API int s8_equals_ignore_case(struct s8 s1, struct s8 s2);
 /** Check if string starts with specified substring */
 STR_SLICE_API int s8_starts_with(struct s8 s, struct s8 pre);
 STR_SLICE_API int s8_starts_with_ignore_case(struct s8 s, struct s8 pre);
+/** Check if string ends with specified substring */
+STR_SLICE_API int s8_ends_with(struct s8 s, struct s8 suf);
+STR_SLICE_API int s8_ends_with_ignore_case(struct s8 s, struct s8 suf);
 
 /** Take head portion of string */
 STR_SLICE_API struct s8 s8_prefix(struct s8 s, ptrdiff_t len);
@@ -81,10 +84,14 @@ STR_SLICE_API struct s8 s8_skip(struct s8 s, ptrdiff_t off);
 
 /** Remove whitespace from the begin and the end */
 STR_SLICE_API struct s8 s8_trim(struct s8 s);
-/** Remove prefix if present */
+/** Remove prefix or empty string */
 STR_SLICE_API struct s8 s8_strip_prefix(struct s8 s, struct s8 pre);
-/** Remove prefix if present, differences in case are ignored, ASCII-only (not UTF-8) */
+/** Remove prefix or empty string, differences in case are ignored, ASCII-only */
 STR_SLICE_API struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre);
+/** Remove suffix or empty string */
+STR_SLICE_API struct s8 s8_strip_suffix(struct s8 s, struct s8 suf);
+/** Remove suffix  or empty string, differences in case are ignored, ASCII-only */
+STR_SLICE_API struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf);
 
 /** split_at() parsing result */
 struct s8_split_result {
@@ -198,6 +205,16 @@ STR_SLICE_API int s8_starts_with_ignore_case(struct s8 s, struct s8 pre)
 	return (s.len >= pre.len) && s8_equals_ignore_case(s8_prefix(s, pre.len), pre);
 }
 
+STR_SLICE_API int s8_ends_with(struct s8 s, struct s8 suf)
+{
+	return (s.len >= suf.len) && s8_equals(s8_skip(s, s.len - suf.len), suf);
+}
+
+STR_SLICE_API int s8_ends_with_ignore_case(struct s8 s, struct s8 suf)
+{
+	return (s.len >= suf.len) && s8_equals_ignore_case(s8_skip(s, s.len - suf.len), suf);
+}
+
 STR_SLICE_API struct s8 s8_prefix(struct s8 s, ptrdiff_t len)
 {
 	assert(len >= 0);
@@ -240,16 +257,38 @@ STR_SLICE_API struct s8 s8_trim(struct s8 s)
 
 STR_SLICE_API struct s8 s8_strip_prefix(struct s8 s, struct s8 pre)
 {
+	struct s8 r = {0};
+
 	if (s8_starts_with(s, pre))
-		return s8_skip(s, pre.len);
-	return s;
+		r = s8_skip(s, pre.len);
+	return r;
 }
 
 STR_SLICE_API struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre)
 {
+	struct s8 r = {0};
+
 	if (s8_starts_with_ignore_case(s, pre))
-		return s8_skip(s, pre.len);
-	return s;
+		r = s8_skip(s, pre.len);
+	return r;
+}
+
+STR_SLICE_API struct s8 s8_strip_suffix(struct s8 s, struct s8 suf)
+{
+	struct s8 r = {0};
+
+	if (s8_ends_with(s, suf))
+		r = s8_prefix(s, s.len - suf.len);
+	return r;
+}
+
+STR_SLICE_API struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf)
+{
+	struct s8 r = {0};
+
+	if (s8_ends_with_ignore_case(s, suf))
+		r = s8_prefix(s, s.len - suf.len);
+	return r;
 }
 
 STR_SLICE_API struct s8_split_result s8_split_at(struct s8 s, unsigned char delim)
