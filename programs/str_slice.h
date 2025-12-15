@@ -110,6 +110,16 @@ struct s8_u32_result {
 /** Parse unsigned 32-bit integer from string */
 STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s);
 
+/** Arena-based string operations (requires arena.h) */
+struct arena; /* Forward declaration */
+
+/** Return a copy of a string using arena allocation */
+STR_SLICE_API struct s8 s8_clone(struct arena *a, struct s8 s);
+/** Concatenate two strings using arena allocation */
+STR_SLICE_API struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail);
+/** Create a null-terminated C string from s8 using arena allocation */
+STR_SLICE_API char *s8_to_cstr(struct arena *a, struct s8 s);
+
 #endif /* STR_SLICE_H_MIKG4GPN */
 
 
@@ -335,6 +345,50 @@ STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s)
 	r.value = value;
 	r.ok = 1;
 	return r;
+}
+
+
+/* Arena-based string operations */
+#include "../lib/decompress/arena.h"
+
+STR_SLICE_API struct s8 s8_clone(struct arena *a, struct s8 s)
+{
+	struct s8 r = { 0 };
+	unsigned char *clone;
+
+	clone = ARENA_NEW_ARRAY(a, s.len, unsigned char);
+	if (s.s)
+		memcpy(clone, s.s, (size_t)s.len);
+	r.s = (const unsigned char *)clone;
+	r.len = s.len;
+	return r;
+}
+
+STR_SLICE_API struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail)
+{
+	struct s8 r = { 0 };
+
+	if (arena_is_resize_possible(*a, head.s, head.len))
+		r = head;
+	else
+		r = s8_clone(a, head);
+
+	tail = s8_clone(a, tail);
+	assert(tail.s == r.s + head.len && "Arena allocation must be contiguous");
+
+	r.len = head.len + tail.len;
+	return r;
+}
+
+STR_SLICE_API char *s8_to_cstr(struct arena *a, struct s8 s)
+{
+	char *cstr;
+
+	cstr = ARENA_NEW_ARRAY(a, s.len + 1, char);
+	if (s.s)
+		memcpy(cstr, s.s, (size_t)s.len);
+	cstr[s.len] = '\0';
+	return cstr;
 }
 
 #endif /* STR_SLICE_IMPLEMENTATION */

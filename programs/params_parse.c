@@ -303,39 +303,6 @@ enum cmp_parse_status cmp_params_parse(const char *str, struct cmp_params *param
 }
 
 
-/* Return a copy of a string */
-static struct s8 s8_clone(struct arena *a, struct s8 s)
-{
-	struct s8 r = { 0 };
-	unsigned char *clone;
-
-	clone = ARENA_NEW_ARRAY(a, s.len, unsigned char);
-	if (s.s)
-		memcpy(clone, s.s, (size_t)s.len);
-	r.s = (const unsigned char *)clone;
-	r.len = s.len;
-	return r;
-}
-
-
-/* Concatenate two strings using arena allocation. */
-static struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail)
-{
-	struct s8 r = { 0 };
-
-	if (arena_is_resize_possible(*a, head.s, head.len))
-		r = head;
-	else
-		r = s8_clone(a, head);
-
-	tail = s8_clone(a, tail);
-	assert(tail.s == r.s + head.len && "Arena allocation must be contiguous");
-
-	r.len = head.len + tail.len;
-	return r;
-}
-
-
 /* Concatenate string with decimal representation of uint32_t */
 static struct s8 s8_concat_u32(struct arena *a, struct s8 head, uint32_t v)
 {
