@@ -16,17 +16,24 @@
 #include <string.h>
 
 #include "../lib/cmp.h"
+#include "../lib/decompress/arena.h"
 #include "file.h"
 #include "log.h"
 #include "util.h"
 #include "params_parse.h"
+#define STR_SLICE_IMPLEMENTATION
+#define STR_SLICE_API static __inline
+#include "str_slice.h"
 
 /* Program information */
 #define PROGRAM_NAME "AIRSPACE CLI"
 #ifndef AIRSPACE_VERSION
 #  define AIRSPACE_VERSION "v" CMP_VERSION_STRING
 #endif
-#define AIRSPACE_EXTENSION ".air"
+static const struct s8 AIRSPACE_EXTENSION = S8(".air");
+
+static const struct s8 STD_OUT_MARK_S8 = S8(STD_OUT_MARK);
+static const struct s8 STD_IN_MARK_S8 = S8(STD_IN_MARK);
 
 #define AUTHOR "Dominik Loidolt"
 #define AIRSPACE_WELCOME_MESSAGE                                                    \
@@ -37,77 +44,24 @@
 enum operation_mode { MODE_COMPRESS, MODE_DECOMPRESS };
 
 
-/* memory allocation or die */
-static void *malloc_safe(size_t size)
-{
-	void *ptr = malloc(size);
-
-	if (!ptr) {
-		LOG_ERROR_WITH_ERRNO("Memory allocation failed for size %lu", (unsigned long)size);
-		exit(EXIT_FAILURE);
-	}
-	return ptr;
-}
-
-
-/**
- * @brief appends the airspace specific suffix to the input string
- *
- * Adds a predefined suffix to the given string, using an internal buffer.
- *
- * @param str	string to add suffix or NULL to free resources
- *
- * @returns pointer to the modified string
- * @warning The buffer is shared across calls and not thread-safe.
- */
-
-static const char *add_airspace_suffix(const char *str)
-{
-	static char *buf;
-	static size_t buf_size;
-
-	size_t str_len;
-	size_t need_buf_size;
-
-	if (!str) {
-		free(buf);
-		return NULL;
-	}
-
-	str_len = strlen(str);
-	need_buf_size = str_len + sizeof(AIRSPACE_EXTENSION);
-
-	if (need_buf_size > buf_size) {
-		enum { BUFFER_MARGIN = 30 };
-
-		free(buf);
-		buf_size = need_buf_size + BUFFER_MARGIN;
-		buf = malloc_safe(buf_size);
-	}
-
-	memcpy(buf, str, str_len);
-	memcpy(buf + str_len, AIRSPACE_EXTENSION, sizeof(AIRSPACE_EXTENSION));
-
-	return buf;
-}
-
-
-static void log_file_status(enum log_level level, const char *input_filename, uint32_t input_size,
-			    const char *output_name, uint32_t output_size)
+static void log_file_status(enum log_level level, struct s8 input_filename, uint32_t input_size,
+			    struct s8 output_name, uint32_t output_size)
 {
 	int const verbose = log_get_level() > LOG_LEVEL_DEBUG;
 	struct hr_fmt const hr_i = util_make_human_readable(input_size, verbose);
 	struct hr_fmt const hr_o = util_make_human_readable(output_size, verbose);
 
-	LOG_PLAIN(level, "%s: %.2f%% (%.*f%s => %.*f%s, %s)\n", input_filename,
+	LOG_PLAIN(level, "%.*s: %.2f%% (%.*f%s => %.*f%s, %.*s)\n",
+		  (int)input_filename.len, input_filename.s,
 		  (double)output_size / (double)input_size * 100.0,
 		  hr_i.precision, hr_i.value, hr_i.suffix,
-		  hr_o.precision, hr_o.value, hr_o.suffix, output_name);
+		  hr_o.precision, hr_o.value, hr_o.suffix,
+		  (int)output_name.len, output_name.s);
 }
 
 
-static void log_summery(const char **input_files, int num_files, size_t sum_input_size,
-			const char *output_name, size_t sum_output_size)
+static void log_summery(const struct s8 input_files[], int num_files, size_t sum_input_size,
+			struct s8 output_name, size_t sum_output_size)
 {
 	if (num_files == 1) { /* one file -> display the file status instead of the summery */
 		/* if not already done in the log file status */
@@ -128,61 +82,63 @@ static void log_summery(const char **input_files, int num_files, size_t sum_inpu
 }
 
 
-static int compress_file_list(const char *output_name, const char **input_files, int num_files,
+static int compress_file_list(struct arena scratch, struct s8 output_name,
+			      const struct s8 *input_files, int num_files,
 			      const struct cmp_params *params)
 {
-	int result = EXIT_FAILURE;
-	int const needs_output_name = !output_name;
+	int const needs_output_name = !output_name.len;
 	int i;
 
 	void *work_buf = NULL;
-	struct cmp_context ctx;
+	struct cmp_context *ctx = ARENA_NEW(&scratch, struct cmp_context);
 
 	size_t sum_input_size = 0;
 	size_t sum_output_size = 0;
+
+	uint32_t first_file_size;
+	uint32_t work_buf_size;
+	uint32_t return_code;
 
 	assert(input_files);
 	assert(num_files > 0);
 	assert(params);
 
-	{ /* Initialization setup */
-		uint32_t first_file_size;
-		uint32_t work_buf_size;
-		uint32_t return_code;
+	if (file_get_size_u32(s8_to_cstr(&scratch, input_files[0]), &first_file_size))
+		return EXIT_FAILURE;
+	/*
+	 * For allocating the work buffer, we assume that all files we want to
+	 * compress in one batch have similar sizes. We use the first file's size
+	 * as a representative sample for buffer allocation.
+	 */
+	work_buf_size = cmp_cal_work_buf_size(params, first_file_size);
+	if (cmp_is_error(work_buf_size)) {
+		LOG_ERROR_CMP(work_buf_size, "Error calculating work buffer size");
+		return EXIT_FAILURE;
+	}
+	work_buf = arena_alloc(&scratch, work_buf_size, sizeof(uint8_t), __alignof__(uint32_t));
 
-		/* Allocate work buff if need */
-		if (file_get_size_u32(input_files[0], &first_file_size))
-			goto cleanup;
-		work_buf_size = cmp_cal_work_buf_size(params, first_file_size);
-		if (cmp_is_error(work_buf_size)) {
-			LOG_ERROR_CMP(work_buf_size, "Error calculating work buffer size");
-			goto cleanup;
-		}
-		if (work_buf_size > 0)
-			work_buf = malloc_safe(work_buf_size);
-
-		return_code = cmp_initialise(&ctx, params, work_buf, work_buf_size);
-		if (cmp_is_error(return_code)) {
-			LOG_ERROR_CMP(return_code, "Compression initialization failed");
-			goto cleanup;
-		}
+	return_code = cmp_initialise(ctx, params, work_buf, work_buf_size);
+	if (cmp_is_error(return_code)) {
+		LOG_ERROR_CMP(return_code, "Compression initialization failed");
+		return EXIT_FAILURE;
 	}
 
+
 	for (i = 0; i < num_files; i++) {
+		const char *input_cstr = s8_to_cstr(&scratch, input_files[i]);
 		uint32_t output_size;
 
-		assert(input_files[i]);
 		if (needs_output_name)
-			output_name = add_airspace_suffix(input_files[i]);
+			output_name = s8_concat(&scratch, input_files[i], AIRSPACE_EXTENSION);
 
-		output_size = file_compress(&ctx, output_name, input_files[i]);
+		output_size = file_compress(ctx, s8_to_cstr(&scratch, output_name), input_cstr);
 		if (cmp_is_error(output_size))
-			goto cleanup;
+			return EXIT_FAILURE;
 
 		{ /* compression done; do some longing */
 			uint32_t input_size;
 
-			(void)file_get_size_u32(input_files[i], &input_size);
+			(void)file_get_size_u32(input_cstr, &input_size);
 			log_file_status(LOG_LEVEL_DEBUG, input_files[i], input_size, output_name,
 					output_size);
 			sum_input_size += input_size;
@@ -192,13 +148,7 @@ static int compress_file_list(const char *output_name, const char **input_files,
 
 	log_summery(input_files, num_files, sum_input_size, output_name, sum_output_size);
 
-	result = EXIT_SUCCESS;
-
-cleanup:
-	free(work_buf);
-	add_airspace_suffix(NULL); /* free internal buffer */
-
-	return result;
+	return EXIT_SUCCESS;
 }
 
 
@@ -216,9 +166,10 @@ cleanup:
  * @returns a pointer to the allocated file list
  */
 
-static const char **allocate_file_list(char **argv, int argc, int *list_len, int *is_reading_stdin)
+static const struct s8 *create_file_list(struct arena *a, char **argv, int argc, int *list_len,
+					 int *is_reading_stdin)
 {
-	const char **list;
+	struct s8 *list;
 	int i;
 
 	assert(argv);
@@ -229,19 +180,19 @@ static const char **allocate_file_list(char **argv, int argc, int *list_len, int
 	*is_reading_stdin = 0;
 
 	*list_len = (argc == 0) ? 1 : argc;
-	list = malloc_safe((size_t)*list_len * sizeof(*list));
+	list = ARENA_NEW_ARRAY(a, *list_len, __typeof__(*list));
 
 	if (argc == 0) {
-		list[0] = STD_IN_MARK;
+		list[0] = STD_IN_MARK_S8;
 		*is_reading_stdin = 1;
 	} else {
 		for (i = 0; i < argc; i++) {
 			assert(argv[i]);
 			if (!strcmp(argv[i], "-")) {
-				list[i] = STD_IN_MARK;
+				list[i] = STD_IN_MARK_S8;
 				*is_reading_stdin = 1;
 			} else {
-				list[i] = argv[i];
+				list[i] = s8_from_cstr(argv[i]);
 			}
 		}
 	}
@@ -319,14 +270,17 @@ int main(int argc, char *argv[])
 		{ NULL,                     0,                 NULL, 0                        }
 	};
 
+	static uint8_t mem[1 << 12];
+	struct arena a = { mem, mem + sizeof(mem) };
+
 	const char *program_name;
-	const char **input_files = NULL;
+	const struct s8 *input_files = NULL;
 	int num_files;
 	int is_reading_stdin;
 
 	/* Set defaults */
 	enum operation_mode mode = MODE_DECOMPRESS;
-	const char *output_filename = NULL;
+	struct s8 output_filename = { 0 };
 	struct cmp_params params = { 0 };
 
 	assert(argv);
@@ -341,15 +295,15 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			if (cmp_params_parse(optarg, &params) != CMP_PARSE_OK) {
-				LOG_ERROR("Incorrect parameter option: %s", argv[optind-1]);
+				LOG_ERROR("Incorrect parameter option: %s", argv[optind - 1]);
 				return EXIT_FAILURE;
 			}
 			break;
 		case 'o':
-			output_filename = optarg;
+			output_filename = s8_from_cstr(optarg);
 			break;
 		case STDOUT_OPT:
-			output_filename = STD_OUT_MARK;
+			output_filename = STD_OUT_MARK_S8;
 			break;
 		case 'v':
 			log_increase_verbosity();
@@ -389,34 +343,35 @@ int main(int argc, char *argv[])
 
 	LOG_PLAIN(LOG_LEVEL_DEBUG, AIRSPACE_WELCOME_MESSAGE);
 
-	input_files = allocate_file_list(argv, argc, &num_files, &is_reading_stdin);
+	input_files = create_file_list(&a, argv, argc, &num_files, &is_reading_stdin);
 
 	if (is_reading_stdin) {
 		if (util_is_console(stdin)) {
 			LOG_ERROR("stdin is a terminal, aborting");
-			goto end;
+			return EXIT_FAILURE;
 		}
 		LOG_DEBUG("Using stdin as an input");
 
-		if (!output_filename) {
+		if (!output_filename.len) {
 			if (util_is_console(stdout)) {
 				LOG_ERROR("stdout is a terminal, aborting");
-				goto end;
+				return EXIT_FAILURE;
 			}
 			LOG_DEBUG("Using stdout as output");
-			output_filename = STD_OUT_MARK;
+			output_filename = STD_OUT_MARK_S8;
 		}
 	}
 
 	/* No info message by default when output is stdout */
-	if (output_filename && !strcmp(output_filename, STD_OUT_MARK) &&
+	if (s8_equals(output_filename, STD_OUT_MARK_S8) &&
 	    log_get_level() == LOG_LEVEL_DEFAULT)
 		log_decrease_verbosity();
 
 	/* Execute requested operation */
 	switch (mode) {
 	case MODE_COMPRESS:
-		return_val = compress_file_list(output_filename, input_files, num_files, &params);
+		return_val =
+			compress_file_list(a, output_filename, input_files, num_files, &params);
 		break;
 	case MODE_DECOMPRESS:
 		LOG_ERROR("Decompression not implemented yet");
@@ -425,9 +380,6 @@ int main(int argc, char *argv[])
 		LOG_ERROR("Invalid operation mode");
 		break;
 	}
-
-end:
-	free(input_files);
 
 	return return_val;
 }
