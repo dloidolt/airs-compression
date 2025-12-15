@@ -23,7 +23,7 @@ airspacecli = executable('airspace',
   'airspacecli.c',
   include_directories : inc_cmp,
   implicit_include_directories: false,
-  link_with : [cli_lib, cmp_lib],
+  link_with : [cli_lib, cmp_lib, decmp_lib],
   # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
   # see feature_test_macros(7)
   c_args : cli_c_args,

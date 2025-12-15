@@ -17,6 +17,8 @@
 #include <sys/mman.h>
 
 #include "../lib/cmp.h"
+#include "../lib/common/compiler.h"
+#include "../lib/decompress/decmp.h"
 #include "../lib/decompress/arena.h"
 #include "file.h"
 #include "log.h"
@@ -153,6 +155,66 @@ static int compress_file_list(struct arena scratch, struct s8 output_name,
 }
 
 
+static uint32_t decompress_file_list(struct arena *a, struct s8 output_name, const struct s8 *input_files,
+			      int num_files)
+{
+	int i;
+	uint32_t return_val = 0;
+	struct decmp_result *decmp;
+	void **srcs = ARENA_NEW_ARRAY(a, num_files, void *);
+	uint32_t *src_sizes = ARENA_NEW_ARRAY(a, num_files, uint32_t);
+
+	assert(input_files);
+	assert(num_files > 0);
+
+
+	for (i = 0; i < num_files; i++) {
+		const char *input_cstr = s8_to_cstr(a, input_files[i]);
+
+		if (file_get_size_u32(input_cstr, &src_sizes[i]))
+			return EXIT_FAILURE;
+		srcs[i] = ARENA_NEW_ARRAY(a, src_sizes[i], uint8_t);
+		if (file_load(input_cstr, srcs[i], src_sizes[i]))
+			return EXIT_FAILURE;
+	}
+
+	decmp = decompress_batch_u16(a, srcs, src_sizes, num_files);
+
+	for (i = 0; i < num_files; i++) {
+		if (cmp_is_error(decmp->decmp_size[i])) {
+			LOG_ERROR_CMP(decmp->decmp_size[i], "Decompression failed for %.*s",
+				      (int)input_files[i].len, input_files[i].s);
+			return_val = decmp->decmp_size[i];
+		} else {
+			struct s8 dst_filename = output_name;
+
+			if (!dst_filename.len) {
+				static struct s8 know_suffixes[] = { AIRSPACE_EXTENSION, S8(".ce") };
+				size_t j;
+
+				for (j = 0; j < ARRAY_SIZE(know_suffixes); j++) {
+					dst_filename = s8_strip_suffix(input_files[i], know_suffixes[j]);
+					if (dst_filename.len > 0)
+						break;
+				}
+				if (!dst_filename.len) {
+					LOG_ERROR("%.*s: unknown suffix (.air or .ce expected)  Can't derive the output file name. Specify it with -o FileName. Ignoring.",
+						(int)input_files[i].len, input_files[i].s);
+					return_val = (uint32_t)-1;
+					break;
+				}
+			}
+			{
+				if (file_save_be16(s8_to_cstr(a, dst_filename), decmp->decmp[i], decmp->decmp_size[i]))
+					return (uint32_t)-1;
+			}
+		}
+	}
+
+	return return_val;
+}
+
+
 /**
  * @brief creates a file list from the input arguments
  *
@@ -216,10 +278,10 @@ static void print_usage(FILE *stream, const char *program_name)
 	LOG_F(stream, "  -V, --version     Display version\n");
 	LOG_F(stream, "  -h, --help        Display this help\n");
 	LOG_F(stream, "\nExamples:\n");
-	LOG_F(stream, "# Compressing files1 and files2 to output.air\n");
-	LOG_F(stream, "airspace -c file1 file2 -o output.air\n");
-	LOG_F(stream, "# Decompressing files (coming soon!)\n");
-	LOG_F(stream, "airspace output.air -o file1.dat file2.dat\n");
+	LOG_F(stream, "# Compress file1 and file2 to file1.air and file2.air\n");
+	LOG_F(stream, "  %s -c file1 file2\n", program_name);
+	LOG_F(stream, "# Decompress file1.air and file2.air\n");
+	LOG_F(stream, "  %s file1.air file2.air\n", program_name);
 }
 
 
@@ -380,7 +442,7 @@ int main(int argc, char *argv[])
 			compress_file_list(a, output_filename, input_files, num_files, &params);
 		break;
 	case MODE_DECOMPRESS:
-		LOG_ERROR("Decompression not implemented yet");
+		return_val = !!decompress_file_list(&a, output_filename, input_files, num_files);
 		break;
 	default:
 		LOG_ERROR("Invalid operation mode");

@@ -292,7 +292,7 @@ int file_get_size_u32(const char *filename, uint32_t *file_size32)
  * @returns 0 on success or -1 on error
  */
 
-static int file_load(const char *filename, void *buffer, size_t buffer_size)
+int file_load(const char *filename, void *buffer, size_t buffer_size)
 {
 	FILE *fp;
 	size_t read_size;
@@ -412,6 +412,21 @@ static int file_save(const char *filename, const void *buffer, size_t size)
 		LOG_WARNING("File '%s' saved successfully but close failed", filename);
 
 	return write_err;
+}
+
+
+int file_save_be16(const char *filename, uint16_t *buffer, size_t size)
+{
+	size_t i;
+
+	assert(buffer);
+	assert(size);
+	assert(size % sizeof(*buffer) == 0);
+
+	for (i = 0; i < (size_t)size / sizeof(*buffer); i++)
+		be16_to_cpus(&buffer[i]);
+
+	return file_save(filename, buffer, size);
 }
 
 
