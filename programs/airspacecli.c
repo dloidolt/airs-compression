@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "../lib/cmp.h"
 #include "../lib/decompress/arena.h"
@@ -270,9 +271,6 @@ int main(int argc, char *argv[])
 		{ NULL,                     0,                 NULL, 0                        }
 	};
 
-	static uint8_t mem[1 << 12];
-	struct arena a = { mem, mem + sizeof(mem) };
-
 	const char *program_name;
 	const struct s8 *input_files = NULL;
 	int num_files;
@@ -282,6 +280,14 @@ int main(int argc, char *argv[])
 	enum operation_mode mode = MODE_DECOMPRESS;
 	struct s8 output_filename = { 0 };
 	struct cmp_params params = { 0 };
+
+	/* Set up arena */
+	size_t cap = 1<<24;
+	uint8_t *mem = mmap(0, cap, PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+	struct arena a;
+
+	a.beg =  mem,
+	a.end = mem + cap;
 
 	assert(argv);
 	assert(argc >= 1);
