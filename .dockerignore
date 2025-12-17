@@ -1,0 +1,44 @@
+# VCS and metadata
+.git/
+.gitignore
+.gitmodules
+.github/
+
+# Meson subprojects: ignore everything except wraps and packagefiles
+subprojects/**
+!subprojects/*.wrap
+!subprojects/packagefiles/**
+
+# Editor/OS cruft
+*.swp
+*.swo
+.DS_Store
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build outputs
+build/
+build_*/
+*_build/
+meson-logs/
+meson-private/
+
+# Tooling caches
+.cache/
+
+# Logs
+*.log
+
+# Compiled artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
