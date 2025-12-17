@@ -176,7 +176,7 @@ class TestCompression(unittest.TestCase):
         self.assertCli(
             result,
             returncode_exp=RETURN_FAILURE,
-            stderr_exp="already exists",
+            stderr_exp="is a directory",
             stderr_match_mode="contains",
         )
 
