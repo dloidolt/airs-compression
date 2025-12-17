@@ -106,7 +106,8 @@ endif
 
 cli_tests = files([
   'cli_basic_test.py',
-  'cli_compression_test.py'
+  'cli_compression_test.py',
+  'cli_decompression_test.py'
   ])
 
 foreach test : cli_tests
