@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "../lib/cmp.h"
 #include "file.h"
@@ -332,6 +333,18 @@ int main(int argc, char *argv[])
 	enum operation_mode mode = MODE_DECOMPRESS;
 	const char *output_filename = NULL;
 	struct cmp_params params = { 0 };
+
+	/* Set up arena */
+	size_t cap = 1 << 24;
+	uint8_t *mem = mmap(0, cap, PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	struct arena a;
+
+	if (mem == MAP_FAILED) {
+		LOG_ERROR_WITH_ERRNO("mmap failed to allocate %zu bytes", cap);
+		return EXIT_FAILURE;
+	}
+	a.beg = mem;
+	a.end = mem + cap;
 
 	assert(argv);
 	assert(argc >= 1);

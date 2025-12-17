@@ -5,13 +5,18 @@ cli_src = files([
   'util.c'
 ])
 
+cli_c_args = ['-D_POSIX_C_SOURCE=200809L']
+if host_machine.system() == 'darwin'
+  cli_c_args += ['-D_DARWIN_C_SOURCE']
+endif
+
 cli_lib = static_library('airspace_cli',
   cli_src,
   include_directories: [inc_cmp],
   implicit_include_directories: false,
   # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
   # see feature_test_macros(7)
-  c_args: ['-D_POSIX_C_SOURCE=200809L'],
+  c_args: cli_c_args,
   install: false)
 
 airspacecli = executable('airspace',
@@ -21,7 +26,7 @@ airspacecli = executable('airspace',
   link_with : [cli_lib, cmp_lib],
   # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
   # see feature_test_macros(7)
-  c_args : ['-D_POSIX_C_SOURCE=200809L'],
+  c_args : cli_c_args,
   install: true)
 
 if asciidoctor.found()
