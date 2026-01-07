@@ -124,7 +124,8 @@ static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_co
  * @param y	pointer to the output coefficients buffer (can be the same as x
  *		for in-place calculation)
  * @param n	total number of int16_t samples in input and output buffer
- * @param s	stride; has to be smaller than n
+ * @param s	stride; spacing between elements processed; must be > 0
+ *		(starts at 1, doubles each level in multi-level decomposition)
  *
  * @see implementation is based on equation (5.24) from
  *	D. Solomon, Data Compression, 4th ed, 2007, Springer, pp. 609-607
@@ -139,36 +140,39 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
 {
 	size_t i;
 
-	/* One or two elements to process, handle as a special case */
-	if (2 * s >= n) {
-		if (s >= n) { /* Only one element: the output equals the input */
-			y[0] = x[0];
-		} else { /* Two elements */
-			y[s] = iwt_last_odd_coefficient(x[s], x[0]);
-			y[0] = iwt_edge_even_coefficient(x[0], y[s]);
-		}
+	if (n == 0)
+		return;
+
+	/* Only one element: the output equals the input */
+	if (s >= n) {
+		y[0] = x[0];
 		return;
 	}
 
-	/* clang-format off */
+	/* Two elements to process, handle as a special case */
+	if (2 * s >= n) {
+		y[s] = iwt_last_odd_coefficient(x[s], x[0]);
+		y[0] = iwt_edge_even_coefficient(x[0], y[s]);
+		return;
+	}
+
 	/* Compute the first two coefficients outside the loop for performance */
-	y[s] = iwt_odd_coefficient(x[s], x[0], x[2*s]);
+	y[s] = iwt_odd_coefficient(x[s], x[0], x[2 * s]);
 	y[0] = iwt_edge_even_coefficient(x[0], y[s]);
 
 	/* Process the coefficients in the middle */
 	for (i = 2 * s; i < n - 2 * s; i += 2 * s) {
-		y[i+s] = iwt_odd_coefficient(x[i+s], x[i], x[i+2*s]);
-		y[i] = iwt_even_coefficient(x[i], y[i-s], y[i+s]);
+		y[i + s] = iwt_odd_coefficient(x[i + s], x[i], x[i + 2 * s]);
+		y[i] = iwt_even_coefficient(x[i], y[i - s], y[i + s]);
 	}
 
 	/* Compute the last coefficient(s) outside the loop for performance */
-	if (i == n - 2*s) { /* two elements over? */
-		y[i+s] = iwt_last_odd_coefficient(x[i+s], x[i]);
-		y[i] = iwt_even_coefficient(x[i], y[i-s], y[i+s]);
+	if (i < n - s) { /* two elements over? */
+		y[i + s] = iwt_last_odd_coefficient(x[i + s], x[i]);
+		y[i] = iwt_even_coefficient(x[i], y[i - s], y[i + s]);
 	} else {
-		y[i] = iwt_edge_even_coefficient(x[i], y[i-s]);
+		y[i] = iwt_edge_even_coefficient(x[i], y[i - s]);
 	}
-	/* clang-format on */
 }
 
 

@@ -127,6 +127,14 @@ void test_iwt_transform_five(void)
 	check_iwt_transform(input, expected, sizeof(input));
 }
 
+void test_iwt_transform_seven(void)
+{
+	const int16_t input[]    = {  0,  0, 2,  0,  0, 0, 0 };
+	const int16_t expected[] = { -1, -1, 2, -1, -1, 0, 1 };
+
+	check_iwt_transform(input, expected, sizeof(input));
+}
+
 void test_iwt_transform_eight(void)
 {
 	const int16_t input[]    = { -3, 2, -1, 3, -2, 5, 0, 7 };
