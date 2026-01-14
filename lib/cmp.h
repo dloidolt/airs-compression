@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 
+#include "cmp_header.h"
+
 /* ====== Utility Macros  ====== */
 /** Convert a token to a string literal */
 #define CMP_QUOTE(str)            #str
@@ -179,6 +181,35 @@ unsigned int cmp_is_error(uint32_t code);
  */
 
 uint32_t cmp_compress_bound(uint32_t size);
+
+
+/**
+ * @brief Calculate the maximum buffer size required for uncompressed storage
+ *
+ * This macro is useful for (statical) allocation of the compression destination
+ * buffer when using uncompressed storage.
+ * It calculates the worst-case size required for storing data in uncompressed
+ * format, including the compression header and optional checksum.
+ *
+ * It helps prevent compression failures due to insufficient destination buffer
+ * space in the following scenarios:
+ * - When using the CMP_ENCODER_UNCOMPRESSED encoder
+ * - When uncompressed_fallback_enabled is set
+ *
+ * In all other compression scenarios, use cmp_compress_bound(), which provides
+ * an upper bound assuming the worst-case compression ratio.
+ *
+ * @param src_size	the size of the data to compress, in bytes
+ *
+ * @returns the buffer size needed for uncompressed storage, or SIZE_MAX if
+ *	the source size is too large (exceeds CMP_HDR_MAX_COMPRESSED_SIZE
+ *	after accounting for header and checksum overhead)
+ */
+
+#define CMP_UNCOMPRESSED_BOUND(src_size)                                                  \
+	((src_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
+		 (CMP_HDR_SIZE + (src_size) + CMP_CHECKSUM_SIZE) :                        \
+		 SIZE_MAX)
 
 
 /**
