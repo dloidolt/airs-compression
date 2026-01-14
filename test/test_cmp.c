@@ -133,7 +133,7 @@ void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void
 void test_compression_in_uncompressed_mode(void)
 {
 	const uint16_t data[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(data)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(data))];
 	/* uncompressed data should be in big endian */
 	const uint8_t cmp_data_exp[sizeof(data)] = { 0x00, 0x01, 0x02, 0x03 };
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
@@ -170,7 +170,7 @@ void test_compression_detects_too_small_dst_buffer(void)
 void test_compression_detects_missing_context(void)
 {
 	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
 	uint32_t const cmp_size = cmp_compress_u16(NULL, dst, sizeof(dst), src, sizeof(src));
 
@@ -192,7 +192,7 @@ void test_compression_detects_missing_dst_buffer(void)
 void test_compression_detects_missing_src_data(void)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(uint16_t)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(4)];
 
 	uint32_t const size =
 		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), NULL, sizeof(uint16_t));
@@ -205,7 +205,7 @@ void test_compression_detects_src_size_is_0(void)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
 	uint32_t const cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, 0);
 
@@ -218,7 +218,7 @@ void test_compression_detects_src_size_is_not_multiple_of_2(void)
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0 };
 	uint32_t const src_size = 3;
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
 	uint32_t const cmp_size =
 		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, src_size);
@@ -264,12 +264,14 @@ void test_compression_detects_dst_size_too_large_for_header(void)
 
 void test_compression_detects_unaligned_dst(void)
 {
-	uint8_t dst[30];
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0x0001, 0x0203 };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	uint8_t *dst_wrong_aligned = dst + 4;
+	uint32_t dst_wrong_aligned_size = sizeof(dst) - 4;
 
-	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst + 4, sizeof(dst) - 4, src, sizeof(src));
+	uint32_t const cmp_size = cmp_compress_u16(&ctx_uncompressed, dst_wrong_aligned,
+						   dst_wrong_aligned_size, src, sizeof(src));
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_UNALIGNED, cmp_size);
 }
@@ -307,18 +309,18 @@ void test_deinitialise_a_compression_context(void)
 void test_compression_detects_too_small_work_buffer(void)
 {
 	struct cmp_params params = { 0 };
-	const uint16_t data[] = { 0, 0, 0 };
-	uint16_t work_buf[ARRAY_SIZE(data) - 1];
+	const uint16_t src[] = { 0, 0, 0 };
+	uint16_t work_buf[ARRAY_SIZE(src) - 1];
 	struct cmp_context ctx;
 	uint32_t dst_size, work_buf_size;
-	DST_ALIGNED_U8 dst[CMP_HDR_MAX_SIZE + sizeof(data)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
-	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(data));
+	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src));
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), data, sizeof(data));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src, sizeof(src));
 
 	TEST_ASSERT_CMP_FAILURE(dst_size);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, dst_size);
@@ -327,10 +329,10 @@ void test_compression_detects_too_small_work_buffer(void)
 
 void test_non_model_preprocessing_src_size_change_allowed(void)
 {
-	const uint16_t data1[] = { 0, 0, 0, 0 };
-	const uint16_t data2[] = { 0, 0, 0 };
-	uint16_t work_buf[ARRAY_SIZE(data1)];
-	DST_ALIGNED_U8 dst[CMP_HDR_MAX_SIZE + sizeof(data1)];
+	const uint16_t src1[] = { 0, 0, 0, 0 };
+	const uint16_t src2[] = { 0, 0, 0 };
+	uint16_t work_buf[ARRAY_SIZE(src1)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src1))];
 	uint32_t return_code;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -338,9 +340,9 @@ void test_non_model_preprocessing_src_size_change_allowed(void)
 	params.secondary_preprocessing = CMP_PREPROCESS_IWT;
 	params.secondary_iterations = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
-	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), data1, sizeof(data1)));
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), src1, sizeof(src1)));
 
-	return_code = cmp_compress_u16(&ctx, dst, sizeof(dst), data2, sizeof(data2));
+	return_code = cmp_compress_u16(&ctx, dst, sizeof(dst), src2, sizeof(src2));
 
 	TEST_ASSERT_CMP_SUCCESS(return_code);
 }
@@ -407,8 +409,8 @@ static void timestamp_stub(uint32_t *coarse, uint16_t *fine)
 
 void test_use_provided_timestamp_as_hdr_identifier(void)
 {
-	uint16_t data[2] = { 0 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(data)];
+	uint16_t src[2] = { 0 };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 	uint32_t cmp_size;
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	struct cmp_hdr hdr;
@@ -416,7 +418,7 @@ void test_use_provided_timestamp_as_hdr_identifier(void)
 	cmp_set_timestamp_func(timestamp_stub);
 	g_coarse_time = 0x12345678;
 	g_fine_time = 0xABCD;
-	cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), data, sizeof(data));
+	cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, sizeof(src));
 
 	TEST_ASSERT_CMP_SUCCESS(cmp_size);
 	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(dst, cmp_size, &hdr));
@@ -440,9 +442,9 @@ uint32_t get_checksum(const void *compressed_data, uint32_t size)
 
 void test_checksum_appended_to_compressed_data(void)
 {
-	const uint16_t input[] = { 0xCA, 0xFF, 0xEE };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(input) + CMP_CHECKSUM_SIZE] = { 0 };
-	uint32_t const expected_checksum = cmp_checksum(input, sizeof(input));
+	const uint16_t src[] = { 0xCA, 0xFF, 0xEE };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	uint32_t const expected_checksum = cmp_checksum(src, sizeof(src));
 	uint32_t dst_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -451,12 +453,12 @@ void test_checksum_appended_to_compressed_data(void)
 	params.checksum_enabled = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input, sizeof(input));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src, sizeof(src));
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(input) + CMP_CHECKSUM_SIZE, dst_size);
+	TEST_ASSERT_EQUAL((uint32_t)CMP_UNCOMPRESSED_BOUND(sizeof(src)), dst_size);
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input);
+	expected_hdr.original_size = sizeof(src);
 	expected_hdr.checksum_enabled = 1;
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
 	TEST_ASSERT_EQUAL_HEX32(expected_checksum, get_checksum(dst, dst_size));
@@ -465,10 +467,10 @@ void test_checksum_appended_to_compressed_data(void)
 
 void test_checksum_is_different_for_different_inputs(void)
 {
-	const uint16_t input1[] = { 0xC0, 0xFF, 0xEE };
-	const uint16_t input2[] = { 0xC0, 0xFF, 0xEF };
-	DST_ALIGNED_U8 dst1[CMP_HDR_SIZE + sizeof(input2) + CMP_CHECKSUM_SIZE] = { 0 };
-	DST_ALIGNED_U8 dst2[CMP_HDR_SIZE + sizeof(input1) + CMP_CHECKSUM_SIZE] = { 0 };
+	const uint16_t src1[] = { 0xC0, 0xFF, 0xEE };
+	const uint16_t src2[] = { 0xC0, 0xFF, 0xEF };
+	DST_ALIGNED_U8 dst1[CMP_UNCOMPRESSED_BOUND(sizeof(src1))];
+	DST_ALIGNED_U8 dst2[CMP_UNCOMPRESSED_BOUND(sizeof(src2))];
 	uint32_t dst_size1, dst_size2;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -476,8 +478,8 @@ void test_checksum_is_different_for_different_inputs(void)
 	params.checksum_enabled = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
-	dst_size1 = cmp_compress_u16(&ctx, dst1, sizeof(dst1), input1, sizeof(input1));
-	dst_size2 = cmp_compress_u16(&ctx, dst2, sizeof(dst2), input2, sizeof(input2));
+	dst_size1 = cmp_compress_u16(&ctx, dst1, sizeof(dst1), src1, sizeof(src1));
+	dst_size2 = cmp_compress_u16(&ctx, dst2, sizeof(dst2), src2, sizeof(src2));
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size1);
 	TEST_ASSERT_CMP_SUCCESS(dst_size2);
@@ -487,9 +489,10 @@ void test_checksum_is_different_for_different_inputs(void)
 
 void test_checksum_is_same_for_same_inputs(void)
 {
-	const uint16_t input[] = { 0xC0, 0xFF, 0xEE };
-	DST_ALIGNED_U8 dst1[CMP_HDR_SIZE + sizeof(input) + CMP_CHECKSUM_SIZE] = { 0 };
-	DST_ALIGNED_U8 dst2[CMP_HDR_SIZE + 2 * sizeof(input) + CMP_CHECKSUM_SIZE] = { 0 };
+	const uint16_t src[] = { 0xC0, 0xFF, 0xEE };
+	DST_ALIGNED_U8 dst1[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	/* dst2 needs larger buffer as compressed output exceed uncompressed bound */
+	DST_ALIGNED_U8 dst2[CMP_UNCOMPRESSED_BOUND(sizeof(src)) + 16];
 	uint32_t dst_size1, dst_size2;
 	struct cmp_context ctx1, ctx2;
 	struct cmp_params params = { 0 };
@@ -501,9 +504,8 @@ void test_checksum_is_same_for_same_inputs(void)
 	params.primary_encoder_param = 42;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx2, &params, NULL, 0));
 
-
-	dst_size1 = cmp_compress_u16(&ctx1, dst1, sizeof(dst1), input, sizeof(input));
-	dst_size2 = cmp_compress_u16(&ctx2, dst2, sizeof(dst2), input, sizeof(input));
+	dst_size1 = cmp_compress_u16(&ctx1, dst1, sizeof(dst1), src, sizeof(src));
+	dst_size2 = cmp_compress_u16(&ctx2, dst2, sizeof(dst2), src, sizeof(src));
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size1);
 	TEST_ASSERT_CMP_SUCCESS(dst_size2);
@@ -513,11 +515,11 @@ void test_checksum_is_same_for_same_inputs(void)
 
 void test_primary_compression_fallback_for_incompressible_data(void)
 {
-	const uint16_t input_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
+	const uint16_t src_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
 	const uint8_t expected_incompressible[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC };
-	const uint16_t input_compressible[] = { 0, 0, 0, 0 };
+	const uint16_t src_compressible[] = { 0, 0, 0, 0 };
 	const uint8_t expected_compressible[] = { 0xAA };
-	uint64_t dst[5] = { 0 };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src_incompressible))];
 	uint32_t dst_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -529,26 +531,26 @@ void test_primary_compression_fallback_for_incompressible_data(void)
 	params.primary_encoder_param = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_incompressible,
-				    sizeof(input_incompressible));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_incompressible,
+				    sizeof(src_incompressible));
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(input_incompressible), dst_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(src_incompressible), dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_incompressible, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_incompressible));
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_incompressible);
+	expected_hdr.original_size = sizeof(src_incompressible);
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
 
 	/* this one is compressible */
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_compressible,
-				    sizeof(input_compressible));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_compressible,
+				    sizeof(src_compressible));
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_compressible), dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_compressible, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_compressible));
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_compressible);
+	expected_hdr.original_size = sizeof(src_compressible);
 	expected_hdr.preprocessing = CMP_PREPROCESS_DIFF;
 	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	expected_hdr.encoder_param = 1;
@@ -559,12 +561,12 @@ void test_primary_compression_fallback_for_incompressible_data(void)
 
 void test_secondary_compression_fallback_for_incompressible_data(void)
 {
-	const uint16_t input_1[] = { 0, 0, 0, 0 };
-	const uint16_t input_2[] = { 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD };
+	const uint16_t src_1[] = { 0, 0, 0, 0 };
+	const uint16_t src_2[ARRAY_SIZE(src_1)] = { 0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD };
 	const uint8_t expected_2_uncompressed[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xDD, 0xDD };
 	const uint8_t expected_2_compressed[] = { 0xAA };
-	uint16_t work_buf[ARRAY_SIZE(input_2)];
-	uint64_t dst[5] = { 0 };
+	uint16_t work_buf[ARRAY_SIZE(src_1)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src_1))];
 	uint32_t dst_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -582,28 +584,28 @@ void test_secondary_compression_fallback_for_incompressible_data(void)
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 
 	/* normal primary compression, no fallback */
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_1, sizeof(input_1));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_1, sizeof(src_1));
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
-	TEST_ASSERT(CMP_HDR_SIZE + sizeof(input_2) > dst_size);
+	TEST_ASSERT(CMP_HDR_SIZE + sizeof(src_2) > dst_size);
 
 	/* secondary compression with uncompressed fallback */
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_2, sizeof(input_2));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_2, sizeof(src_2));
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(expected_2_uncompressed), dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_2_uncompressed, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_2_uncompressed));
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_2);
+	expected_hdr.original_size = sizeof(src_2);
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
 
 	/* this one is compressible */
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_2, sizeof(input_2));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_2, sizeof(src_2));
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + sizeof(expected_2_compressed), dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_2_compressed, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_2_compressed));
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_1);
+	expected_hdr.original_size = sizeof(src_1);
 	expected_hdr.preprocessing = CMP_PREPROCESS_MODEL;
 	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	expected_hdr.encoder_param = 1;
@@ -613,13 +615,11 @@ void test_secondary_compression_fallback_for_incompressible_data(void)
 }
 
 
-void test_fallback_works_with_checksum_enabled(void)
+void test_fallback_to_uncompressed_works_with_checksum_enabled(void)
 {
-	const uint16_t input_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
+	const uint16_t src_incompressible[] = { 0xAAAA, 0xBBBB, 0xCCCC };
 	const uint8_t expected_incompressible[] = { 0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC };
-	const uint16_t input_compressible[] = { 0, 0, 0, 0 };
-	const uint8_t expected_compressible[] = { 0xAA };
-	uint64_t dst[5] = { 0 };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src_incompressible))];
 	uint32_t dst_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
@@ -632,29 +632,47 @@ void test_fallback_works_with_checksum_enabled(void)
 	params.primary_encoder_param = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_incompressible,
-				    sizeof(input_incompressible));
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_incompressible,
+				    sizeof(src_incompressible));
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + CMP_CHECKSUM_SIZE + sizeof(input_incompressible),
-			  dst_size);
+	TEST_ASSERT_EQUAL(CMP_UNCOMPRESSED_BOUND(sizeof(src_incompressible)), dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_incompressible, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_incompressible));
 	expected_hdr.checksum_enabled = 1;
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_incompressible);
+	expected_hdr.original_size = sizeof(src_incompressible);
 	TEST_ASSERT_CMP_HDR(dst, dst_size, expected_hdr);
+}
 
-	/* this one is compressible */
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), input_compressible,
-				    sizeof(input_compressible));
+
+void test_compression_works_with_checksum_enabled(void)
+{
+	const uint16_t src_compressible[] = { 0, 0, 0, 0 };
+	const uint8_t expected_compressible[] = { 0xAA };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src_compressible))];
+	uint32_t dst_size;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
+
+	params.uncompressed_fallback_enabled = 1;
+	params.checksum_enabled = 1;
+	params.primary_preprocessing = CMP_PREPROCESS_DIFF;
+	params.primary_encoder_type = CMP_ENCODER_GOLOMB_ZERO;
+	params.primary_encoder_param = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
+
+	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src_compressible,
+				    sizeof(src_compressible));
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
 	TEST_ASSERT_EQUAL(CMP_HDR_MAX_SIZE + CMP_CHECKSUM_SIZE + sizeof(expected_compressible),
 			  dst_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_compressible, cmp_hdr_get_cmp_data(dst),
 				     sizeof(expected_compressible));
+	expected_hdr.checksum_enabled = 1;
 	expected_hdr.compressed_size = dst_size;
-	expected_hdr.original_size = sizeof(input_compressible);
+	expected_hdr.original_size = sizeof(src_compressible);
 	expected_hdr.preprocessing = CMP_PREPROCESS_DIFF;
 	expected_hdr.encoder_type = CMP_ENCODER_GOLOMB_ZERO;
 	expected_hdr.encoder_param = 1;
@@ -666,12 +684,12 @@ void test_fallback_works_with_checksum_enabled(void)
 void test_compress_u16_fails_when_capacity_is_an_error(void)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
-	uint16_t data[2] = { 0 };
-	uint64_t dst_dummy[1] = { 0 };
+	uint16_t src[2] = { 0 };
+	DST_ALIGNED_U8 dst_dummy[CMP_UNCOMPRESSED_BOUND(sizeof(src))] = { 0 };
 
 	uint32_t const bound_error = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
 	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst_dummy, bound_error, data, sizeof(data));
+		cmp_compress_u16(&ctx_uncompressed, dst_dummy, bound_error, src, sizeof(src));
 
 	TEST_ASSERT_CMP_FAILURE(bound_error);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, cmp_size);
@@ -680,8 +698,8 @@ void test_compress_u16_fails_when_capacity_is_an_error(void)
 
 void test_detect_uninitialise_context_in_compression(void)
 {
-	uint64_t dst[5] = { 0 };
 	const uint16_t src[] = { 0x0010 };
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 	struct cmp_context ctx;
 	uint32_t cmp_size;
 
