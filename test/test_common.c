@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <unity.h>
 #include <unity_internals.h>
@@ -18,7 +19,7 @@
 #include "../lib/common/header_private.h"
 
 
-void *cmp_hdr_get_cmp_data(void *header)
+const void *cmp_hdr_get_cmp_data(const void *header)
 {
 	struct cmp_hdr hdr;
 	uint32_t hdr_size;
@@ -26,7 +27,7 @@ void *cmp_hdr_get_cmp_data(void *header)
 	TEST_ASSERT_NOT_NULL(header);
 	hdr_size = cmp_hdr_deserialize(header, CMP_HDR_MAX_SIZE, &hdr);
 	TEST_ASSERT_CMP_SUCCESS(hdr_size);
-	return (uint8_t *)header + hdr_size;
+	return (const uint8_t *)header + hdr_size;
 }
 
 
@@ -118,4 +119,31 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
 	const char *message = gen_cmp_error_message(expected_error, actual_error);
 
 	UNITY_TEST_ASSERT_EQUAL_INT(expected_error, actual_error, line, message);
+}
+
+
+void *t_malloc(size_t size)
+{
+	void *p;
+
+	TEST_ASSERT(size > 0);
+
+	p = malloc(size);
+	TEST_ASSERT_NOT_NULL(p);
+
+	return p;
+}
+
+
+uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
+			      uint32_t n)
+{
+	return cmp_compress_u16(ctx, dst, cap, (const uint16_t *)src, n);
+}
+
+
+uint32_t compress_i16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
+			      uint32_t n)
+{
+	return cmp_compress_i16(ctx, dst, cap, (const int16_t *)src, n);
 }

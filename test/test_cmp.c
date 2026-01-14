@@ -19,6 +19,10 @@
 #include "../lib/common/header_private.h"
 
 
+const uint16_t src_dummy_u16[2] = { 0x0001, 0x0203 };
+const int16_t src_dummy_i16[2] = { 0x0001, 0x0203 };
+
+
 static struct cmp_context create_uncompressed_context(void)
 {
 	struct cmp_context ctx;
@@ -130,7 +134,9 @@ void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void
 }
 
 
-void test_compression_in_uncompressed_mode(void)
+TEST_CASE(compress_u16_wrapper)
+TEST_CASE(compress_i16_wrapper)
+void test_compression_in_uncompressed_mode(compress_func_t compress_func)
 {
 	const uint16_t data[2] = { 0x0001, 0x0203 };
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(data))];
@@ -140,10 +146,10 @@ void test_compression_in_uncompressed_mode(void)
 	struct cmp_hdr hdr;
 
 	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), data, sizeof(data));
+		compress_func(&ctx_uncompressed, dst, sizeof(dst), data, sizeof(data));
 
 	TEST_ASSERT_CMP_SUCCESS(cmp_size);
-	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + 4, cmp_size);
+	TEST_ASSERT_EQUAL(CMP_HDR_SIZE + sizeof(cmp_data_exp), cmp_size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(cmp_data_exp, cmp_hdr_get_cmp_data(dst), sizeof(data));
 	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(dst, cmp_size, &hdr));
 	TEST_ASSERT_EQUAL(CMP_VERSION_NUMBER, hdr.version_id);
@@ -154,80 +160,97 @@ void test_compression_in_uncompressed_mode(void)
 }
 
 
-void test_compression_detects_too_small_dst_buffer(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16),
+	  CMP_UNCOMPRESSED_BOUND(sizeof(src_dummy_u16)) - CMP_CHECKSUM_SIZE - 1)
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16),
+	  CMP_UNCOMPRESSED_BOUND(sizeof(src_dummy_i16)) - CMP_CHECKSUM_SIZE - 1)
+void test_compression_detects_too_small_dst_buffer(compress_func_t compress_func, const void *src,
+						   uint32_t src_size, uint32_t dst_size)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
-	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src) - 1];
+	void *dst = t_malloc(dst_size);
 
-	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, sizeof(src));
+	uint32_t const cmp_size = compress_func(&ctx_uncompressed, dst, dst_size, src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, cmp_size);
+
+	free(dst);
 }
 
 
-void test_compression_detects_missing_context(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16),
+	  CMP_UNCOMPRESSED_BOUND(sizeof(src_dummy_u16)))
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16),
+	  CMP_UNCOMPRESSED_BOUND(sizeof(src_dummy_i16)))
+void test_compression_detects_missing_context(compress_func_t compress_func, const void *src,
+					      uint32_t src_size, uint32_t dst_size)
 {
-	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	void *dst = t_malloc(dst_size);
 
-	uint32_t const cmp_size = cmp_compress_u16(NULL, dst, sizeof(dst), src, sizeof(src));
+	uint32_t const cmp_size = compress_func(NULL, dst, dst_size, src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, cmp_size);
+
+	free(dst);
 }
 
 
-void test_compression_detects_missing_dst_buffer(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16))
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16))
+void test_compression_detects_missing_dst_buffer(compress_func_t compress_func, const void *src,
+						 uint32_t src_size)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
-	const uint16_t src[2] = { 0x0001, 0x0203 };
 
-	uint32_t const size = cmp_compress_u16(&ctx_uncompressed, NULL, 100, src, sizeof(src));
+	uint32_t const size = compress_func(&ctx_uncompressed, NULL, 100, src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_NULL, size);
 }
 
 
-void test_compression_detects_missing_src_data(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_compression_detects_missing_src_data(compress_func_t compress_func)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(4)];
+	uint32_t random_src_size = 8;
 
 	uint32_t const size =
-		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), NULL, sizeof(uint16_t));
+		compress_func(&ctx_uncompressed, dst, sizeof(dst), NULL, random_src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_NULL, size);
 }
 
 
-void test_compression_detects_src_size_is_0(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_compression_detects_src_size_is_0(compress_func_t compress_func)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0x0001, 0x0203 };
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
-	uint32_t const cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, 0);
+	uint32_t const cmp_size = compress_func(&ctx_uncompressed, dst, sizeof(dst), src, 0);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, cmp_size);
 }
 
 
-void test_compression_detects_src_size_is_not_multiple_of_2(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_compression_detects_src_size_is_not_multiple_of_2(compress_func_t compress_func)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0 };
 	uint32_t const src_size = 3;
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 
-	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, src_size);
+	uint32_t const cmp_size = compress_func(&ctx_uncompressed, dst, sizeof(dst), src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, cmp_size);
 }
 
 
-void test_compression_detects_src_size_too_large_for_header(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_compression_detects_src_size_too_large_for_header(compress_func_t compress_func)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	uint64_t dst[5];
@@ -235,13 +258,14 @@ void test_compression_detects_src_size_too_large_for_header(void)
 	uint32_t const src_size_too_large = 1 << CMP_HDR_BITS_ORIGINAL_SIZE;
 
 	uint32_t const cmp_size =
-		cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, src_size_too_large);
+		compress_func(&ctx_uncompressed, dst, sizeof(dst), src, src_size_too_large);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, cmp_size);
 }
 
 
-void test_compression_detects_dst_size_too_large_for_header(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_compression_detects_dst_size_too_large_for_header(compress_func_t compress_func)
 {
 	uint32_t const src_size = CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL; /* must be a multiple 2 */
 	uint32_t const dst_cap = CMP_HDR_SIZE + src_size; /* to large for the cmp size field */
@@ -253,7 +277,7 @@ void test_compression_detects_dst_size_too_large_for_header(void)
 	TEST_ASSERT_NOT_NULL(src);
 	TEST_ASSERT_NOT_NULL(dst);
 
-	cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, dst_cap, src, src_size);
+	cmp_size = compress_func(&ctx_uncompressed, dst, dst_cap, src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_CMP_SIZE_TOO_LARGE, cmp_size);
 
@@ -262,16 +286,18 @@ void test_compression_detects_dst_size_too_large_for_header(void)
 }
 
 
-void test_compression_detects_unaligned_dst(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16))
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16))
+void test_compression_detects_unaligned_dst(compress_func_t compress_func, const void *src,
+					    uint32_t src_size)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
-	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(8)];
 	uint8_t *dst_wrong_aligned = dst + 4;
 	uint32_t dst_wrong_aligned_size = sizeof(dst) - 4;
 
-	uint32_t const cmp_size = cmp_compress_u16(&ctx_uncompressed, dst_wrong_aligned,
-						   dst_wrong_aligned_size, src, sizeof(src));
+	uint32_t const cmp_size = compress_func(&ctx_uncompressed, dst_wrong_aligned,
+						dst_wrong_aligned_size, src, src_size);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_UNALIGNED, cmp_size);
 }
@@ -306,45 +332,62 @@ void test_deinitialise_a_compression_context(void)
 }
 
 
-void test_compression_detects_too_small_work_buffer(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16))
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16))
+void test_compression_detects_too_small_work_buffer(compress_func_t compress_func, const void *src,
+						    uint32_t src_size)
 {
 	struct cmp_params params = { 0 };
-	const uint16_t src[] = { 0, 0, 0 };
-	uint16_t work_buf[ARRAY_SIZE(src) - 1];
+	uint32_t dst_cap = cmp_compress_bound(src_size);
+	void *dst = t_malloc(dst_cap);
 	struct cmp_context ctx;
-	uint32_t dst_size, work_buf_size;
-	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
+	uint32_t work_buf_size, small_work_buf_size;
+	void *small_work_buf;
+	uint32_t dst_size;
 
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
-	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src));
-	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
+	work_buf_size = cmp_cal_work_buf_size(&params, src_size);
+	TEST_ASSERT(work_buf_size > 0);
+	small_work_buf_size = work_buf_size - 1;
+	small_work_buf = t_malloc(small_work_buf_size);
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, small_work_buf, small_work_buf_size));
 
-	dst_size = cmp_compress_u16(&ctx, dst, sizeof(dst), src, sizeof(src));
+	dst_size = compress_func(&ctx, dst, dst_cap, src, src_size);
 
 	TEST_ASSERT_CMP_FAILURE(dst_size);
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_WORK_BUF_TOO_SMALL, dst_size);
+
+	free(small_work_buf);
+	free(dst);
 }
 
 
-void test_non_model_preprocessing_src_size_change_allowed(void)
+TEST_CASE(compress_u16_wrapper, src_dummy_u16, sizeof(src_dummy_u16))
+TEST_CASE(compress_i16_wrapper, src_dummy_i16, sizeof(src_dummy_i16))
+void test_non_model_preprocessing_src_size_change_allowed(compress_func_t compress_func,
+							  const void *src, uint32_t src_size)
 {
-	const uint16_t src1[] = { 0, 0, 0, 0 };
-	const uint16_t src2[] = { 0, 0, 0 };
-	uint16_t work_buf[ARRAY_SIZE(src1)];
-	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src1))];
-	uint32_t return_code;
+	uint32_t dst_cap = cmp_compress_bound(src_size);
+	void *dst = t_malloc(dst_cap);
+	void *work_buf;
+	uint32_t work_buf_size;
+	uint32_t dst_size_or_err;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 
 	params.secondary_preprocessing = CMP_PREPROCESS_IWT;
 	params.secondary_iterations = 10;
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
-	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), src1, sizeof(src1)));
+	work_buf_size = cmp_cal_work_buf_size(&params, src_size);
+	work_buf = t_malloc(work_buf_size);
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, work_buf_size));
+	TEST_ASSERT_CMP_SUCCESS(compress_func(&ctx, dst, dst_cap, src, src_size));
 
-	return_code = cmp_compress_u16(&ctx, dst, sizeof(dst), src2, sizeof(src2));
+	dst_size_or_err = compress_func(&ctx, dst, dst_cap, src, src_size - sizeof(uint16_t));
 
-	TEST_ASSERT_CMP_SUCCESS(return_code);
+	TEST_ASSERT_CMP_SUCCESS(dst_size_or_err);
+
+	free(work_buf);
+	free(dst);
 }
 
 
@@ -407,7 +450,8 @@ static void timestamp_stub(uint32_t *coarse, uint16_t *fine)
 }
 
 
-void test_use_provided_timestamp_as_hdr_identifier(void)
+TEST_MATRIX([compress_u16_wrapper, compress_i16_wrapper])
+void test_use_provided_timestamp_as_hdr_identifier(compress_func_t compress_func)
 {
 	uint16_t src[2] = { 0 };
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
@@ -418,7 +462,7 @@ void test_use_provided_timestamp_as_hdr_identifier(void)
 	cmp_set_timestamp_func(timestamp_stub);
 	g_coarse_time = 0x12345678;
 	g_fine_time = 0xABCD;
-	cmp_size = cmp_compress_u16(&ctx_uncompressed, dst, sizeof(dst), src, sizeof(src));
+	cmp_size = compress_func(&ctx_uncompressed, dst, sizeof(dst), src, sizeof(src));
 
 	TEST_ASSERT_CMP_SUCCESS(cmp_size);
 	TEST_ASSERT_CMP_SUCCESS(cmp_hdr_deserialize(dst, cmp_size, &hdr));

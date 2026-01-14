@@ -107,12 +107,54 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  *
  * @warning Assumes the compressed data block starts with a valid header.
  *
- * @param cmp_data	pointer to the start of the compressed data (header)
+ * @param header	pointer to the start of the compressed data (header)
  *
  * @returns a pointer to the first byte of compressed data after the header
  *
  */
 
-void *cmp_hdr_get_cmp_data(void *cmp_data);
+const void *cmp_hdr_get_cmp_data(const void *header);
+
+
+/**
+ * Wrapper around malloc() that asserts the allocation is successful.  If
+ * allocation fails, the test will fail with an assertion.
+ */
+
+void *t_malloc(size_t size);
+
+
+uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
+			      uint32_t n);
+uint32_t compress_i16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
+			      uint32_t n);
+
+
+extern const uint16_t src_dummy_u16[2];
+extern const int16_t src_dummy_i16[2];
+typedef uint32_t (*compress_func_t)(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				    const void *src, uint32_t src_size);
+extern const uint16_t model_input1_u16[5];
+extern const uint16_t model_input2_u16[5];
+extern const uint16_t model_input3_u16[5];
+extern const int16_t expec_output_u16[5];
+
+extern const int16_t model_input1_i16[7];
+extern const int16_t model_input2_i16[7];
+extern const int16_t model_input3_i16[7];
+extern const int16_t expected_out_i16[7];
+
+
+extern const int16_t g_iwt_input_1[1];
+extern const int16_t g_iwt_exp_out_1[1];
+extern const int16_t g_iwt_input_2[2];
+extern const int16_t g_iwt_exp_out_2[2];
+extern const int16_t g_iwt_input_5[5];
+extern const int16_t g_iwt_exp_out_5[5];
+extern const int16_t g_iwt_input_7[7];
+extern const int16_t g_iwt_exp_out_7[7];
+extern const int16_t g_iwt_input_8[8];
+extern const int16_t g_iwt_exp_out_8[8];
+
 
 #endif /* TEST_COMMON_H */

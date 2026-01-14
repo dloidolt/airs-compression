@@ -49,9 +49,9 @@ if get_option('b_sanitize').contains('memory')
     'dedup_token_length=3')
 endif
 
-# Unity test runner generates implementation-only sources without headers,
-# so we suppress prototype/declaration warnings for unit tests
 unit_testing_flags = [
+    # Unity test runner generates implementation-only sources without
+    # headers, so we suppress prototype/declaration warnings for unit tests
     '-Wno-missing-declarations',
     '-Wno-missing-prototypes',
     '-Wno-redundant-decls',
@@ -59,7 +59,12 @@ unit_testing_flags = [
     # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
     # see feature_test_macros(7)
     '-D_POSIX_C_SOURCE=200809L',
+    # this options lets us utilize Unity's parametrized test macros
+    '-DUNITY_SUPPORT_TEST_CASES',
+    '-DUNITY_SUPPORT_VARIADIC_MACROS',
+    '-Wno-variadic-macros',
 ]
+unit_testing_flags = compiler.get_supported_arguments(unit_testing_flags)
 
 # setup the Unity Test framework
 ruby = find_program('ruby', required : false)
@@ -86,7 +91,8 @@ if ruby.found()
   foreach test_file : unit_test_src
     test_name = fs.name(test_file).split('.')[0]
 
-    test_runner = gen_test_runner.process(test_file)
+    test_runner = gen_test_runner.process(test_file,
+       extra_args : '--use_param_tests=1')
     test_exe = executable(test_name, test_file, test_runner,
       include_directories : inc_cmp,
       c_args : unit_testing_flags,
