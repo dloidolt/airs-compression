@@ -118,7 +118,7 @@ void test_detect_invalid_secondary_preprocessing_initialization(void)
 void test_ignore_invalid_secondary_preprocessing_when_not_used(void)
 {
 	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
 	uint32_t return_val, cmp_size;
@@ -174,7 +174,7 @@ void test_detect_invalid_secondary_endoder_initialisation(void)
 void test_ignore_invalid_secondary_encodder_when_not_used(void)
 {
 	const uint16_t src[2] = { 0x0001, 0x0203 };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + sizeof(src)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
 	uint32_t return_val, cmp_size;

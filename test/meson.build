@@ -70,6 +70,7 @@ if ruby.found()
   gen_test_runner = subproject('unity').get_variable('gen_test_runner')
   test_lib = static_library('test_common_lib',
     files(['test_common.c']),
+    c_args : unit_testing_flags,
     dependencies : [unity_dep])
 
   unit_test_src = files([

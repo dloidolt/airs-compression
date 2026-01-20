@@ -382,6 +382,14 @@ static int file_save(const char *filename, const void *buffer, size_t size)
 		SET_BINARY_MODE(stdout);
 	} else {
 		if (strcmp(filename, NULL_MARK)) {
+			struct stat st;
+
+			/* Check if destination is a directory */
+			if (stat(filename, &st) == 0 && S_ISDIR(st.st_mode)) {
+				LOG_ERROR("'%s' is a directory\n", filename);
+				return -1;
+			}
+
 			/* Check if destination file already exists */
 			fp = fopen(filename, "rb");
 			if (fp) {

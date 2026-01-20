@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 
+#include "cmp_header.h"
+
 /* ====== Utility Macros  ====== */
 /** Convert a token to a string literal */
 #define CMP_QUOTE(str)            #str
@@ -35,7 +37,7 @@
 
 /* ====== Version Information ====== */
 #define CMP_VERSION_MAJOR   0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR   4 /**< minor part of the version ID */
+#define CMP_VERSION_MINOR   5 /**< minor part of the version ID */
 #define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
@@ -105,7 +107,7 @@ struct cmp_params {
 	enum cmp_preprocessing secondary_preprocessing; /**< Preprocessing for secondary passes */
 	enum cmp_encoder_type secondary_encoder_type;   /**< Encoder for secondary passes */
 	uint32_t secondary_encoder_param;               /**< Parameter for the secondary encoder */
-	uint32_t secondary_encoder_outlier; /**< Secondary parameter for CMP_ENCODER_GOLOMB_MULTI */
+	uint32_t secondary_encoder_outlier; /**< Secondary outlier parameter for CMP_ENCODER_GOLOMB_MULTI */
 	uint32_t model_rate; /**< Model adaptation rate (used with CMP_PREPROCESS_MODEL) */
 
 	/* Additional Options */
@@ -169,6 +171,7 @@ unsigned int cmp_is_error(uint32_t code);
  *
  * In this scenario the input data are not compressible. This function is
  * primarily useful for memory allocation purposes (destination buffer size).
+ * Assumes a worst case configuration.
  *
  * @param size	size of the data to compress
  *
@@ -178,6 +181,35 @@ unsigned int cmp_is_error(uint32_t code);
  */
 
 uint32_t cmp_compress_bound(uint32_t size);
+
+
+/**
+ * @brief Calculate the maximum buffer size required for uncompressed storage
+ *
+ * This macro is useful for (statical) allocation of the compression destination
+ * buffer when using uncompressed storage.
+ * It calculates the worst-case size required for storing data in uncompressed
+ * format, including the compression header and optional checksum.
+ *
+ * It helps prevent compression failures due to insufficient destination buffer
+ * space in the following scenarios:
+ * - When using the CMP_ENCODER_UNCOMPRESSED encoder
+ * - When uncompressed_fallback_enabled is set
+ *
+ * In all other compression scenarios, use cmp_compress_bound(), which provides
+ * an upper bound assuming the worst-case compression ratio.
+ *
+ * @param src_size	the size of the data to compress, in bytes
+ *
+ * @returns the buffer size needed for uncompressed storage, or SIZE_MAX if
+ *	the source size is too large (exceeds CMP_HDR_MAX_COMPRESSED_SIZE
+ *	after accounting for header and checksum overhead)
+ */
+
+#define CMP_UNCOMPRESSED_BOUND(src_size)                                                  \
+	((src_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
+		 (CMP_HDR_SIZE + (src_size) + CMP_CHECKSUM_SIZE) :                        \
+		 SIZE_MAX)
 
 
 /**
@@ -191,9 +223,9 @@ uint32_t cmp_compress_bound(uint32_t size);
  *			compress the data
  * @param src_size	size of a source data buffer in bytes
  *
- * @returns the minimum size needed for a compression working buffer (can be 0
- *	if no working buffer is needed) or an error, which can be checked using
- *	cmp_is_error()
+ * @returns the minimum size in bytes needed for a compression working buffer
+ *	(can be 0 if no working buffer is needed) or an error, which can be
+ *	checked using cmp_is_error()
  */
 
 uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size);

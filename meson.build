@@ -48,6 +48,7 @@ if use_debug
     '-Wformat-truncation',
     '-Wformat-security',
     '-Woverflow',
+    '-Wflex-array-member-not-at-end',
     '-Wdocumentation',
     '-Wmissing-declarations',
     '-Wmissing-prototypes',
