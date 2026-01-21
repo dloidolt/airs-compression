@@ -1,5 +1,32 @@
 [![AIRSPACE Logo](docs/AIRSPACE_Logo.svg)](https://github.com/uviespace/airs-compression)
 
+
+## [0.5.0](https://github.com/uviespace/airs-compression/compare/v0.4.0..v0.5.0) - 2026-01-20
+
+### 🚀 Features
+
+- *(cmp)* Add CMP_UNCOMPRESSED_BOUND macro - ([548bbca](https://github.com/uviespace/airs-compression/commit/548bbca6b163105f2145f9bff3f540e8dd2979db))
+
+### 🐛 Bug Fixes
+
+- *(cli)* Error message when output path is a directory - ([16743fe](https://github.com/uviespace/airs-compression/commit/16743fe08d11a0cd857a0262f82bd43a5b8a1a48))
+- *(compress)* Correct IWT boundary logic and input validation - ([61b5e10](https://github.com/uviespace/airs-compression/commit/61b5e10f436c6854b4f3bd23617e760d8949e33f))
+- Suppress snprintf warning on Linux ANSI C builds - ([cb2685a](https://github.com/uviespace/airs-compression/commit/cb2685a42f683f6eb212e82c30219917a73d11bc))
+
+### ✨ Refactor
+
+- *(test)* Use CMP_UNCOMPRESSED_BOUND macro in tests - ([c4dab3f](https://github.com/uviespace/airs-compression/commit/c4dab3f787dfbd4bcd0dd91e0a612e9a56053ff3))
+
+### 📚 Documentation
+
+- Clarify comments in cmp.h - ([cc16b61](https://github.com/uviespace/airs-compression/commit/cc16b61450cc5eab9d92cd46b70acb0a15ec0ac4))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(cli)* Add Dockerfile and .dockerignore - ([a221f05](https://github.com/uviespace/airs-compression/commit/a221f05dfd9138c74fd43fca9c04beac0248342e))
+- Add -Wflex-array-member-not-at-end warring - ([e420f18](https://github.com/uviespace/airs-compression/commit/e420f18bab23acb2f72d340ce3efc094b730ef18))
+- Bump version to v0.5.0 - ([f95c710](https://github.com/uviespace/airs-compression/commit/f95c7102082e69e9cbb3db15b0ea12a420e02ef7))
+
 ## [0.4.0](https://github.com/uviespace/airs-compression/compare/v0.3.0..v0.4.0) - 2025-10-22
 
 ### 🚀 Features
@@ -43,6 +70,7 @@
 - Refactor compiler flags to handle unit tests - ([80de616](https://github.com/uviespace/airs-compression/commit/80de616746923a3d9822962dff936162f791010e))
 - Define _POSIX_C_SOURCE=200809 for snprintf - ([99744d0](https://github.com/uviespace/airs-compression/commit/99744d09e4dc61f74d31c70116fddc0361d305d3))
 - Automate releases with GitHub Actions - ([def7947](https://github.com/uviespace/airs-compression/commit/def79470b99765e7acc720c3e2671809576651b8))
+
 ## [0.3.0](https://github.com/uviespace/airs-compression/compare/v0.2.0..v0.3.0) - 2025-06-23
 
 ### 🚀 Features
@@ -71,15 +99,12 @@
 - *(cmp)* Check for error codes passed as size parameters - ([2827f1e](https://github.com/uviespace/airs-compression/commit/2827f1ed0ebeb6131bb250871b7b587afbadbeff))
 - *(examples/simple_compression)* Improve error handling, simplify, and clarify - ([f1d20cd](https://github.com/uviespace/airs-compression/commit/f1d20cdb7eb89043f5d426465aec153bbeb2acff))
 - *(header)* Validate identifier and update timestamp error code - ([580273d](https://github.com/uviespace/airs-compression/commit/580273d7cb11170f134b8b126c03a4c47449dc7f))
+- Improve build and example - ([92d6e29](https://github.com/uviespace/airs-compression/commit/92d6e293c69b6a6e36ab289b3f7b8b895e26a74c))
 - Correct minor typos and inconsistencies - ([f4df9d9](https://github.com/uviespace/airs-compression/commit/f4df9d96807b8647149b52597902753aa625eb05))
 - Add explicit int16_t casts in diff/model preprocessors - ([fcc9495](https://github.com/uviespace/airs-compression/commit/fcc9495f7978e32473566130f9fdeeff9d4d60c0))
 - Enforce buffer alignment and add error handling for unaligned buffers - ([d707a97](https://github.com/uviespace/airs-compression/commit/d707a9708fe985488aca7cf69d1f0a4c0d860172))
 - Only set header fields when needed - ([e8e21be](https://github.com/uviespace/airs-compression/commit/e8e21befa3d92d92be21693ac94a4605fc04b0ea))
 - Some typos - ([1ba0133](https://github.com/uviespace/airs-compression/commit/1ba01335a494ec5f8d617164b52961eb460413c9))
-
-### 🔭 Other
-
-- Improve build and example - ([92d6e29](https://github.com/uviespace/airs-compression/commit/92d6e293c69b6a6e36ab289b3f7b8b895e26a74c))
 
 ### ✨ Refactor
 
@@ -119,6 +144,7 @@
 
 - Move dot program detection and fix compiler flag scope - ([0da2be0](https://github.com/uviespace/airs-compression/commit/0da2be00a39bc79df7d6d75728659604dd9c55d1))
 - Bump version to 0.3.0 - ([4fd4491](https://github.com/uviespace/airs-compression/commit/4fd449160520224d2078d7d9e213aab7ff5dd463))
+
 ## [0.2.0](https://github.com/uviespace/airs-compression/compare/v0.1.0..v0.2.0) - 2025-03-17
 
 ### 🚀 Features
@@ -171,7 +197,8 @@ Add a ⚠️ to CAUTION note - ([c1b4475](https://github.com/uviespace/airs-comp
 
 - *(meson)* Add Asciidoctor for HTML generation - ([0bf71e7](https://github.com/uviespace/airs-compression/commit/0bf71e70750c9cdee85fda5d34d4aa4d734a0031))
 - Add .clang-format configuration for Linux Kernel Style - ([6a11590](https://github.com/uviespace/airs-compression/commit/6a115906048992b3e52dad7a680bcd46920050b2))
-## [0.1.0] - 2025-02-04
+
+## [0.1.0]- 2025-02-04
 
 ### 🔭 Other
 
