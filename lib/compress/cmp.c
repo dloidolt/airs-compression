@@ -125,11 +125,18 @@ static uint16_t update_model(uint16_t data, uint16_t model, unsigned int model_r
 }
 
 
+static int model_is_needed(const struct cmp_params *params)
+{
+	return params->secondary_preprocessing == CMP_PREPROCESS_MODEL &&
+	       params->secondary_iterations != 0;
+}
+
+
 uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
 			uint32_t work_buf_size)
 {
 	uint32_t const min_src_size = 2;
-	uint32_t work_buf_needed;
+	uint32_t work_buf_size_needed;
 	uint32_t error_code;
 
 	if (ctx == NULL)
@@ -157,17 +164,16 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 						      params->secondary_encoder_outlier);
 		if (cmp_is_error_int(error_code))
 			return error_code;
-
-		if (params->model_rate > CMP_MAX_MODEL_RATE &&
-		    params->secondary_preprocessing == CMP_PREPROCESS_MODEL)
-			return CMP_ERROR(PARAMS_INVALID);
 	}
 
-	work_buf_needed = cmp_cal_work_buf_size(params, min_src_size);
-	if (cmp_is_error_int(work_buf_needed))
-		return work_buf_needed;
+	if (model_is_needed(params) && params->model_rate > CMP_MAX_MODEL_RATE)
+		return CMP_ERROR(PARAMS_INVALID);
 
-	if (work_buf_needed) {
+	work_buf_size_needed = cmp_cal_work_buf_size(params, min_src_size);
+	if (cmp_is_error_int(work_buf_size_needed))
+		return work_buf_size_needed;
+
+	if (work_buf_size_needed > 0) {
 		if (!work_buf)
 			return CMP_ERROR(WORK_BUF_NULL);
 		if (work_buf_size == 0)
@@ -198,7 +204,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
 	const struct preprocessing_method *preprocess;
-	int model_is_needed = 0;
+	uint16_t *model = NULL;
 	struct cmp_hdr hdr = { 0 };
 	uint32_t compress_bound;
 
@@ -220,18 +226,14 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 		 * When using model preprocessing the size of the data to
 		 * compression is not allowed to change unit a reset.
 		 */
-		if (ctx->params.secondary_preprocessing == CMP_PREPROCESS_MODEL &&
-		    src_size != ctx->model_size)
+		if (model_is_needed(&ctx->params) && src_size != ctx->model_size)
 			return CMP_ERROR(SRC_SIZE_MISMATCH);
 	}
 
-	/* Do we need a model? */
-	if (ctx->params.secondary_preprocessing == CMP_PREPROCESS_MODEL &&
-	    ctx->params.secondary_iterations != 0) {
-		model_is_needed = 1;
-
+	if (model_is_needed(&ctx->params)) {
 		if (ctx->work_buf_size < src_size)
 			return CMP_ERROR(WORK_BUF_TOO_SMALL);
+		model = ctx->work_buf;
 	}
 
 	ret = bitstream_writer_init(&bs, dst, dst_capacity);
@@ -282,9 +284,7 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 			if (cmp_is_error_int(bitstream_error(&bs)))
 				break;
 
-		if (model_is_needed) {
-			uint16_t *model = ctx->work_buf;
-
+		if (model) {
 			if (ctx->sequence_number == 0)
 				model[i] = src[i];
 			else
