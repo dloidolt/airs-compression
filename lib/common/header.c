@@ -13,6 +13,7 @@
 
 #include "header_private.h"
 #include "err_private.h"
+#include "sample_reader.h"
 #include "bitstream_writer.h"
 
 #define XXH_INLINE_ALL
@@ -133,23 +134,30 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 }
 
 
-uint32_t cmp_checksum(const uint16_t *data, uint32_t size)
+uint32_t cmp_checksum(const struct sample_desc *desc)
 {
-	if (XXH_CPU_LITTLE_ENDIAN) {
-		uint32_t i;
-		XXH32_state_t state;
+	uint32_t i;
+	XXH32_state_t state;
 
-		(void)XXH32_reset(&state, CHECKSUM_SEED);
-		/* Convert to big-endian to get consistent checksums across
-		 * different CPU architectures.
-		 */
-		for (i = 0; i < size / sizeof(*data); i++) {
-			uint16_t big_endian = __builtin_bswap16(data[i]);
+	/*
+	 * Fast path: on big-endian systems with contiguous data, we can hash
+	 * directly without byte swapping.
+	 */
+	if (!XXH_CPU_LITTLE_ENDIAN && (desc->type == CMP_I16 || desc->type == CMP_U16))
+		return XXH32(desc->data, desc->num_samples * sizeof(uint16_t), CHECKSUM_SEED);
 
-			(void)XXH32_update(&state, &big_endian, sizeof(data[i]));
-		}
-		return XXH32_digest(&state);
-	} else {
-		return XXH32(data, size, CHECKSUM_SEED);
+	/*
+	 * Slow path: convert each sample to big-endian for consistent checksums
+	 * across architectures.
+	 */
+	(void)XXH32_reset(&state, CHECKSUM_SEED);
+	for (i = 0; i < desc->num_samples; i++) {
+		uint16_t value = (uint16_t)sample_read_i16(desc, i);
+
+		if (XXH_CPU_LITTLE_ENDIAN)
+			value = __builtin_bswap16(value);
+
+		(void)XXH32_update(&state, &value, sizeof(value));
 	}
+	return XXH32_digest(&state);
 }

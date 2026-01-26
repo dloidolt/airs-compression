@@ -173,14 +173,15 @@ unsigned int cmp_is_error(uint32_t code);
  * primarily useful for memory allocation purposes (destination buffer size).
  * Assumes a worst case configuration.
  *
- * @param size	size of the data to compress
+ * @param packed_size	packed size of the data in bytes (same as src_size,
+ *			except for cmp_compress_i16_in_i32() where it's half)
  *
  * @returns the compressed size in the worst-case scenario or an error if the
  *	bound size is larger than the maximum compressed size
  *	(CMP_HDR_MAX_COMPRESSED_SIZE), which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_compress_bound(uint32_t size);
+uint32_t cmp_compress_bound(uint32_t packed_size);
 
 
 /**
@@ -200,16 +201,17 @@ uint32_t cmp_compress_bound(uint32_t size);
  * In all other compression scenarios, use cmp_compress_bound(), which provides
  * an upper bound assuming the worst-case compression ratio.
  *
- * @param src_size	the size of the data to compress, in bytes
+ * @param packed_size	packed size of the data in bytes (same as src_size,
+ *			except for cmp_compress_i16_in_i32() where it's half)
  *
  * @returns the buffer size needed for uncompressed storage, or SIZE_MAX if
  *	the source size is too large (exceeds CMP_HDR_MAX_COMPRESSED_SIZE
  *	after accounting for header and checksum overhead)
  */
 
-#define CMP_UNCOMPRESSED_BOUND(src_size)                                                  \
-	((src_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
-		 (CMP_HDR_SIZE + (src_size) + CMP_CHECKSUM_SIZE) :                        \
+#define CMP_UNCOMPRESSED_BOUND(packed_size)                                                  \
+	((packed_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
+		 (CMP_HDR_SIZE + (packed_size) + CMP_CHECKSUM_SIZE) :                        \
 		 SIZE_MAX)
 
 
@@ -281,6 +283,21 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 
 uint32_t cmp_compress_i16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			  const int16_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses 16-bit signed data packed in 32-bit words
+ *
+ * Same as cmp_compress_i16() but for int16_t data packed into int32_t words.
+ * Useful when data is stored in a 32-bit buffer but only the lower 16 bits are
+ * used.
+ *
+ * @note Only the lower 16 bits of each 32-bit word are used; the upper 16 bits
+ *	are ignored.
+ */
+
+uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				 const int32_t *src, uint32_t src_size);
 
 
 /**

@@ -13,6 +13,7 @@
 #include "preprocess.h"
 #include "encoder.h"
 #include "../cmp.h"
+#include "../common/sample_reader.h"
 #include "../common/err_private.h"
 #include "../common/bitstream_writer.h"
 #include "../common/header_private.h"
@@ -20,8 +21,6 @@
 #include "../common/compiler.h"
 
 #define CMP_MAGIC 34021395 /* arbitrary magic number I like */
-
-enum cmp_type { CMP_I16 = 0, CMP_U16 };
 
 
 /* Fallback monotonic counter implementation for g_get_timestamp() */
@@ -57,16 +56,16 @@ unsigned int cmp_is_error(uint32_t code)
 }
 
 
-uint32_t cmp_compress_bound(uint32_t src_size)
+uint32_t cmp_compress_bound(uint32_t packed_size)
 {
 	compile_time_assert(CMP_HDR_MAX_COMPRESSED_SIZE <= UINT32_MAX,
 			    max_compressed_bound_exceeds_uint32_max);
 	uint64_t bound;
 
-	if (src_size > CMP_HDR_MAX_ORIGINAL_SIZE)
+	if (packed_size > CMP_HDR_MAX_ORIGINAL_SIZE)
 		return (CMP_ERROR(HDR_ORIGINAL_TOO_LARGE));
 
-	bound = CMP_HDR_MAX_SIZE + CMP_CHECKSUM_SIZE + cmp_encoder_max_compressed_size(src_size);
+	bound = CMP_HDR_MAX_SIZE + CMP_CHECKSUM_SIZE + cmp_encoder_max_compressed_size(packed_size);
 
 	if (bound > CMP_HDR_MAX_COMPRESSED_SIZE)
 		return (CMP_ERROR(HDR_CMP_SIZE_TOO_LARGE));
@@ -134,6 +133,7 @@ static int16_t update_model(int16_t data, int16_t model, int model_rate, enum cm
 {
 	switch (dtype) {
 	case CMP_I16:
+	case CMP_I16_IN_I32:
 		return update_model_16(data, model, model_rate);
 	case CMP_U16:
 	default:
@@ -211,7 +211,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 
 /* Main compression loop */
 static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
-				const uint16_t *src, uint32_t src_size, enum cmp_type src_type)
+				const struct sample_desc *src_desc)
 {
 	uint32_t i, ret, n_values;
 	enum cmp_preprocessing selected_preprocessing;
@@ -221,7 +221,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
 	const struct preprocessing_method *preprocess;
-	uint16_t *model = NULL;
+	int16_t *model = NULL;
 	struct cmp_hdr hdr = { 0 };
 	uint32_t compress_bound;
 
@@ -233,7 +233,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 		selected_encoder_type = ctx->params.primary_encoder_type;
 		selected_encoder_param = ctx->params.primary_encoder_param;
 		selected_outlier = ctx->params.primary_encoder_outlier;
-		ctx->model_size = src_size;
+		ctx->model_size = get_packed_size(src_desc);
 	} else {
 		selected_preprocessing = ctx->params.secondary_preprocessing;
 		selected_encoder_type = ctx->params.secondary_encoder_type;
@@ -243,12 +243,12 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 		 * When using model preprocessing the size of the data to
 		 * compression is not allowed to change unit a reset.
 		 */
-		if (model_is_needed(&ctx->params) && src_size != ctx->model_size)
+		if (model_is_needed(&ctx->params) && get_packed_size(src_desc) != ctx->model_size)
 			return CMP_ERROR(SRC_SIZE_MISMATCH);
 	}
 
 	if (model_is_needed(&ctx->params)) {
-		if (ctx->work_buf_size < src_size)
+		if (ctx->work_buf_size < get_packed_size(src_desc))
 			return CMP_ERROR(WORK_BUF_TOO_SMALL);
 		model = ctx->work_buf;
 	}
@@ -264,7 +264,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 
 	hdr.version_flag = 1;
 	hdr.version_id = CMP_VERSION_NUMBER;
-	hdr.original_size = src_size;
+	hdr.original_size = get_packed_size(src_desc);
 	hdr.compressed_size = 0; /* place holder, not know right now */
 	hdr.identifier = ctx->identifier;
 	hdr.sequence_number = ctx->sequence_number;
@@ -281,7 +281,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	if (cmp_is_error_int(ret))
 		return ret;
 
-	compress_bound = cmp_compress_bound(src_size);
+	compress_bound = cmp_compress_bound(get_packed_size(src_desc));
 	if (cmp_is_error_int(compress_bound))
 		compress_bound = ~0U;
 
@@ -289,12 +289,12 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	n_values = preprocess->init(src, src_size, ctx->work_buf, ctx->work_buf_size);
+	n_values = preprocess->init(src_desc, ctx->work_buf, ctx->work_buf_size);
 	if (cmp_is_error_int(n_values))
 		return n_values;
 
 	for (i = 0; i < n_values; i++) {
-		int16_t const value = preprocess->process(i, src, ctx->work_buf);
+		int16_t const value = preprocess->process(i, src_desc, ctx->work_buf);
 
 		cmp_encoder_encode_s16(&enc, value, &bs);
 		if (dst_capacity < compress_bound)
@@ -303,15 +303,16 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 
 		if (model) {
 			if (ctx->sequence_number == 0)
-				model[i] = src[i];
+				model[i] = sample_read_i16(src_desc, i);
 			else
-				model[i] = update_model(src[i], model[i],
-							(int)ctx->params.model_rate, src_type);
+				model[i] = update_model(sample_read_i16(src_desc, i), model[i],
+							(int)ctx->params.model_rate,
+							src_desc->type);
 		}
 	}
 
 	if (ctx->params.checksum_enabled) {
-		uint32_t const checksum = cmp_checksum(src, src_size);
+		uint32_t const checksum = cmp_checksum(src_desc);
 
 		bitstream_pad_last_byte(&bs);
 		bitstream_add_bits32(&bs, checksum, bitsizeof(checksum));
@@ -339,9 +340,9 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 
 /* implements uncompressed fallback */
 static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
-				     const void *src, uint32_t src_size, enum cmp_type src_type)
+				     const struct sample_desc *src_desc)
 {
-	uint32_t uncompressed_size = CMP_HDR_SIZE + src_size;
+	uint32_t uncompressed_size = CMP_HDR_SIZE + get_packed_size(src_desc);
 	enum cmp_preprocessing saved_preprocessing;
 	enum cmp_encoder_type saved_encoder_type;
 	uint32_t ret;
@@ -360,14 +361,14 @@ static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_
 
 	/* Skip fallback if disabled or output buffer too small for uncompressed */
 	if (!ctx->params.uncompressed_fallback_enabled || dst_capacity < uncompressed_size)
-		return compress_engine(ctx, dst, dst_capacity, src, src_size, src_type);
+		return compress_engine(ctx, dst, dst_capacity, src_desc);
 
 	/*
 	 * Try compression with restricted buffer size. If data doesn't compress
 	 * well enough to fit in uncompressed_size bytes, we'll get a buffer
 	 * overflow error and fall back to uncompressed storage.
 	 */
-	ret = compress_engine(ctx, dst, uncompressed_size, src, src_size, src_type);
+	ret = compress_engine(ctx, dst, uncompressed_size, src_desc);
 	if (cmp_get_error_code(ret) != CMP_ERR_DST_TOO_SMALL)
 		return ret;
 
@@ -384,7 +385,7 @@ static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_
 	ctx->params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	ctx->params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 
-	ret = compress_engine(ctx, dst, uncompressed_size, src, src_size, src_type);
+	ret = compress_engine(ctx, dst, uncompressed_size, src_desc);
 
 	ctx->params.primary_preprocessing = saved_preprocessing;
 	ctx->params.primary_encoder_type = saved_encoder_type;
@@ -395,14 +396,42 @@ static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_
 uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			  const uint16_t *src, uint32_t src_size)
 {
-	return cmp_compress_generic(ctx, dst, dst_capacity, src, src_size, CMP_U16);
+	uint32_t error;
+	struct sample_desc src_desc;
+
+	error = sample_read_src_init(&src_desc, src, src_size, CMP_U16);
+	if (cmp_is_error(error))
+		return error;
+
+	return cmp_compress_generic(ctx, dst, dst_capacity, &src_desc);
 }
 
 
 uint32_t cmp_compress_i16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			  const int16_t *src, uint32_t src_size)
 {
-	return cmp_compress_generic(ctx, dst, dst_capacity, src, src_size, CMP_I16);
+	uint32_t error;
+	struct sample_desc src_desc;
+
+	error = sample_read_src_init(&src_desc, src, src_size, CMP_I16);
+	if (cmp_is_error(error))
+		return error;
+
+	return cmp_compress_generic(ctx, dst, dst_capacity, &src_desc);
+}
+
+
+uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				 const int32_t *src, uint32_t src_size)
+{
+	uint32_t error;
+	struct sample_desc src_desc;
+
+	error = sample_read_src_init(&src_desc, src, src_size, CMP_I16_IN_I32);
+	if (cmp_is_error(error))
+		return error;
+
+	return cmp_compress_generic(ctx, dst, dst_capacity, &src_desc);
 }
 
 

@@ -487,13 +487,16 @@ uint32_t get_checksum(const void *compressed_data, uint32_t size)
 void test_checksum_appended_to_compressed_data(void)
 {
 	const uint16_t src[] = { 0xCA, 0xFF, 0xEE };
+	struct sample_desc desc;
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
-	uint32_t const expected_checksum = cmp_checksum(src, sizeof(src));
+	uint32_t expected_checksum;
 	uint32_t dst_size;
 	struct cmp_context ctx;
 	struct cmp_params params = { 0 };
 	struct cmp_hdr expected_hdr = { 0 };
 
+	TEST_ASSERT_CMP_SUCCESS(sample_read_src_init(&desc, src, sizeof(src), CMP_U16));
+	expected_checksum = cmp_checksum(&desc);
 	params.checksum_enabled = 1;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 

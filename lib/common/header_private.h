@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 
+#include "sample_reader.h"
 #include "bitstream_writer.h"
 #include "../cmp.h"
 #include "../cmp_header.h"
@@ -105,12 +106,11 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 /**
  * @brief Calculates a checksum for an array of 16-bit values
  *
- * @param data	Pointer a data buffer (array of 16-bit values)
- * @param size	Size of the data buffer in bytes.
+ * @param desc	pointer to the sample descriptor
  *
  * @returns a 32-bit checksum of the data buffer
  */
 
-uint32_t cmp_checksum(const uint16_t *data, uint32_t size);
+uint32_t cmp_checksum(const struct sample_desc *desc);
 
 #endif /* CMP_HEADER_PRIVATE_H */

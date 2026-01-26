@@ -15,6 +15,7 @@
  *
  */
 
+#include "common/sample_reader.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -180,20 +181,37 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
  * @brief Performs a multi level integer wavelet transform (IWT) decomposition
  *	on int16_t data
  *
- * @param input		pointer to the input data
+ * @param src_desc	source data descriptor pointer
  * @param output	output buffer for decomposition coefficients (has to be
  *			same size as the input)
  * @param num_samples	number of int16_t samples in the input data buffer
  */
 
-static void iwt_multi_level_decomposition_i16(const int16_t *input, int16_t *output,
+static void iwt_multi_level_decomposition_i16(const struct sample_desc *src_desc, int16_t *output,
 					      size_t num_samples)
 {
+	const int16_t *input;
 	size_t stride;
 
 	if (num_samples == 1) {
-		output[0] = input[0];
+		output[0] = sample_read_i16(src_desc, 0);
 		return;
+	}
+
+	if (src_desc->type == CMP_I16_IN_I32) {
+		uint32_t i;
+		/*
+		 * For non-contiguous 16-bit samples stored in 32-bit words,
+		 * we need to pack them into a contiguous array first.
+		 * TODO: Optimize by adding a stride parameter to
+		 * iwt_single_level_i16() to process non-contiguous data
+		 * directly.
+		 */
+		for (i = 0; i < num_samples; i++)
+			output[i] = sample_read_i16(src_desc, i);
+		input = output;
+	} else {
+		input = src_desc->data;
 	}
 
 	for (stride = 1; stride < num_samples; stride <<= 1) {
@@ -221,8 +239,7 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
 /**
  * @brief Initializes none preprocessing
  *
- * @param src		pointer to the source data
- * @param src_size	size of the source data
+ * @param src_desc	source data descriptor pointer
  * @param work_buf	unused
  * @param work_buf_size	unused
  *
@@ -230,16 +247,10 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
  *	be checked with cmp_is_error()
  */
 
-static uint32_t none_init(const uint16_t *src, uint32_t src_size, void *work_buf UNUSED,
+static uint32_t none_init(const struct sample_desc *src_desc, void *work_buf UNUSED,
 			  uint32_t work_buf_size UNUSED)
 {
-	if (!src)
-		return CMP_ERROR(SRC_NULL);
-	if (src_size == 0)
-		return CMP_ERROR(SRC_SIZE_WRONG);
-	if (src_size % sizeof(uint16_t) != 0)
-		return CMP_ERROR(SRC_SIZE_WRONG);
-	return src_size / sizeof(uint16_t);
+	return src_desc->num_samples;
 }
 
 
@@ -247,15 +258,16 @@ static uint32_t none_init(const uint16_t *src, uint32_t src_size, void *work_buf
  * @brief Processes data with none preprocessing
  *
  * @param i		index of the data
- * @param src		pointer to the source data
+ * @param src_desc	source data descriptor pointer
+ *
  * @param work_buf	unused
  *
  * @returns the processed data at index i
  */
 
-static int16_t none_process(uint32_t i, const uint16_t *src, void *work_buf UNUSED)
+static int16_t none_process(uint32_t i, const struct sample_desc *src_desc, void *work_buf UNUSED)
 {
-	return (int16_t)src[i];
+	return sample_read_i16(src_desc, i);
 }
 
 
@@ -263,18 +275,18 @@ static int16_t none_process(uint32_t i, const uint16_t *src, void *work_buf UNUS
  * @brief Processes data using 1d difference preprocessing
  *
  * @param i		index of the data
- * @param src		pointer to the source data
+ * @param src_desc	source data descriptor pointer
  * @param work_buf	unused
  *
  * @returns the processed data at index i
  */
 
-static int16_t diff_process(uint32_t i, const uint16_t *src, void *work_buf UNUSED)
+static int16_t diff_process(uint32_t i, const struct sample_desc *src_desc, void *work_buf UNUSED)
 {
 	if (i == 0)
-		return (int16_t)src[0];
+		return sample_read_i16(src_desc, i);
 	else
-		return (int16_t)(src[i] - src[i - 1]);
+		return (int16_t)(sample_read_i16(src_desc, i) - sample_read_i16(src_desc, i - 1));
 }
 
 
@@ -298,8 +310,7 @@ static uint32_t iwt_get_work_buf_size(uint32_t input_size)
  * This function pre-calculates the IWT coefficient and put them in the working
  * buffer
  *
- * @param src		pointer to the source data
- * @param src_size	size of the source data
+ * @param src_desc	source data descriptor pointer
  * @param work_buf	pointer to the working buffer for temporary results
  * @param work_buf_size	size in bytes of the working buffer
  *
@@ -307,26 +318,20 @@ static uint32_t iwt_get_work_buf_size(uint32_t input_size)
  *	can be checked using cmp_is_error()).
  */
 
-static uint32_t iwt_init(const uint16_t *src, uint32_t src_size, void *work_buf,
-			 uint32_t work_buf_size)
+static uint32_t iwt_init(const struct sample_desc *src_desc, void *work_buf, uint32_t work_buf_size)
 {
-	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size);
-	const int16_t *input_data = (const int16_t *)src;
 	int16_t *pre_cal_coefficient = (int16_t *)work_buf;
-
-	if (cmp_is_error_int(num_samples))
-		return num_samples;
 
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < iwt_get_work_buf_size(src_size))
+	if (work_buf_size < iwt_get_work_buf_size(get_packed_size(src_desc)))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(*pre_cal_coefficient) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);
 
-	iwt_multi_level_decomposition_i16(input_data, pre_cal_coefficient, num_samples);
+	iwt_multi_level_decomposition_i16(src_desc, pre_cal_coefficient, src_desc->num_samples);
 
-	return num_samples;
+	return src_desc->num_samples;
 }
 
 
@@ -334,13 +339,13 @@ static uint32_t iwt_init(const uint16_t *src, uint32_t src_size, void *work_buf,
  * @brief Processes data using multi level IWT preprocessing
  *
  * @param i		index of the data
- * @param src		unused
+ * @param src_desc	unused (IWT coefficients are pre-calculated in work_buf)
  * @param work_buf	pointer to the working buffer
  *
  * @returns the processed data at index i
  */
 
-static int16_t iwt_process(uint32_t i, const uint16_t *src UNUSED, void *work_buf)
+static int16_t iwt_process(uint32_t i, const struct sample_desc *src_desc UNUSED, void *work_buf)
 {
 	int16_t *pre_cal_coefficient = work_buf;
 
@@ -365,8 +370,7 @@ static uint32_t model_get_work_buf_size(uint32_t input_size)
 /**
  * @brief Initializes model preprocessing
  *
- * @param src		pointer to the source data
- * @param src_size	size of the source data
+ * @param src_desc	source data descriptor pointer
  * @param work_buf	pointer to the buffer where the model to be subtracted
  *			from data is stored
  * @param work_buf_size	size in bytes of the working buffer
@@ -375,22 +379,17 @@ static uint32_t model_get_work_buf_size(uint32_t input_size)
  *	can be checked using cmp_is_error()).
  */
 
-static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_buf,
+static uint32_t model_init(const struct sample_desc *src_desc, void *work_buf,
 			   uint32_t work_buf_size)
 {
-	uint32_t const num_samples = none_init(src, src_size, work_buf, work_buf_size);
-
-	if (cmp_is_error_int(num_samples))
-		return num_samples;
-
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < model_get_work_buf_size(src_size))
+	if (work_buf_size < model_get_work_buf_size(get_packed_size(src_desc)))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);
 
-	return num_samples;
+	return src_desc->num_samples;
 }
 
 
@@ -398,17 +397,17 @@ static uint32_t model_init(const uint16_t *src, uint32_t src_size, void *work_bu
  * @brief Processes data using model preprocessing
  *
  * @param i		index of the data
- * @param src		pointer to the source data
- * @param work_buf	pointer to the working buffer
+ * @param src_desc	source data descriptor pointer
+ * @param work_buf	pointer to the working buffer containing the model
  *
  * @returns the processed data for the i-th data sample
  */
 
-static int16_t model_process(uint32_t i, const uint16_t *src, void *work_buf)
+static int16_t model_process(uint32_t i, const struct sample_desc *src_desc, void *work_buf)
 {
 	const uint16_t *model = work_buf;
 
-	return (int16_t)(src[i] - model[i]);
+	return (int16_t)(sample_read_i16(src_desc, i) - model[i]);
 }
 
 
