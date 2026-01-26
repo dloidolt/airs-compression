@@ -19,6 +19,11 @@
 #include "../lib/common/header_private.h"
 
 
+const uint16_t test_dummy_u16[2] = { 0x0001, 0x0203 };
+const int16_t test_dummy_i16[2] = { 0x0001, 0x0203 };
+const int32_t test_dummy_i16_in_i32[2] = { 0x0001, 0x0203 };
+
+
 const void *cmp_hdr_get_cmp_data(const void *header)
 {
 	struct cmp_hdr hdr;
@@ -135,15 +140,63 @@ void *t_malloc(size_t size)
 }
 
 
-uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
-			      uint32_t n)
+/* Create and initialize a test environment with compression context and buffers */
+struct test_env *make_env(struct cmp_params *params, uint32_t src_len)
 {
-	return cmp_compress_u16(ctx, dst, cap, (const uint16_t *)src, n);
+	struct test_env *e = t_malloc(sizeof(*e));
+	uint32_t work_len;
+
+	memset(e, 0, sizeof(*e));
+
+	work_len = cmp_cal_work_buf_size(params, src_len);
+	TEST_ASSERT_CMP_SUCCESS(work_len);
+	if (work_len)
+		e->work = t_malloc(work_len);
+
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&e->ctx, params, e->work, work_len));
+
+	if (params->primary_preprocessing == CMP_PREPROCESS_NONE &&
+	    params->secondary_preprocessing == CMP_PREPROCESS_NONE) {
+		if (params->primary_encoder_type == CMP_ENCODER_UNCOMPRESSED &&
+		    params->secondary_encoder_type == CMP_ENCODER_UNCOMPRESSED) {
+			e->dst_cap = (uint32_t)CMP_UNCOMPRESSED_BOUND(src_len);
+		} else {
+			e->dst_cap = CMP_HDR_MAX_SIZE + src_len;
+		}
+	} else {
+		e->dst_cap = cmp_compress_bound(src_len);
+	}
+	TEST_ASSERT_CMP_SUCCESS(e->dst_cap);
+	e->dst = t_malloc(e->dst_cap);
+
+	return e;
+}
+
+
+void free_env(struct test_env *e)
+{
+	free(e->dst);
+	free(e->work);
+	free(e);
+}
+
+
+uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
+			      uint32_t src_size)
+{
+	return cmp_compress_u16(ctx, dst, cap, src, src_size);
 }
 
 
 uint32_t compress_i16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
-			      uint32_t n)
+			      uint32_t src_size)
 {
-	return cmp_compress_i16(ctx, dst, cap, (const int16_t *)src, n);
+	return cmp_compress_i16(ctx, dst, cap, src, src_size);
+}
+
+
+uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap,
+				     const void *src, uint32_t src_size)
+{
+	return cmp_compress_i16_in_i32(ctx, dst, cap, src, src_size);
 }

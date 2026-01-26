@@ -15,6 +15,8 @@
 #include "../lib/common/compiler.h"
 #include "../lib/common/header_private.h"
 
+#define ARRAY_AND_SIZE(arr) (arr), sizeof(arr)
+
 /** uint8_t type with the required compression destination buffer alignment */
 #define DST_ALIGNED_U8 ALIGNED_TYPE(CMP_DST_ALIGNMENT, uint8_t)
 
@@ -124,16 +126,31 @@ const void *cmp_hdr_get_cmp_data(const void *header);
 void *t_malloc(size_t size);
 
 
+struct test_env {
+	void *dst;
+	void *work;
+	struct cmp_context ctx;
+	uint32_t dst_cap;
+};
+
+struct test_env *make_env(struct cmp_params *params, uint32_t src_len);
+void free_env(struct test_env *e);
+
 uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
 			      uint32_t n);
 uint32_t compress_i16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap, const void *src,
 			      uint32_t n);
+uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap,
+				     const void *src, uint32_t n);
 
-
-extern const uint16_t src_dummy_u16[2];
-extern const int16_t src_dummy_i16[2];
 typedef uint32_t (*compress_func_t)(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 				    const void *src, uint32_t src_size);
+
+
+extern const uint16_t test_dummy_u16[2];
+extern const int16_t test_dummy_i16[2];
+extern const int32_t test_dummy_i16_in_i32[2];
+
 extern const uint16_t model_input1_u16[5];
 extern const uint16_t model_input2_u16[5];
 extern const uint16_t model_input3_u16[5];
@@ -144,17 +161,28 @@ extern const int16_t model_input2_i16[7];
 extern const int16_t model_input3_i16[7];
 extern const int16_t expected_out_i16[7];
 
+extern const int32_t model_input1_i16_in_i32[7];
+extern const int32_t model_input2_i16_in_i32[7];
+extern const int32_t model_input3_i16_in_i32[7];
 
 extern const int16_t g_iwt_input_1[1];
+extern const int32_t g_iwt_input_1_i32[1];
 extern const int16_t g_iwt_exp_out_1[1];
 extern const int16_t g_iwt_input_2[2];
+extern const int32_t g_iwt_input_2_i32[2];
 extern const int16_t g_iwt_exp_out_2[2];
 extern const int16_t g_iwt_input_5[5];
+extern const int32_t g_iwt_input_5_i32[5];
 extern const int16_t g_iwt_exp_out_5[5];
 extern const int16_t g_iwt_input_7[7];
+extern const int32_t g_iwt_input_7_i32[7];
 extern const int16_t g_iwt_exp_out_7[7];
 extern const int16_t g_iwt_input_8[8];
+extern const int32_t g_iwt_input_8_i32[8];
 extern const int16_t g_iwt_exp_out_8[8];
 
+extern const uint16_t test_diff_u16[8];
+extern const int16_t test_diff_i16[8];
+extern const int32_t test_diff_i16_in_i32[8];
 
 #endif /* TEST_COMMON_H */
