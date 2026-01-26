@@ -186,14 +186,15 @@ uint32_t cmp_compress_bound(uint32_t size);
 /**
  * @brief Calculate the maximum buffer size required for uncompressed storage
  *
- * This macro is useful for (statical) allocation of the compression destination
+ * This macro is useful for (static) allocation of the compression destination
  * buffer when using uncompressed storage.
  * It calculates the worst-case size required for storing data in uncompressed
  * format, including the compression header and optional checksum.
  *
  * It helps prevent compression failures due to insufficient destination buffer
  * space in the following scenarios:
- * - When using the CMP_ENCODER_UNCOMPRESSED encoder
+ * - When explicitly using uncompressed mode (CMP_PREPROCESS_NONE with
+ *   CMP_ENCODER_UNCOMPRESSED)
  * - When uncompressed_fallback_enabled is set
  *
  * In all other compression scenarios, use cmp_compress_bound(), which provides
