@@ -260,7 +260,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 			uint32_t work_buf_size);
 
 /**
- * @brief Compresses an unsigned 16-bit data buffer
+ * @brief Compresses a signed 16-bit data buffer
  *
  * You can use this function repeatedly to compress more data of the same size.
  *
@@ -277,6 +277,16 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  *
  * @returns the compressed size or an error, which can be checked using
  *	cmp_is_error()
+ */
+
+uint32_t cmp_compress_i16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			  const int16_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses an unsigned 16-bit data buffer
+ *
+ * Same as cmp_compress_i16() but for uint16_t data.
  */
 
 uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,

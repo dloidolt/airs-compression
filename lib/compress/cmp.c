@@ -21,6 +21,8 @@
 
 #define CMP_MAGIC 34021395 /* arbitrary magic number I like */
 
+enum cmp_type { CMP_I16 = 0, CMP_U16 };
+
 
 /* Fallback monotonic counter implementation for g_get_timestamp() */
 static void fallback_get_timestamp(uint32_t *coarse, uint16_t *fine)
@@ -103,7 +105,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 
 
 /** Maximum allowed model adaptation rate parameter  */
-#define CMP_MAX_MODEL_RATE 16U
+#define CMP_MAX_MODEL_RATE 16
 
 /**
  * @brief Updates the model value based on new data and adaptation rate
@@ -116,12 +118,27 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
  * @returns the updated model value
  */
 
-static uint16_t update_model(uint16_t data, uint16_t model, unsigned int model_rate)
+static int16_t update_model_16(int32_t data, int32_t model, int model_rate)
 {
-	uint32_t const weighted_data = data * (CMP_MAX_MODEL_RATE - model_rate);
-	uint32_t const weighted_model = model * model_rate;
+#define MODEL_SHIFT_BITS 4
+	compile_time_assert(CMP_MAX_MODEL_RATE == 1 << MODEL_SHIFT_BITS,
+			    _CMP_MAX_MODEL_RATE_MODEL_SHIFT_BITS_mismatch);
+	int32_t const weighted_data = data * (CMP_MAX_MODEL_RATE - model_rate);
+	int32_t const weighted_model = model * model_rate;
 
-	return (uint16_t)((weighted_model + weighted_data) / CMP_MAX_MODEL_RATE);
+	return (int16_t)((weighted_model + weighted_data) >> MODEL_SHIFT_BITS);
+}
+
+
+static int16_t update_model(int16_t data, int16_t model, int model_rate, enum cmp_type dtype)
+{
+	switch (dtype) {
+	case CMP_I16:
+		return update_model_16(data, model, model_rate);
+	case CMP_U16:
+	default:
+		return update_model_16((uint16_t)data, (uint16_t)model, model_rate);
+	}
 }
 
 
@@ -193,8 +210,8 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 
 
 /* Main compression loop */
-static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
-				    const uint16_t *src, uint32_t src_size)
+static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				const uint16_t *src, uint32_t src_size, enum cmp_type src_type)
 {
 	uint32_t i, ret, n_values;
 	enum cmp_preprocessing selected_preprocessing;
@@ -288,7 +305,8 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 			if (ctx->sequence_number == 0)
 				model[i] = src[i];
 			else
-				model[i] = update_model(src[i], model[i], ctx->params.model_rate);
+				model[i] = update_model(src[i], model[i],
+							(int)ctx->params.model_rate, src_type);
 		}
 	}
 
@@ -320,8 +338,8 @@ static uint32_t compress_u16_engine(struct cmp_context *ctx, void *dst, uint32_t
 
 
 /* implements uncompressed fallback */
-uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
-			  const uint16_t *src, uint32_t src_size)
+static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				     const void *src, uint32_t src_size, enum cmp_type src_type)
 {
 	uint32_t uncompressed_size = CMP_HDR_SIZE + src_size;
 	enum cmp_preprocessing saved_preprocessing;
@@ -342,14 +360,14 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 	/* Skip fallback if disabled or output buffer too small for uncompressed */
 	if (!ctx->params.uncompressed_fallback_enabled || dst_capacity < uncompressed_size)
-		return compress_u16_engine(ctx, dst, dst_capacity, src, src_size);
+		return compress_engine(ctx, dst, dst_capacity, src, src_size, src_type);
 
 	/*
 	 * Try compression with restricted buffer size. If data doesn't compress
 	 * well enough to fit in uncompressed_size bytes, we'll get a buffer
 	 * overflow error and fall back to uncompressed storage.
 	 */
-	ret = compress_u16_engine(ctx, dst, uncompressed_size, src, src_size);
+	ret = compress_engine(ctx, dst, uncompressed_size, src, src_size, src_type);
 	if (cmp_get_error_code(ret) != CMP_ERR_DST_TOO_SMALL)
 		return ret;
 
@@ -366,11 +384,25 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 	ctx->params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	ctx->params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
 
-	ret = compress_u16_engine(ctx, dst, uncompressed_size, src, src_size);
+	ret = compress_engine(ctx, dst, uncompressed_size, src, src_size, src_type);
 
 	ctx->params.primary_preprocessing = saved_preprocessing;
 	ctx->params.primary_encoder_type = saved_encoder_type;
 	return ret;
+}
+
+
+uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			  const uint16_t *src, uint32_t src_size)
+{
+	return cmp_compress_generic(ctx, dst, dst_capacity, src, src_size, CMP_U16);
+}
+
+
+uint32_t cmp_compress_i16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			  const int16_t *src, uint32_t src_size)
+{
+	return cmp_compress_generic(ctx, dst, dst_capacity, src, src_size, CMP_I16);
 }
 
 
