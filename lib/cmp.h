@@ -37,7 +37,7 @@
 
 /* ====== Version Information ====== */
 #define CMP_VERSION_MAJOR   0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR   5 /**< minor part of the version ID */
+#define CMP_VERSION_MINOR   6 /**< minor part of the version ID */
 #define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
@@ -173,42 +173,45 @@ unsigned int cmp_is_error(uint32_t code);
  * primarily useful for memory allocation purposes (destination buffer size).
  * Assumes a worst case configuration.
  *
- * @param size	size of the data to compress
+ * @param packed_size	packed size of the data in bytes (same as src_size,
+ *			except for cmp_compress_i16_in_i32() where it's half)
  *
  * @returns the compressed size in the worst-case scenario or an error if the
  *	bound size is larger than the maximum compressed size
  *	(CMP_HDR_MAX_COMPRESSED_SIZE), which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_compress_bound(uint32_t size);
+uint32_t cmp_compress_bound(uint32_t packed_size);
 
 
 /**
  * @brief Calculate the maximum buffer size required for uncompressed storage
  *
- * This macro is useful for (statical) allocation of the compression destination
+ * This macro is useful for (static) allocation of the compression destination
  * buffer when using uncompressed storage.
  * It calculates the worst-case size required for storing data in uncompressed
  * format, including the compression header and optional checksum.
  *
  * It helps prevent compression failures due to insufficient destination buffer
  * space in the following scenarios:
- * - When using the CMP_ENCODER_UNCOMPRESSED encoder
+ * - When explicitly using uncompressed mode (CMP_PREPROCESS_NONE with
+ *   CMP_ENCODER_UNCOMPRESSED)
  * - When uncompressed_fallback_enabled is set
  *
  * In all other compression scenarios, use cmp_compress_bound(), which provides
  * an upper bound assuming the worst-case compression ratio.
  *
- * @param src_size	the size of the data to compress, in bytes
+ * @param packed_size	packed size of the data in bytes (same as src_size,
+ *			except for cmp_compress_i16_in_i32() where it's half)
  *
  * @returns the buffer size needed for uncompressed storage, or SIZE_MAX if
  *	the source size is too large (exceeds CMP_HDR_MAX_COMPRESSED_SIZE
  *	after accounting for header and checksum overhead)
  */
 
-#define CMP_UNCOMPRESSED_BOUND(src_size)                                                  \
-	((src_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
-		 (CMP_HDR_SIZE + (src_size) + CMP_CHECKSUM_SIZE) :                        \
+#define CMP_UNCOMPRESSED_BOUND(packed_size)                                                  \
+	((packed_size) <= (CMP_HDR_MAX_COMPRESSED_SIZE - CMP_HDR_SIZE - CMP_CHECKSUM_SIZE) ? \
+		 (CMP_HDR_SIZE + (packed_size) + CMP_CHECKSUM_SIZE) :                        \
 		 SIZE_MAX)
 
 
@@ -259,7 +262,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 			uint32_t work_buf_size);
 
 /**
- * @brief Compresses an unsigned 16-bit data buffer
+ * @brief Compresses a signed 16-bit data buffer
  *
  * You can use this function repeatedly to compress more data of the same size.
  *
@@ -276,6 +279,31 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  *
  * @returns the compressed size or an error, which can be checked using
  *	cmp_is_error()
+ */
+
+uint32_t cmp_compress_i16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			  const int16_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses 16-bit signed data packed in 32-bit words
+ *
+ * Same as cmp_compress_i16() but for int16_t data packed into int32_t words.
+ * Useful when data is stored in a 32-bit buffer but only the lower 16 bits are
+ * used.
+ *
+ * @note Only the lower 16 bits of each 32-bit word are used; the upper 16 bits
+ *	are ignored.
+ */
+
+uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+				 const int32_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses an unsigned 16-bit data buffer
+ *
+ * Same as cmp_compress_i16() but for uint16_t data.
  */
 
 uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,

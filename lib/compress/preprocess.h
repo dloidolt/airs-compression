@@ -13,7 +13,7 @@
  * if (preprocess == NULL)
  *	return -1; /1* Handle error: Preprocessing method not found *1/
  *
- * uint32_t n_values = preprocess->init(src, src_size, work_buf, work_buf_size);
+ * uint32_t n_values = preprocess->init(src, work_buf, work_buf_size);
  * if (cmp_is_error_int(n_values))  /1* Handle error: Preprocessing initialization failed *1/
  *	return n_values;
  *
@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 #include "../cmp.h"
+#include "../common/sample_reader.h"
 
 
 /**
@@ -50,9 +51,9 @@
 struct preprocessing_method {
 	enum cmp_preprocessing type;
 	uint32_t (*get_work_buf_size)(uint32_t input_size);
-	uint32_t (*init)(const uint16_t *src, uint32_t src_size, void *work_buf,
+	uint32_t (*init)(const struct sample_desc *src_desc, void *work_buf,
 			 uint32_t work_buf_size);
-	int16_t (*process)(uint32_t i, const uint16_t *src, void *work_buf);
+	int16_t (*process)(uint32_t i, const struct sample_desc *src_desc, void *work_buf);
 };
 
 
