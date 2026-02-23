@@ -37,7 +37,8 @@ jobs:
           sudo apt-get -y --no-install-recommends install \
             build-essential \
             ninja-build \
-            ruby
+            ruby \
+            pkg-config
           pip install meson
 
       - name: Version consistency check
@@ -56,6 +57,7 @@ jobs:
           set -euo pipefail
           CC=gcc
           TARGET_ARCH=$($CC -dumpmachine)
+          echo "TARGET_ARCH=$TARGET_ARCH" >> "$GITHUB_ENV"
           meson setup ${{ env.BUILD_DIR }} \
             --buildtype=release \
             --prefix="/${{ env.PROJECT_NAME }}-${GITHUB_REF_NAME#v}" \
@@ -72,6 +74,17 @@ jobs:
             --skip-subprojects \
             --tags devel,runtime,bin
 
+      - name: Test examples with installed library
+        run: |
+          export PKG_CONFIG_PATH="${{ env.ARTIFACT_DIR }}/${{ env.PROJECT_NAME }}-${GITHUB_REF_NAME#v}/lib/${{ env.TARGET_ARCH }}/pkgconfig:${PKG_CONFIG_PATH:-}"
+          echo "PKTPKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          pkg-config --exists cmp || (echo "ERROR: cmp not found via pkg-config" && exit 1)
+          echo "Library flags: $(pkg-config --libs cmp)"
+          echo "Include flags: $(pkg-config --cflags cmp)"
+          meson setup build_examples_test subprojects/examples
+          meson compile -C build_examples_test
+          meson test -C build_examples_test --print-errorlogs
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -85,7 +98,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: logs-native-linux
-          path: ${{ env.BUILD_DIR }}/meson-logs
+          path: |
+            ${{ env.BUILD_DIR }}/meson-logs
+            build_examples_test/meson-logs
           retention-days: 7
 
   build-bcc-cross:
@@ -113,7 +128,8 @@ jobs:
             ninja-build \
             doxygen \
             graphviz \
-            ruby
+            ruby \
+            pkg-config
           pip install meson
 
       - name: Restore BCC toolchain cache
@@ -133,7 +149,7 @@ jobs:
 
           echo "Downloading BCC toolchain from ${DOWNLOAD_URL}"
           wget -v -c -O "${DOWNLOAD_PATH}" "${DOWNLOAD_URL}"
-          sudo tar -xJvf "${DOWNLOAD_PATH}" -C /opt
+          sudo tar -xJf "${DOWNLOAD_PATH}" -C /opt
 
       - name: Setup BCC toolchain path
         run: |
@@ -148,12 +164,24 @@ jobs:
             -Ddebug=false \
             --prefix="/${{ env.PROJECT_NAME }}-${GITHUB_REF_NAME#v}"
 
-      - name: Install artifacts
+      - name: Install artifacts for packaging
         run: |
           meson install -C ${{ env.BUILD_DIR }} \
             --destdir "${{ env.ARTIFACT_DIR }}" \
             --tags devel,doc \
             --skip-subprojects
+
+      - name: Test examples with installed library
+        run: |
+          export PKG_CONFIG_PATH="${{ env.ARTIFACT_DIR }}/${{ env.PROJECT_NAME }}-${GITHUB_REF_NAME#v}/lib/sparc-gaisler-elf/gr712rc/pkgconfig:${PKG_CONFIG_PATH:-}"
+          echo "PKTPKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          pkg-config --exists cmp || (echo "ERROR: cmp not found via pkg-config" && exit 1)
+          echo "Library flags: $(pkg-config --libs cmp)"
+          echo "Include flags: $(pkg-config --cflags cmp)"
+          meson setup build_examples_test subprojects/examples \
+            --cross-file cross/bcc2-gcc-gr712rc.txt
+          meson compile -C build_examples_test
+
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -168,7 +196,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: logs-bcc-cross
-          path: ${{ env.BUILD_DIR }}/meson-logs
+          path: |
+            ${{ env.BUILD_DIR }}/meson-logs
+            build_examples_test/meson-logs
           retention-days: 7
 
   create-release:
