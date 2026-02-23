@@ -15,5 +15,12 @@ cmp_lib = static_library('cmp',
   implicit_include_directories: false,
   install: true)
 
+# Export as dependency for subprojects
+cmp_dep = declare_dependency(
+  link_with : cmp_lib,
+  include_directories : inc_cmp
+)
+meson.override_dependency('cmp', cmp_dep, static: true)
+
 pkg = import('pkgconfig')
 pkg.generate(cmp_lib, description: 'AIRSPACE compression static library')

@@ -85,12 +85,12 @@ if asciidoctor.found()
   )
 endif
 
-
 subdir('lib')
 subdir('programs')
-subdir('examples')
 subdir('test')
 subdir('docs')
+
+subproject('examples')
 
 summary({
   'Ruby found' : ruby.found(),
