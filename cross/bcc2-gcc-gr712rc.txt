@@ -6,6 +6,7 @@ c = 'sparc-gaisler-elf-gcc'
 cpp = 'sparc-gaisler-elf-g++'
 ar = 'sparc-gaisler-elf-ar'
 strip = 'sparc-gaisler-elf-strip'
+pkg-config = 'pkg-config'
 
 [host_machine]
 system = 'baremetal'
