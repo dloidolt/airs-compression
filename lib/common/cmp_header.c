@@ -8,6 +8,7 @@
  */
 
 
+#include "compiler.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -93,16 +94,31 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 {
 	const uint8_t *start = src;
 	uint8_t prepros_enc_type_odt;
+	compile_time_assert(CMP_HDR_OFFSET_VERSION == 0, expext_hdr_to_be_first_field);
+	compile_time_assert(CMP_HDR_BITS_VERSION == 16, expext_hdr_to_be_2_bytes_large);
 
 	if (!hdr)
 		return CMP_ERROR(INT_HDR);
-	if (!src)
-		return CMP_ERROR(INT_HDR);
-	if (src_size < CMP_HDR_SIZE)
-		return CMP_ERROR(INT_HDR);
 	memset(hdr, 0x00, sizeof(*hdr));
 
+	if (!src)
+		return CMP_ERROR(SRC_NULL);
+
+	if (src_size < CMP_HDR_BITS_VERSION / 8)
+		return CMP_ERROR(SRC_SIZE_WRONG);
+
 	hdr->version = extract_u16be(start + CMP_HDR_OFFSET_VERSION);
+	/*
+	 * In early versions the first bit was used to indicate that the
+	 * compression library was used to create the header.
+	 * Let's ignore it and mask it out.
+	 */
+	if ((hdr->version & 0x7FFF) < CMP_MIN_SUPPORTED_VERSION)
+		return CMP_ERROR(HDR_UNSUPPORTED);
+
+	if (src_size < CMP_HDR_SIZE)
+		return CMP_ERROR(SRC_SIZE_WRONG);
+
 	hdr->compressed_size = extract_u24be(start + CMP_HDR_OFFSET_COMPRESSED_SIZE);
 	hdr->original_size = extract_u24be(start + CMP_HDR_OFFSET_ORIGINAL_SIZE);
 

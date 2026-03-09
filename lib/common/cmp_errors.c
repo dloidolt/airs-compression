@@ -10,9 +10,16 @@
 
 #include <stdint.h>
 
+#include "../cmp.h"
 #include "../cmp_errors.h"
 #include "err_private.h"
 
+/* clang-format off */
+#define CMP_MIN_SUPPORTED_VERSION_STR                             \
+	CMP_EXPAND_AND_QUOTE(CMP_MIN_SUPPORTED_VERSION_MAJOR) "." \
+	CMP_EXPAND_AND_QUOTE(CMP_MIN_SUPPORTED_VERSION_MINOR) "." \
+	CMP_EXPAND_AND_QUOTE(CMP_MIN_SUPPORTED_VERSION_RELEASE)
+/* clang-format on */
 
 enum cmp_error cmp_get_error_code(uint32_t code)
 {
@@ -65,6 +72,8 @@ const char *cmp_get_error_string(enum cmp_error code)
 		return "Compressed size exceeds header field limit";
 	case CMP_ERR_HDR_ORIGINAL_TOO_LARGE:
 		return "Original size exceeds header field limit";
+	case CMP_ERR_HDR_UNSUPPORTED:
+		return "Unsupported compression version; minimum supported version: v" CMP_MIN_SUPPORTED_VERSION_STR;
 
 	case CMP_ERR_CONTEXT_INVALID:
 		return "Compression context uninitialised or corrupted";
