@@ -285,7 +285,7 @@ STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s)
 		return r;
 
 	for (; i < s.len; i++) {
-		uint32_t const d = s.s[i] - '0';
+		uint32_t const d = (uint32_t)(s.s[i] - '0');
 
 		if (d > 9)
 			return r; /* Not a digit */

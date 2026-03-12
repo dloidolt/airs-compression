@@ -66,7 +66,7 @@ static __inline int16_t floor_division_by_4(int32_t dividend)
 
 static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_t right)
 {
-	return centre - floor_division_by_2(left + right);
+	return (int16_t)(centre - floor_division_by_2(left + right));
 }
 
 
@@ -81,7 +81,7 @@ static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_
 
 static __inline int16_t iwt_last_odd_coefficient(int16_t centre, int16_t left)
 {
-	return centre - left;
+	return (int16_t)(centre - left);
 }
 
 
@@ -98,7 +98,7 @@ static __inline int16_t iwt_last_odd_coefficient(int16_t centre, int16_t left)
 static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_left,
 					     int16_t odd_coef_right)
 {
-	return centre + floor_division_by_4(odd_coef_left + odd_coef_right);
+	return (int16_t)(centre + floor_division_by_4(odd_coef_left + odd_coef_right));
 }
 
 
@@ -113,7 +113,7 @@ static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_le
 
 static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_coef_neighbour)
 {
-	return centre + floor_division_by_2(odd_coef_neighbour);
+	return (int16_t)(centre + floor_division_by_2(odd_coef_neighbour));
 }
 
 
