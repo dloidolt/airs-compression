@@ -47,14 +47,15 @@ struct s8 {
 
 /* Utility macros */
 #define S8_COUNTOF(a) ((ptrdiff_t)(sizeof(a) / sizeof(*(a))))
+
 /** Creates string slice from string literal @warning: do not use it with pointers! */
-#define S8(s) { (const unsigned char *)s, S8_COUNTOF(s) - 1 }
+#define S8(s) { (const unsigned char *)(s), S8_COUNTOF(s) - 1 }
 
 /**
  * printf format specifier for a string slice
  * Example: printf("my_s8: %" PRIs8 "\n", S8_PARG(my_s8));
  */
-#define PRIs8 "%.*s"
+#define PRIs8      "%.*s"
 /** Expands a string slice into the arguments required by PRIs8 */
 #define S8_PARG(x) (int)(x).len, (const char *)(x).s
 
@@ -148,7 +149,7 @@ STR_SLICE_API struct s8 s8_span(const unsigned char *beg, const unsigned char *e
 	assert(beg);
 	assert(end);
 	assert(end >= beg);
-	r.s = (const unsigned char *)beg;
+	r.s = beg;
 	r.len = end - beg;
 	return r;
 }
@@ -290,7 +291,7 @@ STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s)
 			return r; /* Not a digit */
 		if (value > (UINT32_MAX - d) / 10)
 			return r;
-		value = value * 10 + d;
+		value = (value * 10) + d;
 	}
 
 	r.value = value;

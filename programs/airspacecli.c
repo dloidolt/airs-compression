@@ -99,10 +99,12 @@ static void log_file_status(enum log_level level, const char *input_filename, ui
 	struct hr_fmt const hr_i = util_make_human_readable(input_size, verbose);
 	struct hr_fmt const hr_o = util_make_human_readable(output_size, verbose);
 
+	/* clang-format off */
 	LOG_PLAIN(level, "%s: %.2f%% (%.*f%s => %.*f%s, %s)\n", input_filename,
 		  (double)output_size / (double)input_size * 100.0,
 		  hr_i.precision, hr_i.value, hr_i.suffix,
 		  hr_o.precision, hr_o.value, hr_o.suffix, output_name);
+	/* clang-format on */
 }
 
 
@@ -120,10 +122,12 @@ static void log_summery(const char **input_files, int num_files, size_t sum_inpu
 		struct hr_fmt const hr_i_sum = util_make_human_readable(sum_input_size, verbose);
 		struct hr_fmt const hr_o_sum = util_make_human_readable(sum_output_size, verbose);
 
+		/* clang-format off */
 		LOG_PLAIN(LOG_LEVEL_INFO, "%d files compressed: %.2f%% (%.*f%s => %.*f%s)\n",
 			  num_files, (double)sum_output_size / (double)sum_input_size * 100.0,
 			  hr_i_sum.precision, hr_i_sum.value, hr_i_sum.suffix,
 			  hr_o_sum.precision, hr_o_sum.value, hr_o_sum.suffix);
+		/* clang-format on */
 	}
 }
 
@@ -229,7 +233,7 @@ static const char **allocate_file_list(char **argv, int argc, int *list_len, int
 	*is_reading_stdin = 0;
 
 	*list_len = (argc == 0) ? 1 : argc;
-	list = malloc_safe((size_t)*list_len * sizeof(*list));
+	list = (const char **)malloc_safe((size_t)*list_len * sizeof(*list));
 
 	if (argc == 0) {
 		list[0] = STD_IN_MARK;
@@ -341,7 +345,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			if (cmp_params_parse(optarg, &params) != CMP_PARSE_OK) {
-				LOG_ERROR("Incorrect parameter option: %s", argv[optind-1]);
+				LOG_ERROR("Incorrect parameter option: %s", argv[optind - 1]);
 				return EXIT_FAILURE;
 			}
 			break;
@@ -427,7 +431,7 @@ int main(int argc, char *argv[])
 	}
 
 end:
-	free(input_files);
+	free((void *)input_files);
 
 	return return_val;
 }

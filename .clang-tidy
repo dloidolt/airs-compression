@@ -1,0 +1,44 @@
+Checks:
+  # Use all checks
+  - '*'
+  # Except the following checks
+  # Vendor-specific and portability checks
+  - '-altera-*'         # OpenCL programming for FPGAs
+  - '-android-*'
+  - '-llvmlibc-*'        # LLVM libc-specific
+  # conflicts with Linux kernel coding style
+  - '-*-braces-around-statements'
+  - '-readability-identifier-length'
+  - '-readability-isolate-declaration'
+  - '-cppcoreguidelines-init-variables'
+  - '-llvm-include-order'
+  - '-llvm-header-guard'
+  # too noisy checks
+  - '-*-magic-numbers'
+  - '-bugprone-easily-swappable-parameters'
+  - '-hicpp-signed-bitwise'
+  - '-cppcoreguidelines-avoid-non-const-global-variables'
+
+  # sometime useful; often false positive
+  # - '-*-macro-to-enum'
+  # - '-cert-err33-c'
+  # - '-concurrency-mt-unsafe'
+  # - '-misc-include-cleaner'
+  # - '-readability-function-cognitive-complexity'
+WarningsAsErrors: ''
+HeaderFileExtensions:
+  - ''
+  - h
+  - hh
+  - hpp
+  - hxx
+ImplementationFileExtensions:
+  - c
+  - cc
+  - cpp
+  - cxx
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '.*/xxhash\.h$'
+FormatStyle:     file
+CheckOptions:    {}
+SystemHeaders:   false

@@ -2,6 +2,7 @@
 #define SAMPLE_READER_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "../cmp.h"
 #include "err_private.h"
@@ -61,7 +62,7 @@ static __inline uint32_t sample_read_src_init(struct sample_desc *src_desc, cons
 
 static __inline int16_t sample_read_i16(const struct sample_desc *desc, uint32_t i)
 {
-	const void *addr = (const uint8_t *)desc->data + (i * desc->stride);
+	const void *addr = (const uint8_t *)desc->data + ((size_t)i * desc->stride);
 
 	/* Assume samples size == stride size */
 	if (desc->stride == sizeof(int32_t))

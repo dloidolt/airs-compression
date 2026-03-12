@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "../cmp.h"
 #include "../cmp_header.h"
 #include "header_private.h"
 #include "err_private.h"

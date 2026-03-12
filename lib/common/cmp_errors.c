@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "../cmp.h"
+#include "../cmp_header.h"
 #include "../cmp_errors.h"
 #include "err_private.h"
 

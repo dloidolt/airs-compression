@@ -59,7 +59,7 @@ static __inline void *arena_alloc(struct arena *a, ptrdiff_t count, ptrdiff_t si
 		oom();
 
 	r = a->beg + padding;
-	a->beg += padding + count * size;
+	a->beg += padding + (count * size);
 	memset(r, 0, (size_t)(count * size));
 	return r;
 }

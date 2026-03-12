@@ -27,7 +27,7 @@
 
 #define CMP_DST_ALIGNMENT sizeof(uint64_t)
 
-#if defined(__BIG_ENDIAN)
+#ifdef __BIG_ENDIAN
 #  define BITSTREAM_IS_CPU_BIG_ENDIAN 1
 #elif defined(__LITTLE_ENDIAN)
 #  define BITSTREAM_IS_CPU_BIG_ENDIAN 0
@@ -348,7 +348,7 @@ static __inline uint32_t bitstream_size(const struct bitstream_writer *bs)
 	if (cmp_is_error_int(bitstream_error(bs)))
 		return bitstream_error(bs);
 
-	return (uint32_t)(bs->ptr - bs->start) + (64 - (uint32_t)bs->bit_cap + 7) / 8;
+	return (uint32_t)(bs->ptr - bs->start) + ((64 - (uint32_t)bs->bit_cap + 7) / 8);
 }
 
 

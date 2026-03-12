@@ -48,11 +48,11 @@ enum cmp_parse_status cmp_params_parse(const char *str, struct cmp_params *param
 /**
  * @brief serializes a struct cmp_params into a human-readable string
  *
- * @param perm	pointer to an arena used to build the output string
+ * @param a	pointer to an arena used to build the output string
  * @param par	pointer to the compression values to stringify
  *
  * @returns a pointer to a NUL-terminated string allocated within 'perm'
  */
-const char *cmp_params_to_string(struct arena *perm, const struct cmp_params *par);
+const char *cmp_params_to_string(struct arena *a, const struct cmp_params *par);
 
 #endif /* PARAMS_PARSE_H */

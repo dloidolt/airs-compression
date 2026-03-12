@@ -34,6 +34,7 @@
 #  define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
+/* NOLINTBEGIN(bugprone-reserved-identifier, cert-dcl37-c, cert-dcl51-cpp) */
 #ifdef __BIG_ENDIAN
 #  undef __BIG_ENDIAN
 #endif
@@ -344,5 +345,5 @@ static __inline void __swab64s(uint64_t *p)
 #define be32_to_cpus __be32_to_cpus
 #define be64_to_cpus __be64_to_cpus
 
-
+/* NOLINTEND(bugprone-reserved-identifier, cert-dcl37-c, cert-dcl51-cpp) */
 #endif /* BYTEORDER_H */

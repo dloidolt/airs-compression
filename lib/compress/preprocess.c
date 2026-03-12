@@ -15,12 +15,12 @@
  *
  */
 
-#include "common/sample_reader.h"
 #include <stdint.h>
 #include <stddef.h>
 
 #include "preprocess.h"
 #include "../cmp.h"
+#include "../common/sample_reader.h"
 #include "../common/compiler.h"
 #include "../common/err_private.h"
 
@@ -162,8 +162,8 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
 	y[0] = iwt_edge_even_coefficient(x[0], y[s]);
 
 	/* Process the coefficients in the middle */
-	for (i = 2 * s; i < n - 2 * s; i += 2 * s) {
-		y[i + s] = iwt_odd_coefficient(x[i + s], x[i], x[i + 2 * s]);
+	for (i = 2 * s; i < n - (2 * s); i += 2 * s) {
+		y[i + s] = iwt_odd_coefficient(x[i + s], x[i], x[i + (2 * s)]);
 		y[i] = iwt_even_coefficient(x[i], y[i - s], y[i + s]);
 	}
 
@@ -285,8 +285,8 @@ static int16_t diff_process(uint32_t i, const struct sample_desc *src_desc, void
 {
 	if (i == 0)
 		return sample_read_i16(src_desc, i);
-	else
-		return (int16_t)(sample_read_i16(src_desc, i) - sample_read_i16(src_desc, i - 1));
+
+	return (int16_t)(sample_read_i16(src_desc, i) - sample_read_i16(src_desc, i - 1));
 }
 
 

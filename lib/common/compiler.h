@@ -31,7 +31,9 @@
 /**
  * @brief a C89 compile time assertion mechanism
  */
-#define compile_time_assert(cond, msg) UNUSED typedef char ASSERT_##msg[(cond) ? 1 : -1]
+#define compile_time_assert(cond, msg) \
+	UNUSED                         \
+	typedef char ASSERT_##msg[(cond) ? 1 : -1]
 
 /**
  * @brieg assert a build-time dependency, as an expression.
@@ -46,7 +48,7 @@
  *		 ((char *)(foo)						\
  *		  + BUILD_ASSERT_OR_ZERO(offsetof(struct foo, string) == 0))
  */
-#define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - 2 * !(cond)]) - 1)
+#define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - (2 * !(cond))]) - 1)
 
 
 /**
@@ -73,14 +75,14 @@
  * function parameters.  With correct compiler support, such usage
  * will cause a build error (see the BUILD_ASSERT_OR_ZERO macro).
  */
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]) + BARF_UNLESS_AN_ARRAY(x))
+#define ARRAY_SIZE(x) ((sizeof(x) / sizeof((x)[0])) + BARF_UNLESS_AN_ARRAY(x))
 
 /**
  * We assume that a byte as 8 bits
  */
 #define bitsizeof(x) (8 * sizeof(x))
 
-#define maximum_signed_value_of_type(a) (INTMAX_MAX >> (bitsizeof(intmax_t) - bitsizeof(a)))
+#define maximum_signed_value_of_type(a)   (INTMAX_MAX >> (bitsizeof(intmax_t) - bitsizeof(a)))
 #define maximum_unsigned_value_of_type(a) (UINTMAX_MAX >> (bitsizeof(uintmax_t) - bitsizeof(a)))
 
 /**

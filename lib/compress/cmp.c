@@ -14,6 +14,7 @@
 #include "encoder.h"
 #include "../cmp.h"
 #include "../cmp_header.h"
+#include "../cmp_errors.h"
 #include "../common/sample_reader.h"
 #include "../common/err_private.h"
 #include "../common/bitstream_writer.h"
@@ -21,7 +22,7 @@
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
 
-#define CMP_MAGIC 34021395 /* arbitrary magic number I like */
+enum { CMP_MAGIC = 34021395 }; /* arbitrary magic number I like */
 
 
 /* Global identifier counter state */
@@ -89,7 +90,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 
 
 /** Maximum allowed model adaptation rate parameter  */
-#define CMP_MAX_MODEL_RATE 16
+enum { CMP_MAX_MODEL_RATE = 16 };
 
 /**
  * @brief Updates the model value based on new data and adaptation rate

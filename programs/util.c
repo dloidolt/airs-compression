@@ -61,8 +61,8 @@ struct hr_fmt util_make_human_readable(uint64_t size, int verbose)
 		 * In verbose mode, do not scale sizes down, except in the case of
 		 * values that exceed the integral precision of a double.
 		 */
-		if (size >= (1ull << 53)) {
-			hrs.value = (double)size / (1ull << 20);
+		if (size >= (1ULL << 53)) {
+			hrs.value = (double)size / (1ULL << 20);
 			hrs.suffix = " MiB";
 			/*
 			 * At worst, a double representation of a maximal size will be
@@ -76,23 +76,23 @@ struct hr_fmt util_make_human_readable(uint64_t size, int verbose)
 		}
 	} else {
 		/* In regular mode, scale sizes down and use suffixes. */
-		if (size >= (1ull << 60)) {
-			hrs.value = (double)size / (1ull << 60);
+		if (size >= (1ULL << 60)) {
+			hrs.value = (double)size / (double)(1ULL << 60);
 			hrs.suffix = " EiB";
-		} else if (size >= (1ull << 50)) {
-			hrs.value = (double)size / (1ull << 50);
+		} else if (size >= (1ULL << 50)) {
+			hrs.value = (double)size / (1ULL << 50);
 			hrs.suffix = " PiB";
-		} else if (size >= (1ull << 40)) {
-			hrs.value = (double)size / (1ull << 40);
+		} else if (size >= (1ULL << 40)) {
+			hrs.value = (double)size / (1ULL << 40);
 			hrs.suffix = " TiB";
-		} else if (size >= (1ull << 30)) {
-			hrs.value = (double)size / (1ull << 30);
+		} else if (size >= (1ULL << 30)) {
+			hrs.value = (double)size / (1ULL << 30);
 			hrs.suffix = " GiB";
-		} else if (size >= (1ull << 20)) {
-			hrs.value = (double)size / (1ull << 20);
+		} else if (size >= (1ULL << 20)) {
+			hrs.value = (double)size / (1ULL << 20);
 			hrs.suffix = " MiB";
-		} else if (size >= (1ull << 10)) {
-			hrs.value = (double)size / (1ull << 10);
+		} else if (size >= (1ULL << 10)) {
+			hrs.value = (double)size / (1ULL << 10);
 			hrs.suffix = " KiB";
 		} else {
 			hrs.value = (double)size;

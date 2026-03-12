@@ -40,11 +40,11 @@
 #  if !defined(__DJGPP__)
 #    include <windows.h>  /* DeviceIoControl, HANDLE, FSCTL_SET_SPARSE */
 #    include <winioctl.h> /* FSCTL_SET_SPARSE */
-#    define SET_BINARY_MODE(file)                                      \
-	do {                                                           \
-		int const unused = _setmode(_fileno(file), _O_BINARY); \
-		(void)unused;                                          \
-	} while (0)
+#    define SET_BINARY_MODE(file)                                          \
+	    do {                                                           \
+		    int const unused = _setmode(_fileno(file), _O_BINARY); \
+		    (void)unused;                                          \
+	    } while (0)
 #  else
 #    define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
 #  endif
@@ -350,7 +350,7 @@ static int file_load_be16(const char *filename, uint16_t *buffer, size_t buffer_
 			return -1;
 		}
 
-		for (i = 0; i < (size_t)buffer_size / sizeof(*buffer); i++)
+		for (i = 0; i < buffer_size / sizeof(*buffer); i++)
 			be16_to_cpus(&buffer[i]);
 	}
 
@@ -381,7 +381,7 @@ static int file_save(const char *filename, const void *buffer, size_t size)
 		fp = stdout;
 		SET_BINARY_MODE(stdout);
 	} else {
-		if (strcmp(filename, NULL_MARK)) {
+		if (strcmp(filename, NULL_MARK) != 0) {
 			struct stat st;
 
 			/* Check if destination is a directory */

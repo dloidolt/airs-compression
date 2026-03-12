@@ -44,7 +44,7 @@
  * @brief Complete version number
  */
 #define CMP_VERSION_NUMBER \
-	(CMP_VERSION_MAJOR * 100 * 100 + CMP_VERSION_MINOR * 100 + CMP_VERSION_RELEASE)
+	((CMP_VERSION_MAJOR * 100 * 100) + (CMP_VERSION_MINOR * 100) + CMP_VERSION_RELEASE)
 
 /**
  * @brief Complete version string
@@ -361,9 +361,9 @@ struct cmp_hdr {
 /**
  * @brief Deserialize compression header
  *
- * @param buf		buffer containing the serialized header (may be a
+ * @param src		buffer containing the serialized header (may be a
  *			compressed data buffer)
- * @param buf_size	size of buffer
+ * @param src_size	size of buffer
  * @param hdr		pointer to header structure to fill
  *
  * @note Only the version field is valid for headers with version 0.6 and earlier.
@@ -372,7 +372,7 @@ struct cmp_hdr {
  *	cmp_is_error()
  */
 
-uint32_t cmp_hdr_deserialize(const void *buf, uint32_t buf_size, struct cmp_hdr *hdr);
+uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr *hdr);
 
 
 /**

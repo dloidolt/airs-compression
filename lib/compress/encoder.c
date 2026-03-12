@@ -8,6 +8,7 @@
  */
 
 #include <limits.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "encoder.h"
@@ -17,16 +18,14 @@
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-#define CMP_GOLOMB_MAX_CODEWORD_BITS 32
-
-#define CMP_MAX_BITS_ZERO_ESCAPE \
-	(31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE)
-/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
-#define CMP_MAX_BITS_MULTI_ESCAPE (CMP_GOLOMB_MAX_CODEWORD_BITS + CMP_NUM_BITS_PER_SAMPLE)
-
-#define CMP_MAX_BITS_PER_SAMPLE MAX(CMP_MAX_BITS_ZERO_ESCAPE, CMP_MAX_BITS_MULTI_ESCAPE)
+enum {
+	CMP_GOLOMB_MAX_CODEWORD_BITS = 32,
+	CMP_MAX_BITS_ZERO_ESCAPE =
+		31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE,
+	/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
+	CMP_MAX_BITS_MULTI_ESCAPE = CMP_GOLOMB_MAX_CODEWORD_BITS + CMP_NUM_BITS_PER_SAMPLE,
+	CMP_MAX_BITS_PER_SAMPLE = CMP_MAX(CMP_MAX_BITS_ZERO_ESCAPE, CMP_MAX_BITS_MULTI_ESCAPE)
+};
 
 
 /**
@@ -94,7 +93,7 @@ static uint32_t golomb_upper_bound(uint32_t g_par, enum cmp_encoder_type encoder
 	 * Convert that group number into the corresponding value.
 	 * Each non-zero group contains g_par values.
 	 */
-	first_invalid_value = cutoff + first_invalid_group * g_par;
+	first_invalid_value = cutoff + (first_invalid_group * g_par);
 
 	/* 4) MULTI variant: Reserve space for all used multi escape symbols */
 	if (encoder_type == CMP_ENCODER_GOLOMB_MULTI) {
@@ -169,7 +168,7 @@ static uint32_t golomb_optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
 	 * Calculate last member in group (n_bits-1).
 	 * Use 64-bit to prevent overflow when g_par is large.
 	 */
-	outlier = cutoff + (uint64_t)n_bits * g_par - 1;
+	outlier = cutoff + ((uint64_t)n_bits * g_par) - 1;
 
 	/*
 	 * Cap at UINT32_MAX since we're returning uint32_t and our encoding
@@ -310,7 +309,7 @@ static void golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,
 	} else { /* other groups */
 		uint32_t const reg_mask = bitsizeof(value) - 1;
 		uint32_t const group_num = (value - cutoff) / g_par;
-		uint32_t const remainder = (value - cutoff) - group_num * g_par;
+		uint32_t const remainder = value - cutoff - (group_num * g_par);
 		uint32_t const unary_code = (1U << (group_num & reg_mask)) - 1;
 		uint32_t const base_codeword = cutoff << 1;
 		uint32_t len = g_par_log2 + 1;
