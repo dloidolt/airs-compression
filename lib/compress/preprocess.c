@@ -22,38 +22,11 @@
 #include "../cmp.h"
 #include "../common/sample_reader.h"
 #include "../common/compiler.h"
+#include "../common/bithacks.h"
 #include "../common/err_private.h"
 
 
 /* ====== Helper Functions for Integer Wavelet Transform (IWT) ===== */
-/**
- * @brief Calculates the floor of division by 2
- *
- * @param dividend	the value to divide
- *
- * @returns the result of the division
- */
-
-static __inline int16_t floor_division_by_2(int32_t dividend)
-{
-	return (int16_t)(dividend >> 1);
-}
-
-
-/**
- * @brief Calculates the floor of division by 4
- *
- * @param dividend	the value to divide
- *
- * @returns the result of the division
- */
-
-static __inline int16_t floor_division_by_4(int32_t dividend)
-{
-	return (int16_t)(dividend >> 2);
-}
-
-
 /**
  * @brief Calculates the odd detail (high frequency) transform coefficient of the IWT
  *

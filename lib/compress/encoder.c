@@ -29,26 +29,6 @@ enum {
 
 
 /**
- * @brief Returns floor(log2(x)) for integers
- *
- * @param x	input parameter
- *
- * @returns the result of floor(log2(x)) or UINT_MAX if x = 0
- */
-
-static unsigned int ilog2(uint32_t x)
-{
-	compile_time_assert(sizeof(unsigned int) >= sizeof(uint32_t),
-			    _expect_unsigned_int_to_be_at_least_32_bit);
-
-	if (x == 0)
-		return UINT_MAX;
-
-	return bitsizeof(x) - 1 - (unsigned int)__builtin_clz(x);
-}
-
-
-/**
  * @brief Calculates the first value that cannot be encoded with golomb_encode()
  *
  * @param g_par		Golomb parameter
