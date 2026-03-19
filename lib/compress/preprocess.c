@@ -55,13 +55,13 @@ static __inline int16_t floor_division_by_4(int32_t dividend)
 
 
 /**
- * @brief Calculates the odd (low frequency) transform coefficient of the IWT
+ * @brief Calculates the odd detail (high frequency) transform coefficient of the IWT
  *
  * @param centre	centre value of the kernel
  * @param left		left neighbour value
  * @param right		right neighbour value
  *
- * @returns the odd (low frequency) coefficient
+ * @returns the odd detail (high frequency) coefficient
  */
 
 static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_t right)
@@ -71,12 +71,12 @@ static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_
 
 
 /**
- * @brief Calculates the last odd (low frequency) transform coefficient of the IWT
+ * @brief Calculates the last odd detail (high frequency) transform coefficient of the IWT
  *
  * @param centre	centre value of the kernel
  * @param left		left neighbour value
  *
- * @returns the last odd (low frequency) coefficient
+ * @returns the last odd detail (high frequency) coefficient
  */
 
 static __inline int16_t iwt_last_odd_coefficient(int16_t centre, int16_t left)
@@ -86,13 +86,13 @@ static __inline int16_t iwt_last_odd_coefficient(int16_t centre, int16_t left)
 
 
 /**
- * @brief Calculates the even (high frequency) transform coefficient of the IWT
+ * @brief Calculates the even approximation (low frequency) transform coefficient of the IWT
  *
  * @param centre		centre value of the kernel
- * @param odd_coef_left		left neighbour odd (low frequency) coefficient
- * @param odd_coef_right	right neighbour odd (low frequency) coefficient
+ * @param odd_coef_left		left neighbour odd detail (high frequency) coefficient
+ * @param odd_coef_right	right neighbour odd detail (high frequency) coefficient
  *
- * @returns the even (high frequency) coefficient
+ * @returns the even approximation (low frequency) coefficient
  */
 
 static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_left,
@@ -103,12 +103,12 @@ static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_le
 
 
 /**
- * @brief Calculates an edge even (high frequency) transform coefficient of the IWT
+ * @brief Calculates an edge even approximation (low frequency) transform coefficient of the IWT
  *
  * @param centre		centre value of the kernel
- * @param odd_coef_neighbour	neighbouring odd (low frequency) coefficient
+ * @param odd_coef_neighbour	neighbouring odd detail (high frequency) coefficient
  *
- * @returns the calculated edge even (high frequency) coefficient
+ * @returns the calculated edge even approximation (low frequency) coefficient
  */
 
 static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_coef_neighbour)
@@ -129,11 +129,11 @@ static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_co
  *		(starts at 1, doubles each level in multi-level decomposition)
  *
  * @see implementation is based on equation (5.24) from
- *	D. Solomon, Data Compression, 4th ed, 2007, Springer, pp. 609-607
+ *	D. Solomon, Data Compression, 4th ed, 2007, Springer, pp. 608-610
  *
  * Coefficient Arrangement:
- * - approximation (high frequency) coefficient are stored on odd indexes
- * - detail (low frequency) coefficient are stored on even indexes
+ * - detail (high frequency) coefficients are stored on odd indexes
+ * - approximation (low frequency) coefficients are stored on even indexes
  *
  */
 
