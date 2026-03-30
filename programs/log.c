@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-#include "util.h"
+#include "file.h"
 #include "log.h"
 
 /**
@@ -46,7 +46,7 @@ void log_setup_color(void)
 		return;
 	}
 
-	if (util_is_console(LOG_STREAM))
+	if (file_is_console(STD_ERR_MARK_S8))
 		g_log_state.color_status = LOG_COLOR_ENABLED;
 	else
 		g_log_state.color_status = LOG_COLOR_DISABLED;

@@ -17,10 +17,10 @@
 #include <sys/mman.h>
 
 #include "../lib/cmp.h"
+#include "../lib/cmp_header.h"
 #include "arena.h"
 #include "file.h"
 #include "log.h"
-#include "util.h"
 #include "params_parse.h"
 #define STR_SLICE_IMPLEMENTATION
 #define STR_SLICE_API static __inline
@@ -33,8 +33,6 @@
 #endif
 static const struct s8 AIRSPACE_EXTENSIONS[] = { S8(".air"), S8(".ce") };
 
-static const struct s8 STD_OUT_MARK_S8 = S8(STD_OUT_MARK);
-static const struct s8 STD_IN_MARK_S8 = S8(STD_IN_MARK);
 
 #define AUTHOR "Dominik Loidolt"
 #define AIRSPACE_WELCOME_MESSAGE                                                    \
@@ -87,76 +85,83 @@ static void log_summary(const struct s8 input_files[], int num_files, size_t sum
 }
 
 
-static int compress_file_list(struct arena scratch, struct s8 output_name,
-			      const struct s8 *input_files, int num_files,
-			      const struct cmp_params *params)
+static int compress_file_list(struct arena scratch, struct s8 dst_path, const struct s8 *src_paths,
+			      int num_src_paths, const struct cmp_params *params)
 {
 	int i;
+
+	uint32_t max_work_buf_size;
+	uint32_t return_code;
 
 	void *work_buf = NULL;
 	struct cmp_context *ctx = ARENA_NEW(&scratch, struct cmp_context);
 
-	size_t sum_input_size = 0;
-	size_t sum_output_size = 0;
+	size_t sum_src_size = 0;
+	size_t sum_dst_size = 0;
 
-	uint32_t first_file_size;
-	uint32_t work_buf_size;
-	uint32_t return_code;
-
-	assert(input_files);
-	assert(num_files > 0);
+	assert(src_paths);
+	assert(num_src_paths > 0);
 	assert(params);
 
-	if (file_get_size_u32(s8_to_cstr(&scratch, input_files[0]), &first_file_size))
-		return EXIT_FAILURE;
-	/*
-	 * For allocating the work buffer, we assume that all files we want to
-	 * compress in one batch have similar sizes. We use the first file's size
-	 * as a representative sample for buffer allocation.
-	 */
-	work_buf_size = cmp_cal_work_buf_size(params, first_file_size);
-	if (cmp_is_error(work_buf_size)) {
-		LOG_ERROR_CMP(work_buf_size, "Error calculating work buffer size");
+	/* For allocating the work buffer, we assume data has the maximal size, just to be safe */
+	max_work_buf_size = cmp_cal_work_buf_size(params, CMP_HDR_MAX_ORIGINAL_SIZE);
+	if (cmp_is_error(max_work_buf_size)) {
+		LOG_ERROR_CMP(max_work_buf_size, "Error calculating work buffer size");
 		return EXIT_FAILURE;
 	}
-	work_buf = arena_alloc(&scratch, work_buf_size, sizeof(uint8_t), __alignof__(uint32_t));
+	work_buf = arena_alloc(&scratch, max_work_buf_size, sizeof(uint8_t), __alignof__(uint32_t));
 
-	return_code = cmp_initialise(ctx, params, work_buf, work_buf_size);
+	return_code = cmp_initialise(ctx, params, work_buf, max_work_buf_size);
 	if (cmp_is_error(return_code)) {
 		LOG_ERROR_CMP(return_code, "Compression initialization failed");
 		return EXIT_FAILURE;
 	}
 
 
-	for (i = 0; i < num_files; i++) {
-		const char *input_cstr = s8_to_cstr(&scratch, input_files[i]);
-		uint32_t output_size;
-		struct s8 dst_path;
+	for (i = 0; i < num_src_paths; i++) {
+		/* reset the arena for every compression run */
+		struct arena loop_scratch = scratch;
 
-		if (output_name.len > 0)
-			dst_path = output_name;
-		else
-			dst_path = s8_concat(&scratch, input_files[i], AIRSPACE_EXTENSIONS[0]);
+		uint32_t dst_capacity, dst_size;
+		void *dst_buf;
+		struct os_load src;
+		struct s8 out_path;
 
-		output_size = file_compress(ctx, s8_to_cstr(&scratch, dst_path), input_cstr);
-		if (cmp_is_error(output_size))
+		src = file_read_be16(&loop_scratch, src_paths[i]);
+		if (src.status != OS_OK)
 			return EXIT_FAILURE;
 
-		{ /* compression done; do some longing */
-			uint32_t input_size;
+		dst_capacity = cmp_compress_bound(src.size);
+		if (cmp_is_error(dst_capacity)) {
+			LOG_WARNING(
+				"Can't calculate compressed data buffer size upper bound, using maximum size");
+			dst_capacity = CMP_HDR_MAX_COMPRESSED_SIZE;
+		}
+		dst_buf = arena_alloc(&loop_scratch, dst_capacity, 1, CMP_DST_ALIGNMENT);
 
-			(void)file_get_size_u32(input_cstr, &input_size);
-			log_file_status(LOG_LEVEL_DEBUG, input_files[i], input_size, output_name,
-					output_size);
-			sum_input_size += input_size;
-			sum_output_size += output_size;
+		dst_size = cmp_compress_u16(ctx, dst_buf, dst_capacity, src.buffer, src.size);
+		if (cmp_is_error(dst_size)) {
+			LOG_ERROR_CMP(dst_size, "Compression failed for %.*s",
+				      (int)src_paths[i].len, src_paths[i].s);
+			return EXIT_FAILURE;
 		}
 
-		if (i == num_files - 1)
-			log_summary(input_files, num_files, sum_input_size, dst_path,
-				    sum_output_size);
-	}
+		if (dst_path.len > 0)
+			out_path = dst_path;
+		else
+			out_path = s8_concat(&loop_scratch, src_paths[i], AIRSPACE_EXTENSIONS[0]);
 
+		if (file_write(loop_scratch, out_path, dst_buf, dst_size))
+			return EXIT_FAILURE;
+
+		/* compression done; do some logging */
+		log_file_status(LOG_LEVEL_DEBUG, src_paths[i], src.size, out_path, dst_size);
+		sum_src_size += src.size;
+		sum_dst_size += dst_size;
+
+		if (i == num_src_paths - 1)
+			log_summary(src_paths, num_src_paths, sum_src_size, out_path, sum_dst_size);
+	}
 
 	return EXIT_SUCCESS;
 }
@@ -343,10 +348,10 @@ int main(int argc, char *argv[])
 			print_usage(stdout, program_name);
 			return EXIT_SUCCESS;
 		case DEBUG_STDIN_CONSOLE_OPT:
-			util_force_stdin_console();
+			file_force_stdin_console();
 			break;
 		case DEBUG_STDOUT_CONSOLE_OPT:
-			util_force_stdout_console();
+			file_force_stdout_console();
 			break;
 		default:
 			print_usage(stderr, program_name);
@@ -365,14 +370,14 @@ int main(int argc, char *argv[])
 	input_files = create_file_list(&a, argv, argc, &num_files, &is_reading_stdin);
 
 	if (is_reading_stdin) {
-		if (util_is_console(stdin)) {
+		if (file_is_console(STD_IN_MARK_S8)) {
 			LOG_ERROR("stdin is a terminal, aborting");
 			return EXIT_FAILURE;
 		}
 		LOG_DEBUG("Using stdin as an input");
 
 		if (!output_filename.len) {
-			if (util_is_console(stdout)) {
+			if (file_is_console(STD_OUT_MARK_S8)) {
 				LOG_ERROR("stdout is a terminal, aborting");
 				return EXIT_FAILURE;
 			}

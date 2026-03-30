@@ -1,8 +1,8 @@
 cli_src = files([
+  'os.c',
   'params_parse.c',
   'log.c',
   'file.c',
-  'util.c'
 ])
 
 cli_c_args = ['-D_POSIX_C_SOURCE=200809L']
