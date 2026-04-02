@@ -240,6 +240,11 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
 			uint32_t work_buf_size);
 
+
+/** Required alignment for the compression destination buffers */
+#define CMP_DST_ALIGNMENT sizeof(uint64_t)
+
+
 /**
  * @brief Compresses a signed 16-bit data buffer
  *
@@ -248,7 +253,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  * @param ctx		pointer to a compression context; must have been
  *			initialised once with cmp_initialise()
  * @param dst		the buffer to compress the src buffer into, MUST be
- *			8-byte aligned
+ *			CMP_DST_ALIGNMENT-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
  *			cmp_compress_bound(src_size) is guaranteed to be large
  *			enough

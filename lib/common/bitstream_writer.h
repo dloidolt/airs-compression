@@ -22,10 +22,9 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "../cmp.h"
 #include "../common/err_private.h"
 #include "../common/byteorder.h"
-
-#define CMP_DST_ALIGNMENT sizeof(uint64_t)
 
 #ifdef __BIG_ENDIAN
 #  define BITSTREAM_IS_CPU_BIG_ENDIAN 1
