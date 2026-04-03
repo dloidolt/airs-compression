@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 	struct cmp_params params = { 0 };
 
 	/* Set up arena */
-	size_t cap = 1 << 24;
+	size_t cap = 1 << 26;
 	uint8_t *mem = mmap(0, cap, PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 	struct arena a;
 
