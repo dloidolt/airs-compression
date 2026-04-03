@@ -127,7 +127,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 		struct os_load src;
 		struct s8 out_path;
 
-		src = file_read_be16(&loop_scratch, src_paths[i]);
+		src = file_read_be16(&loop_scratch, src_paths[i], FILE_NONE);
 		if (src.status != OS_OK)
 			return EXIT_FAILURE;
 
@@ -151,7 +151,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 		else
 			out_path = s8_concat(&loop_scratch, src_paths[i], AIRSPACE_EXTENSIONS[0]);
 
-		if (file_write(loop_scratch, out_path, dst_buf, dst_size))
+		if (file_write(loop_scratch, out_path, dst_buf, dst_size, FILE_NONE))
 			return EXIT_FAILURE;
 
 		/* compression done; do some logging */

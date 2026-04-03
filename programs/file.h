@@ -21,11 +21,19 @@ static const struct s8 STD_IN_MARK_S8 = S8(STD_IN_MARK);
 static const struct s8 STD_OUT_MARK_S8 = S8(STD_OUT_MARK);
 static const struct s8 STD_ERR_MARK_S8 = S8(STD_ERR_MARK);
 
+enum file_flags {
+	FILE_NONE = 0,
+	FILE_MISSING_OK = (1U << 0), /**< Don't log errors on missing files (Read) */
+	FILE_OVERWRITE = (1U << 1)   /**< Allow overwriting existing files (Write) */
+};
+
+
 /**
  * @brief reads a file into the arena
  *
  * @param perm	arena to read into
  * @param path	file path or STD_IN_MARK
+ * @param flags	file operations flags (see enum file_flags)
  *
  * @returns an os_load; on success .status == OS_OK,  On any error .status is non-zero.
  *
@@ -33,10 +41,10 @@ static const struct s8 STD_ERR_MARK_S8 = S8(STD_ERR_MARK);
  *	provided arena and remain valid only as long as the provided arena is
  *	not reset or destroyed.
  */
-struct os_load file_read(struct arena *perm, struct s8 path);
+struct os_load file_read(struct arena *perm, struct s8 path, enum file_flags flags);
 
 /** @brief same as file_read() but reads data as big-endian uint16 values  */
-struct os_load file_read_be16(struct arena *perm, struct s8 path);
+struct os_load file_read_be16(struct arena *perm, struct s8 path, enum file_flags flags);
 
 
 /**
@@ -44,12 +52,20 @@ struct os_load file_read_be16(struct arena *perm, struct s8 path);
  *
  * Does nothing and returns success when path equals NULL_MARK.
  *
+ * @param scratch	temporary arena
+ * @param path		destination file path
+ * @param buf		source buffer
+ * @param buf_size	number of bytes to write
+ * @param flags		file operations flags (see enum file_flags)
+ *
  * @returns 0 on success, otherwise error
  */
-int file_write(struct arena scratch, struct s8 path, const void *buf, uint32_t buf_size);
+int file_write(struct arena scratch, struct s8 path, const void *buf, uint32_t buf_size,
+	       enum file_flags flags);
 
 /** @brief same as file_write() but saves the data as big-endian uint16 values  */
-int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, uint32_t buf_size);
+int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, uint32_t buf_size,
+		   enum file_flags flags);
 
 
 /**
