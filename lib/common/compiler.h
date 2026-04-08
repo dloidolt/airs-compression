@@ -127,6 +127,27 @@
 
 
 /**
+ * @brief fall-through case statement annotations
+ */
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L
+#  define FALLTHROUGH [[fallthrough]]
+#elif defined(__has_attribute)
+#  if __has_attribute(__fallthrough__)
+#    define FALLTHROUGH __attribute__((__fallthrough__))
+#  else
+#    define FALLTHROUGH \
+	    do {        \
+	    } while (0) /* fallthrough */
+#  endif
+#else
+#  define FALLTHROUGH \
+	  do {        \
+	  } while (0) /* fallthrough */
+#endif
+
+
+/**
  * @brief Defines an aligned type
  *
  * @code{.c}
