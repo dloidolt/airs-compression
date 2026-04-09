@@ -20,6 +20,7 @@
 static const struct s8 STD_IN_MARK_S8 = S8(STD_IN_MARK);
 static const struct s8 STD_OUT_MARK_S8 = S8(STD_OUT_MARK);
 static const struct s8 STD_ERR_MARK_S8 = S8(STD_ERR_MARK);
+static const struct s8 NULL_MARK_S8 = S8(NULL_MARK);
 
 enum file_flags {
 	FILE_NONE = 0,
@@ -66,6 +67,10 @@ int file_write(struct arena scratch, struct s8 path, const void *buf, uint32_t b
 /** @brief same as file_write() but saves the data as big-endian uint16 values  */
 int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, uint32_t buf_size,
 		   enum file_flags flags);
+
+
+/** @brief create a directory if it does not exist */
+int file_make_directory(struct arena scratch, struct s8 path);
 
 
 /**

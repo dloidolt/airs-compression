@@ -64,6 +64,16 @@ struct os_load os_read(const char *path, void *buf, uint32_t buf_size);
 enum os_status os_save_from_buffer(const char *path, const void *buf, uint32_t buf_size);
 
 
+/**
+ * @brief Make a directory
+ *
+ * @param path	directory path to create
+ *
+ * @returns 0 on success or if the directory already exists, otherwise error
+ */
+int os_make_directory(const char *path);
+
+
 /**  Writes a log message */
 void os_log(const char *msg, uint32_t msg_size);
 

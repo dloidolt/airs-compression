@@ -180,3 +180,21 @@ int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, ui
 
 	return file_write(scratch, path, tmp, buf_size, flags);
 }
+
+
+int file_make_directory(struct arena scratch, struct s8 path)
+{
+	const char *path_as_cstr = s8_to_cstr(&scratch, path);
+	int r;
+
+	assert(!s8_equals(path, STD_IN_MARK_S8));
+	assert(!s8_equals(path, STD_OUT_MARK_S8));
+	assert(!s8_equals(path, STD_ERR_MARK_S8));
+	assert(!s8_equals(path, NULL_MARK_S8));
+
+	r = os_make_directory(path_as_cstr);
+	if (r != 0)
+		LOG_ERROR_WITH_ERRNO("Can't create directory '%.*s'", (int)path.len, path.s);
+
+	return r;
+}

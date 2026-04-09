@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 
 struct os_load os_read(const char *path, void *buf, uint32_t buf_size)
@@ -90,6 +91,23 @@ enum os_status os_save_from_buffer(const char *path, const void *buf, uint32_t b
 	if (fp != stdout)
 		if (fclose(fp) && r == OS_OK)
 			r = OS_CANTCLOSE;
+
+	return r;
+}
+
+
+int os_make_directory(const char *path)
+{
+	enum { DIR_DEFAULT_MODE = 0777 };
+	int r;
+
+	r = mkdir(path, DIR_DEFAULT_MODE);
+	if (r != 0 && errno == EEXIST) {
+		if (os_is_directory(path)) {
+			return 0;
+		}
+		errno = EEXIST;
+	}
 
 	return r;
 }
