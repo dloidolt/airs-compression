@@ -72,6 +72,9 @@ int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, ui
 /** @brief create a directory if it does not exist */
 int file_make_directory(struct arena scratch, struct s8 path);
 
+/** @brief Removes a file or an empty directory */
+int file_remove(struct arena scratch, struct s8 path);
+
 
 /**
  * @brief checks if the given stream is connected to a terminal
@@ -87,5 +90,6 @@ void file_force_stdin_console(void);
 
 /** @brief forces stdout to be treated as a console. Intended for testing. */
 void file_force_stdout_console(void);
+
 
 #endif /* FILE_H */

@@ -87,5 +87,7 @@ int os_is_directory(const char *path);
 /** Returns non-zero if path is a regular file, 0 otherwise */
 int os_is_regular_file(const char *path);
 
+/** Removes a file or an empty directory */
+int os_remove(const char *path);
 
 #endif /* OS_H */

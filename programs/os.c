@@ -151,3 +151,9 @@ int os_is_regular_file(const char *path)
 
 	return stat(path, &st) == 0 && S_ISREG(st.st_mode);
 }
+
+
+int os_remove(const char *path)
+{
+	return remove(path);
+}
