@@ -58,7 +58,6 @@ class TestCompression(unittest.TestCase):
         result = self.airspace(["-c", self.file1, self.file2, "--stdout"])
         for arg in [[], ["--debug-stdout-is-consol"]]:
             with self.subTest(arg=arg):
-
                 self.assertCli(
                     result,
                     stdout_exp=DATA_FILE1,
@@ -73,8 +72,8 @@ class TestCompression(unittest.TestCase):
         self.assertCli(result)
         cmp_file1 = self.get_compressed_file_data(self.file1)
         cmp_file2 = self.get_compressed_file_data(self.file2)
-        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE:], result.args)
-        self.assertEqual(DATA_FILE2, cmp_file2[self.CMP_HDR_SIZE:], result.args)
+        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE :], result.args)
+        self.assertEqual(DATA_FILE2, cmp_file2[self.CMP_HDR_SIZE :], result.args)
 
     def test_compress_data_from_stdin_to_stdout(self):
         for arg in [["-"], []]:
@@ -96,7 +95,7 @@ class TestCompression(unittest.TestCase):
         result = self.airspace(["-c", self.file1, "-o", cmp_file, "--quiet"])
 
         self.assertCli(result)
-        cmp_data = cmp_file.read_bytes()[self.CMP_HDR_SIZE:]
+        cmp_data = cmp_file.read_bytes()[self.CMP_HDR_SIZE :]
         self.assertEqual(DATA_FILE1, cmp_data, result.args)
 
     def test_compress_filed_and_data_from_stdin(self):
@@ -119,15 +118,14 @@ class TestCompression(unittest.TestCase):
         self.assertCli(result)
         cmp_file1 = self.get_compressed_file_data(self.file1)
         cmp_small_file = self.get_compressed_file_data(small_file)
-        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE:], result.args)
+        self.assertEqual(DATA_FILE1, cmp_file1[self.CMP_HDR_SIZE :], result.args)
         self.assertEqual(
-            bytes.fromhex("0003"), cmp_small_file[self.CMP_HDR_SIZE:], result.args
+            bytes.fromhex("0003"), cmp_small_file[self.CMP_HDR_SIZE :], result.args
         )
 
     def test_abort_when_reading_from_stdin_on_console(self):
         for arg in [["-"], []]:
             with self.subTest(arg=arg):
-
                 result = self.airspace(
                     arg + ["-c", "--debug-stdin-is-consol"], stdin=DATA_FILE1
                 )
@@ -142,7 +140,6 @@ class TestCompression(unittest.TestCase):
     def test_abort_when_writing_to_stdout_on_console(self):
         for arg in [["-"], []]:
             with self.subTest(arg=arg):
-
                 result = self.airspace(
                     arg + ["-c", "--debug-stdout-is-consol"], stdin=DATA_FILE1
                 )
@@ -153,6 +150,18 @@ class TestCompression(unittest.TestCase):
             stderr_exp="stdout",
             stderr_match_mode="contains",
         )
+
+    def test_compress_with_identifier(self):
+        result = self.airspace(
+            ["-c", "--identifier", "1413829460", self.file1, "--quiet"]
+        )
+
+        self.assertCli(result)
+
+        cmp_file = self.get_compressed_file_data(self.file1)
+        self.assertEqual(DATA_FILE1, cmp_file[self.CMP_HDR_SIZE :])
+        expected_identifier_bytes = (1413829460).to_bytes(4, byteorder="big")
+        self.assertIn(expected_identifier_bytes, cmp_file[: self.CMP_HDR_SIZE])
 
     def test_not_overwrite_existing_file(self):
         existing_file = self.test_dir / "existing_file.txt"

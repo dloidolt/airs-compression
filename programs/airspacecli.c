@@ -226,6 +226,7 @@ static void print_usage(FILE *stream, const char *program_name)
 	LOG_F(stream, "  -o OUTPUT         Write output to OUTPUT\n");
 	LOG_F(stream, "  -q, --quiet       Decrease verbosity\n");
 	LOG_F(stream, "  -v, --verbose     Increase verbosity\n");
+	LOG_F(stream, "  --identifier ID   Set sequence identifier\n");
 	LOG_F(stream, "  --[no]color       Print color codes in output\n");
 	LOG_F(stream, "  -V, --version     Display version\n");
 	LOG_F(stream, "  -h, --help        Display this help\n");
@@ -265,6 +266,7 @@ int main(int argc, char *argv[])
 	 */
 	enum {
 		STDOUT_OPT = CHAR_MAX + 1,
+		IDENTIFIER_OPT,
 		COLOR_OPT,
 		NO_COLOR_OPT,
 		DEBUG_STDIN_CONSOLE_OPT,
@@ -273,6 +275,7 @@ int main(int argc, char *argv[])
 	static struct option long_options[] = {
 		{ "compress",               no_argument,       NULL, 'c'                      },
 		{ "params",                 required_argument, NULL, 'p'                      },
+		{ "identifier",             required_argument, NULL, IDENTIFIER_OPT           },
 		{ "stdout",                 no_argument,       NULL, STDOUT_OPT               },
 		{ "verbose",                no_argument,       NULL, 'v'                      },
 		{ "quiet",                  no_argument,       NULL, 'q'                      },
@@ -326,6 +329,18 @@ int main(int argc, char *argv[])
 		case 'o':
 			output_filename = s8_from_cstr(optarg);
 			break;
+		case IDENTIFIER_OPT: {
+			struct s8_u32_result u32_result;
+
+			u32_result = s8_to_u32(s8_from_cstr(optarg));
+			if (u32_result.ok) {
+				cmp_hdr_set_identifier(u32_result.value);
+			} else {
+				LOG_ERROR("Cannot parse identifier: %s", optarg);
+				return EXIT_FAILURE;
+			}
+			break;
+		}
 		case STDOUT_OPT:
 			output_filename = STD_OUT_MARK_S8;
 			break;
