@@ -235,10 +235,14 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	struct cmp_hdr hdr = { 0 };
 	uint32_t compress_bound;
 
-	if (ctx->sequence_number == 0 || ctx->sequence_number > ctx->params.secondary_iterations) {
+	if (ctx->sequence_number > ctx->params.secondary_iterations) {
+		/* Note: cmp_reset() resets ctx->sequence_number to 0. */
 		ret = cmp_reset(ctx);
 		if (cmp_is_error_int(ret))
 			return ret;
+	}
+
+	if (ctx->sequence_number == 0) {
 		selected_preprocessing = ctx->params.primary_preprocessing;
 		selected_encoder_type = ctx->params.primary_encoder_type;
 		selected_encoder_param = ctx->params.primary_encoder_param;

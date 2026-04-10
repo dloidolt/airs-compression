@@ -481,10 +481,11 @@ void test_set_hdr_identifier(const struct cmp_test_fixture *fix)
 	uint16_t src[2] = { 0 };
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src))];
 	uint32_t cmp_size;
-	struct cmp_context ctx_uncompressed = create_uncompressed_context();
+	struct cmp_context ctx_uncompressed;
 	struct cmp_hdr hdr;
 
 	cmp_hdr_set_identifier(0xDEADCAFE);
+	ctx_uncompressed = create_uncompressed_context();
 	cmp_size = fix->compress(&ctx_uncompressed, dst, sizeof(dst), src, sizeof(src));
 
 	TEST_ASSERT_CMP_SUCCESS(cmp_size);

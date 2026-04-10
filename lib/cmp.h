@@ -407,7 +407,8 @@ uint32_t cmp_hdr_checksum(uint32_t *checksum, const void *src, uint32_t src_size
  * Default start value is 0. When a program restarts, the identifier counter
  * starts at 0 again, so identifiers can repeat across independent program
  * executions. Use this function to choose a non-zero start value when you
- * need to avoid collisions across independent executions.
+ * need to avoid collisions across independent executions. This must be called
+ * before cmp_initialise() or cmp_reset() for the new value to be picked up.
  *
  * @param identifier	value to set the identifier counter
  */
