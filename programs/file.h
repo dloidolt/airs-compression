@@ -72,6 +72,9 @@ int file_save_be16(struct arena scratch, struct s8 path, const uint16_t *buf, ui
 /** @brief create a directory if it does not exist */
 int file_make_directory(struct arena scratch, struct s8 path);
 
+/** @brief checks if a directory is empty */
+int file_directory_is_empty(struct arena scratch, struct s8 path);
+
 /** @brief Removes a file or an empty directory */
 int file_remove(struct arena scratch, struct s8 path);
 

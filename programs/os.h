@@ -84,6 +84,9 @@ int os_is_console(const char *stream_marker, size_t stream_marker_len);
 /** Returns non-zero if path is a directory, 0 otherwise  */
 int os_is_directory(const char *path);
 
+/** Returns non-zero if path is an empty directory, 0 otherwise */
+int os_directory_is_empty(const char *path);
+
 /** Returns non-zero if path is a regular file, 0 otherwise */
 int os_is_regular_file(const char *path);
 

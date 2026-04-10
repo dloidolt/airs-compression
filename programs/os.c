@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <dirent.h>
 
 
 struct os_load os_read(const char *path, void *buf, uint32_t buf_size)
@@ -142,6 +143,31 @@ int os_is_directory(const char *path)
 	struct stat st;
 
 	return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+
+int os_directory_is_empty(const char *path)
+{
+	DIR *dir;
+	struct dirent *entry;
+
+	dir = opendir(path);
+	if (!dir)
+		return 0;
+
+	errno = 0;
+	while ((entry = readdir(dir)) != NULL) {
+		if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+			(void)closedir(dir);
+			return 0;
+		}
+	}
+	(void)closedir(dir);
+
+	if (errno != 0)
+		return 0;
+
+	return 1;
 }
 
 

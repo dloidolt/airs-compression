@@ -200,6 +200,19 @@ int file_make_directory(struct arena scratch, struct s8 path)
 }
 
 
+int file_directory_is_empty(struct arena scratch, struct s8 path)
+{
+	const char *path_as_cstr = s8_to_cstr(&scratch, path);
+
+	assert(!s8_equals(path, STD_IN_MARK_S8));
+	assert(!s8_equals(path, STD_OUT_MARK_S8));
+	assert(!s8_equals(path, STD_ERR_MARK_S8));
+	assert(!s8_equals(path, NULL_MARK_S8));
+
+	return os_directory_is_empty(path_as_cstr);
+}
+
+
 int file_remove(struct arena scratch, struct s8 path)
 {
 	const char *path_as_cstr = s8_to_cstr(&scratch, path);
