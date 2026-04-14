@@ -21,6 +21,7 @@
 #include "../common/header_private.h"
 #include "../common/bithacks.h"
 #include "../common/compiler.h"
+#include "../common/model.h"
 
 enum { CMP_MAGIC = 34021395 }; /* arbitrary magic number I like */
 
@@ -86,45 +87,6 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 	}
 
 	return max_u32(primary_work_buf_size, secondary_work_buf_size);
-}
-
-
-/** Maximum allowed model adaptation rate parameter  */
-enum { CMP_MAX_MODEL_RATE = 16 };
-
-/**
- * @brief Updates the model value based on new data and adaptation rate
- *
- * @param data		new data value to incorporate into the model
- * @param model		current model value
- * @param model_rate	model adaptation rate; higher values make the model adapt
- *			more slowly to new data; must be less than or equal to
- *			CMP_MAX_MODEL_RATE
- * @returns the updated model value
- */
-
-static int16_t update_model_16(int32_t data, int32_t model, int model_rate)
-{
-#define MODEL_SHIFT_BITS 4
-	compile_time_assert(CMP_MAX_MODEL_RATE == 1 << MODEL_SHIFT_BITS,
-			    _CMP_MAX_MODEL_RATE_MODEL_SHIFT_BITS_mismatch);
-	int32_t const weighted_data = data * (CMP_MAX_MODEL_RATE - model_rate);
-	int32_t const weighted_model = model * model_rate;
-
-	return (int16_t)((weighted_model + weighted_data) >> MODEL_SHIFT_BITS);
-}
-
-
-static int16_t update_model(int16_t data, int16_t model, int model_rate, enum cmp_type dtype)
-{
-	switch (dtype) {
-	case CMP_I16:
-	case CMP_I16_IN_I32:
-		return update_model_16(data, model, model_rate);
-	case CMP_U16:
-	default:
-		return update_model_16((uint16_t)data, (uint16_t)model, model_rate);
-	}
 }
 
 
