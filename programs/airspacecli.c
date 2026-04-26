@@ -31,7 +31,7 @@
 #ifndef AIRSPACE_VERSION
 #  define AIRSPACE_VERSION "v" CMP_VERSION_STRING
 #endif
-static const struct s8 AIRSPACE_EXTENSION = S8(".air");
+static const struct s8 AIRSPACE_EXTENSIONS[] = { S8(".air"), S8(".ce") };
 
 static const struct s8 STD_OUT_MARK_S8 = S8(STD_OUT_MARK);
 static const struct s8 STD_IN_MARK_S8 = S8(STD_IN_MARK);
@@ -49,8 +49,8 @@ static void log_file_status(enum log_level level, struct s8 input_filename, uint
 			    struct s8 output_name, uint32_t output_size)
 {
 	int const verbose = log_get_level() > LOG_LEVEL_DEBUG;
-	struct hr_fmt const hr_i = util_make_human_readable(input_size, verbose);
-	struct hr_fmt const hr_o = util_make_human_readable(output_size, verbose);
+	struct hr_fmt const hr_i = log_make_human_readable(input_size, verbose);
+	struct hr_fmt const hr_o = log_make_human_readable(output_size, verbose);
 
 	/* clang-format off */
 	LOG_PLAIN(level, "%.*s: %.2f%% (%.*f%s => %.*f%s, %.*s)\n",
@@ -63,10 +63,10 @@ static void log_file_status(enum log_level level, struct s8 input_filename, uint
 }
 
 
-static void log_summery(const struct s8 input_files[], int num_files, size_t sum_input_size,
+static void log_summary(const struct s8 input_files[], int num_files, size_t sum_input_size,
 			struct s8 output_name, size_t sum_output_size)
 {
-	if (num_files == 1) { /* one file -> display the file status instead of the summery */
+	if (num_files == 1) { /* one file -> display the file status instead of the summary */
 		/* if not already done in the log file status */
 		if (log_get_level() < LOG_LEVEL_DEBUG) {
 			log_file_status(LOG_LEVEL_INFO, input_files[0], (uint32_t)sum_input_size,
@@ -74,8 +74,8 @@ static void log_summery(const struct s8 input_files[], int num_files, size_t sum
 		}
 	} else {
 		int const verbose = log_get_level() > LOG_LEVEL_DEBUG;
-		struct hr_fmt const hr_i_sum = util_make_human_readable(sum_input_size, verbose);
-		struct hr_fmt const hr_o_sum = util_make_human_readable(sum_output_size, verbose);
+		struct hr_fmt const hr_i_sum = log_make_human_readable(sum_input_size, verbose);
+		struct hr_fmt const hr_o_sum = log_make_human_readable(sum_output_size, verbose);
 
 		/* clang-format off */
 		LOG_PLAIN(LOG_LEVEL_INFO, "%d files compressed: %.2f%% (%.*f%s => %.*f%s)\n",
@@ -91,7 +91,6 @@ static int compress_file_list(struct arena scratch, struct s8 output_name,
 			      const struct s8 *input_files, int num_files,
 			      const struct cmp_params *params)
 {
-	int const needs_output_name = !output_name.len;
 	int i;
 
 	void *work_buf = NULL;
@@ -132,11 +131,14 @@ static int compress_file_list(struct arena scratch, struct s8 output_name,
 	for (i = 0; i < num_files; i++) {
 		const char *input_cstr = s8_to_cstr(&scratch, input_files[i]);
 		uint32_t output_size;
+		struct s8 dst_path;
 
-		if (needs_output_name)
-			output_name = s8_concat(&scratch, input_files[i], AIRSPACE_EXTENSION);
+		if (output_name.len > 0)
+			dst_path = output_name;
+		else
+			dst_path = s8_concat(&scratch, input_files[i], AIRSPACE_EXTENSIONS[0]);
 
-		output_size = file_compress(ctx, s8_to_cstr(&scratch, output_name), input_cstr);
+		output_size = file_compress(ctx, s8_to_cstr(&scratch, dst_path), input_cstr);
 		if (cmp_is_error(output_size))
 			return EXIT_FAILURE;
 
@@ -149,9 +151,12 @@ static int compress_file_list(struct arena scratch, struct s8 output_name,
 			sum_input_size += input_size;
 			sum_output_size += output_size;
 		}
+
+		if (i == num_files - 1)
+			log_summary(input_files, num_files, sum_input_size, dst_path,
+				    sum_output_size);
 	}
 
-	log_summery(input_files, num_files, sum_input_size, output_name, sum_output_size);
 
 	return EXIT_SUCCESS;
 }
@@ -220,10 +225,10 @@ static void print_usage(FILE *stream, const char *program_name)
 	LOG_F(stream, "  -V, --version     Display version\n");
 	LOG_F(stream, "  -h, --help        Display this help\n");
 	LOG_F(stream, "\nExamples:\n");
-	LOG_F(stream, "# Compressing files1 and files2 to output.air\n");
-	LOG_F(stream, "airspace -c file1 file2 -o output.air\n");
-	LOG_F(stream, "# Decompressing files (coming soon!)\n");
-	LOG_F(stream, "airspace output.air -o file1.dat file2.dat\n");
+	LOG_F(stream, "# Compress file1 and file2 to file1.air and file2.air\n");
+	LOG_F(stream, "  %s -c file1 file2\n", program_name);
+	LOG_F(stream, "# Decompress file1.air and file2.air\n");
+	LOG_F(stream, "  %s file1.air file2.air\n", program_name);
 }
 
 
@@ -387,7 +392,8 @@ int main(int argc, char *argv[])
 			compress_file_list(a, output_filename, input_files, num_files, &params);
 		break;
 	case MODE_DECOMPRESS:
-		LOG_ERROR("Decompression not implemented yet");
+		LOG_ERROR(
+			"Decompression is not supported in this version. If you need it, please contact us.");
 		break;
 	default:
 		LOG_ERROR("Invalid operation mode");

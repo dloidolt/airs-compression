@@ -111,8 +111,8 @@ __extension__
 	} while (0)
 
 
-/** @brief increases the verbosity level by one step */
-void log_increase_verbosity(void);
+	/** @brief increases the verbosity level by one step */
+	void log_increase_verbosity(void);
 
 /** @brief decreases the verbosity level by one step */
 void log_decrease_verbosity(void);
@@ -152,5 +152,39 @@ void log_set_color(enum log_color_status status);
  * @return enum log_color_status The current color status
  */
 enum log_color_status log_get_color(void);
+
+
+/**
+ * @brief represents a human-readable formatted value
+ */
+
+struct hr_fmt {
+	double value;       /**< Numeric value */
+	int precision;      /**< Precision for displaying the value */
+	const char *suffix; /**< Unit suffix (e.g., "KB", "MB") */
+};
+
+
+/**
+ * @brief converts a size in bytes into a human-readable format
+ *
+ * This function takes a size in bytes and prepares components for
+ * pretty-printing it in a scaled way. The returned components are meant to be
+ * passed in precision, value, and suffix order to a "%.*f%s" format string.
+ * Example:
+ *   struct hr_fmt hrs = log_make_human_readable(1<<10, 0);
+ *   printf("%.*f%s\n", hrs.precision, hrs.value, hrs.suffix);
+ *   >>> 1.000 KiB
+ *
+ * @param size		size in bytes to be converted
+ * @param verbose	if non-zero, the function outputs a detailed verbose
+ *			format without scaling down the size, except for very
+ *			large values
+ *
+ * @returns a struct containing the scaled value, precision, and the suffix
+ *	string for the size.
+ */
+
+struct hr_fmt log_make_human_readable(uint64_t size, int verbose);
 
 #endif /* LOG_H */
