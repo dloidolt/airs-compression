@@ -14,6 +14,7 @@
 #include "../lib/cmp_errors.h"
 #include "../lib/common/compiler.h"
 #include "../lib/common/header_private.h"
+#include "../programs/arena.h"
 
 #define ARRAY_AND_SIZE(arr) (arr), sizeof(arr)
 
@@ -187,5 +188,20 @@ extern const int16_t g_iwt_exp_out_8[8];
 extern const uint16_t test_diff_u16[8];
 extern const int16_t test_diff_i16[8];
 extern const int32_t test_diff_i16_in_i32[8];
+
+extern const int16_t g_iwt_decmp_edge_cases[9];
+
+/**
+ * @brief Clears and returns the test arena for memory allocation
+ *
+ * The arena's state is completely reset on each call, providing a fresh scratch
+ * space for the caller. Consequently, any data allocated from the arena
+ * in previous calls becomes invalid.
+ *
+ * @warning Call it only once in a test.
+ *
+ * @returns Pointer to the cleared arena instance
+ */
+struct arena *clear_test_arena(void);
 
 #endif /* TEST_COMMON_H */
