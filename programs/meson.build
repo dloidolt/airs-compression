@@ -39,6 +39,14 @@ if has_os_layer
   )
 endif
 
+bench_cmp = executable('bench_cmp',
+  'bench_cmp.c', 'clock.c', 'arena.c',
+  include_directories : inc_cmp,
+  implicit_include_directories: false,
+  link_with : [cmp_lib],
+  c_args : cli_c_args,
+  install : false)
+
 if asciidoctor.found()
   custom_target(
     input : 'README.adoc',
