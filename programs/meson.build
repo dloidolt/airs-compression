@@ -30,6 +30,16 @@ airspacecli = executable('airspace',
   c_args : cli_c_args,
   install: true)
 
+bench_cmp = executable('bench_cmp',
+  'bench_cmp.c', 'clock.c', 'arena.c',
+  include_directories : inc_cmp,
+  implicit_include_directories: false,
+  link_with : [cmp_lib],
+  # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
+  # see feature_test_macros(7)
+  c_args : cli_c_args,
+  install : false)
+
 if asciidoctor.found()
   custom_target(
     input : 'README.adoc',
