@@ -12,7 +12,6 @@
 
 #include "file.h"
 #include "log.h"
-#define STR_SLICE_IMPLEMENTATION
 #include "str_slice.h"
 #include "../lib/common/byteorder.h"
 #include "arena.h"

@@ -22,8 +22,6 @@
 #include "file.h"
 #include "log.h"
 #include "params_parse.h"
-#define STR_SLICE_IMPLEMENTATION
-#define STR_SLICE_API static __inline
 #include "str_slice.h"
 
 /* Program information */

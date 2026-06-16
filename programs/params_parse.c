@@ -15,8 +15,6 @@
 #include "log.h"
 #include "params_parse.h"
 #include "arena.h"
-#define STR_SLICE_IMPLEMENTATION
-#define STR_SLICE_API static __inline
 #include "str_slice.h"
 
 

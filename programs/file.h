@@ -13,7 +13,6 @@
 #include <stdint.h>
 
 #include "os.h"
-#define STR_SLICE_API static __inline
 #include "str_slice.h"
 #include "arena.h"
 
