@@ -112,7 +112,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 
 	return_code = cmp_initialise(ctx, params, work_buf, max_work_buf_size);
 	if (cmp_is_error(return_code)) {
-		LOG_ERROR_CMP(return_code, "Compression initialization failed");
+		LOG_ERROR_CMP(return_code, "Compression initialisation failed");
 		return EXIT_FAILURE;
 	}
 
@@ -168,13 +168,13 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 
 
 /**
- * @brief creates a file list from the input arguments
+ * @brief Creates a file list from the input arguments
  *
  * Allocates memory for a file list. If n_file_names is zero, defaults to using
  * stdin as the input source. Handles "-" as a special case for stdin.
  *
  * @param argv			array of file names
- * @param argc			Number of file names (0 for stdin)
+ * @param argc			number of file names (0 for stdin)
  * @param list_len		pointer to store the number of files in the list
  * @param is_reading_stdin	pointer to store whether stdin is being used
  *
@@ -248,10 +248,10 @@ static void print_version(void)
 
 
 /**
- * @brief entry point for the AIRSPACE CLI tool
+ * @brief Entry point for the AIRSPACE CLI tool
  *
- * @param argc	number of command-line arguments.
- * @param argv	array of command-line arguments.
+ * @param argc	number of command-line arguments
+ * @param argv	array of command-line arguments
  *
  * @returns EXIT_SUCCESS on success, EXIT_FAILURE on error
  */

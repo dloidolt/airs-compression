@@ -53,15 +53,15 @@ struct cmp_encoder {
 
 
 /**
- * @brief Initialize a compression encoder
+ * @brief Initialise a compression encoder
  *
  * Sets up the encoder structure with the provided compression parameters and
  * bitstream writer.
  *
- * @param enc		Pointer to the encoder structure to initialize
- * @param encoder_type	Type of encoder to use
- * @param encoder_param	Parameter specific to the chosen encoder_type
- * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param enc		pointer to the encoder structure to initialise
+ * @param encoder_type	type of encoder to use
+ * @param encoder_param	parameter specific to the chosen encoder_type
+ * @param outlier	outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
@@ -73,9 +73,9 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 /**
  * @brief Encode a 16-bit signed sample
  *
- * @param enc		Pointer to a successful initialised encoder structure
+ * @param enc		pointer to a successful initialised encoder structure
  * @param value		16-bit signed sample to encode
- * @param bs		Pointer to a bitstream writer; must be initialised and
+ * @param bs		pointer to a bitstream writer; must be initialised and
  *			provided by the caller
  *
  * @note The caller is responsible for flushing the bitstream when encoding is
@@ -91,9 +91,9 @@ void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 /**
  * @brief Checks if the given encoder type and parameter are valid
  *
- * @param encoder_type	Encoder type to check
- * @param encoder_param	Parameter for the encoder
- * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param encoder_type	encoder type to check
+ * @param encoder_param	parameter for the encoder
+ * @param outlier	outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
@@ -105,7 +105,7 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 /**
  * @brief Calculates the maximum worst cased compressed size
  *
- * @param size	Size of the data uncompressed
+ * @param size	size of the data uncompressed
  *
  * @returns maximum possible compressed size in bytes, can be larger than the
  *	maximum values that can be stored in the compressed size header field

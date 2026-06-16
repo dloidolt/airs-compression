@@ -35,7 +35,7 @@ const void *cmp_hdr_get_cmp_data(const void *header)
 /**
  * @brief Converts compression error enum to string
  *
- * @param error		Compression error code
+ * @param error	compression error code
  *
  * @returns error code string
  */

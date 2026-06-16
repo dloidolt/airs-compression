@@ -9,7 +9,6 @@
  * @warning This code is platform-specific and dependent on the system endianness.
  */
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include "fuzz.h"

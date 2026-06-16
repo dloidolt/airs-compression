@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief Compatibility utility header for different compilers.
+ * @brief Compatibility utility header for different compilers
  *
  * @see This is based on the macros from the git source code, see:
  *	git-compat-util.h by @author Linus Torvalds et al.
@@ -22,18 +22,22 @@
  *	... code requiring gcc 2.8 or later ...
  *	#endif
  */
+
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 #  define CMP_GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
 #else
 #  define CMP_GNUC_PREREQ(maj, min) 0
 #endif
 
+
 /**
- * @brief a C89 compile time assertion mechanism
+ * @brief A C89 compile time assertion mechanism
  */
+
 #define compile_time_assert(cond, msg) \
 	UNUSED                         \
 	typedef char ASSERT_##msg[(cond) ? 1 : -1]
+
 
 /**
  * @brieg assert a build-time dependency, as an expression.
@@ -48,12 +52,13 @@
  *		 ((char *)(foo)						\
  *		  + BUILD_ASSERT_OR_ZERO(offsetof(struct foo, string) == 0))
  */
+
 #define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - (2 * !(cond))]) - 1)
 
 
 /**
  * @brief Asserts that a variable is an array, not a pointer
- * @param arr The variable to check.
+ * @param arr	the variable to check
  */
 
 #if CMP_GNUC_PREREQ(3, 1)
@@ -67,7 +72,7 @@
 
 
 /**
- * @brief get the number of elements in a visible array
+ * @brief Get the number of elements in a visible array
  *
  * @param x	the array whose size you want
  *
@@ -75,18 +80,18 @@
  * function parameters.  With correct compiler support, such usage
  * will cause a build error (see the BUILD_ASSERT_OR_ZERO macro).
  */
+
 #define ARRAY_SIZE(x) ((sizeof(x) / sizeof((x)[0])) + BARF_UNLESS_AN_ARRAY(x))
 
-/**
- * We assume that a byte as 8 bits
- */
+/* We assume that a byte as 8 bits */
 #define bitsizeof(x) (8 * sizeof(x))
 
 #define maximum_signed_value_of_type(a)   (INTMAX_MAX >> (bitsizeof(intmax_t) - bitsizeof(a)))
 #define maximum_unsigned_value_of_type(a) (UINTMAX_MAX >> (bitsizeof(uintmax_t) - bitsizeof(a)))
 
+
 /**
- * @brief marks a function parameter that is always unused.
+ * @brief Marks a function parameter that is always unused
  *
  * It also can be used to annotate a function, a variable, or a type that is
  * always unused.
@@ -110,7 +115,7 @@
 
 
 /**
- * @brief marks a function parameter that may be unused, but whose use is not an
+ * @brief Marks a function parameter that may be unused, but whose use is not an
  * error.
  *
  * It also can be used to annotate a function, a variable, or a type that may be
@@ -127,7 +132,7 @@
 
 
 /**
- * @brief fall-through case statement annotations
+ * @brief Fall-through case statement annotations
  */
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L
@@ -160,8 +165,8 @@
  * @endcode
  * @see FFmpeg DECLARE_ALIGNED in libavutil/mem_internal.h
  *
- * @param n Minimum alignment in bytes
- * @param t Type
+ * @param n	minimum alignment in bytes
+ * @param t	type
  */
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)

@@ -72,7 +72,7 @@ void test_detect_null_parameters_initialisation(void)
 
 
 #define INVALID_PREPROCESSING ((enum cmp_preprocessing)0xFFFF)
-void test_detect_invalid_primary_preprocessing_initialization(void)
+void test_detect_invalid_primary_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
@@ -86,7 +86,7 @@ void test_detect_invalid_primary_preprocessing_initialization(void)
 }
 
 
-void test_detect_invalid_primary_model_preprocessing_initialization(void)
+void test_detect_invalid_primary_model_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
@@ -100,7 +100,7 @@ void test_detect_invalid_primary_model_preprocessing_initialization(void)
 }
 
 
-void test_detect_invalid_secondary_preprocessing_initialization(void)
+void test_detect_invalid_secondary_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;

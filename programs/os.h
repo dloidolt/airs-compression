@@ -39,7 +39,6 @@ struct os_load {
 	enum os_status status;
 };
 
-
 /**
  * @brief Read in a file or stdin
  *

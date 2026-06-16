@@ -32,8 +32,8 @@ enum {
  * @brief Calculates the first value that cannot be encoded with golomb_encode()
  *
  * @param g_par		Golomb parameter
- * @param n_bits	Number of bits used to represent uncompressed samples
- * @param encoder_type	Used Golomb encoder type
+ * @param n_bits	number of bits used to represent uncompressed samples
+ * @param encoder_type	Golomb encoder type used
  *
  * @returns the first value that cannot be encoded with golomb_encode() due to
  *	exceeding the maximum codeword length, or 0 on failure
@@ -93,13 +93,13 @@ static uint32_t golomb_upper_bound(uint32_t g_par, enum cmp_encoder_type encoder
  * @brief Calculate an optimal outlier parameter for zero escape mechanism
  *
  * @param g_par		Golomb parameter
- * @param n_bits	Number of bits used to represent uncompressed samples
+ * @param n_bits	number of bits used to represent uncompressed samples
  *
  * @returns the highest optimal outlier value for a given Golomb parameter, when
  *	the zero escape mechanism is used or 0 on fail
- * @warning value might be to high to encode with golomb_encode()
+ * @warning Value might be too high to encode with golomb_encode().
  *
- * @detail We are looking for the smallest v such that:
+ * @details We are looking for the smallest v such that:
  *   len_escape < len_golomb(v+1)  (1)  // v+1 so zero can be used as escape symbol
  * where
  *   len_escape = ilog2(g_par)+1        // bits for the zero symbol
@@ -223,7 +223,6 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
  * @returns the sign-extended value
  */
 
-
 static int32_t sign_extend(int32_t value, unsigned int n_bits)
 {
 	compile_time_assert((-1 >> 1) == -1, Arithmetic_shift_need);
@@ -266,17 +265,17 @@ static uint32_t map_to_unsigned(int32_t value, unsigned int n_bits)
 
 
 /**
- * @brief forms a codeword according to the Golomb code
+ * @brief Forms a codeword according to the Golomb code
  *
- * @param value		Value to be encoded, must be smaller than
+ * @param value		value to be encoded, must be smaller than
  *			golomb_upper_bound()
  * @param g_par		Golomb parameter (have to be bigger than 0)
- * @param g_par_log2	Is ilog2(g_par) calculate outside function for better
+ * @param g_par_log2	is ilog2(g_par) calculate outside function for better
  *			performance
- * @param bs		Pointer to a bitstream writer; must be initialised by
+ * @param bs		pointer to a bitstream writer; must be initialised by
  *			the caller
  *
- * @warning there is no check of the validity of the input parameters!
+ * @warning There is no check of the validity of the input parameters!
  */
 
 static void golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,

@@ -23,16 +23,15 @@ enum cmp_parse_status {
 };
 
 /**
- * @brief parses a "key=value,key2=value2" string of compression parameters and
+ * @brief Parses a "key=value,key2=value2" string of compression parameters and
  * updates the params struct/
  *
- * @param str		A null-terminated C string containing key-value pairs.
- *			The expected format is "key1=value1,key2=value2,...".
- *			Whitespace around keys, values, '=', and ',' is tolerated.
- *			If the keys are the same, the last one wins.
- * @param params	A pointer to a 'struct cmp_params' to be populated with the
- *			parsed values. Must not be NULL. no change when not
- *			parsed
+ * @param str		null-terminated C string containing key-value pairs;
+ *			the expected format is "key1=value1,key2=value2,...";
+ *			whitespace around keys, values, '=', and ',' is tolerated;
+ *			if the keys are the same, the last one wins
+ * @param params	pointer to a 'struct cmp_params' to be populated with the
+ *			parsed values; must not be NULL
  *
  * @returns enum cmp_parse_status
  *   - CMP_PARSE_OK		on success
@@ -46,7 +45,7 @@ enum cmp_parse_status {
 enum cmp_parse_status cmp_params_parse(const char *str, struct cmp_params *params);
 
 /**
- * @brief serializes a struct cmp_params into a human-readable string
+ * @brief Serializes a struct cmp_params into a human-readable string
  *
  * @param a	pointer to an arena used to build the output string
  * @param par	pointer to the compression values to stringify

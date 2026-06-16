@@ -7,8 +7,8 @@
  * @brief Big-Endian Bitstream Writer
  *
  * Usage:
- * - Initialize the bitstream writer:
- *        error_code = bitstream_write_init();
+ * - Initialise the bitstream writer:
+ *        error_code = bitstream_writer_init();
  * - Write bits to the bitstream:
  *        error_code = bitstream_write();
  * - Flush remaining bits to the buffer:
@@ -51,7 +51,7 @@ struct bitstream_writer {
 
 
 /**
- * @brief Initializes a bitstream writer
+ * @brief Initialise a bitstream writer
  *
  * @param bs	pointer to an already allocated bitstream_writer structure
  * @param dst	start address of the bitstream buffer; has to be 8-byte aligned
@@ -186,7 +186,7 @@ static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t 
  *	 calls are ignored. Possible error conditions can be tested with
  *	 bitstream_error() or bitstream_flush().
  *
- * @param bs		pointer to initialized bitstream_writer
+ * @param bs		pointer to initialised bitstream_writer
  * @param src16		source buffer of 16-bit values (native endianness)
  * @param nb_samples	number of samples to write
  */
@@ -250,7 +250,7 @@ static __inline void bitstream_add_be16_array(struct bitstream_writer *bs, const
  *	 calls are ignored. Possible error conditions can be tested with
  *	 bitstream_error() or bitstream_flush().
  *
- * @param bs		pointer to initialized bitstream_writer
+ * @param bs		pointer to initialised bitstream_writer
  * @param src16_in_32	source buffer of 32-bit values containing 16-bit samples
  *			(native endianness)
  * @param nb_samples	number of samples to write
@@ -299,10 +299,10 @@ static __inline void bitstream_add_be16_in_32_array(struct bitstream_writer *bs,
 
 
 /**
- * @brief Flushes remaining bits form the internal cache to the buffer
+ * @brief Flushes remaining bits from the internal cache to the buffer
  * Last byte may be padded with zeros
  *
- * @param bs	pointer to a initialised bitstream_writer structure
+ * @param bs	pointer to an initialised bitstream_writer structure
  *
  * @returns written bytes to bitstream or an error code, which can be checked
  *	using cmp_is_error()

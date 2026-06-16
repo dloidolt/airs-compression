@@ -45,17 +45,14 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  */
 #define TEST_ASSERT_CMP_FAILURE(cmp_ret_code) TEST_ASSERT_TRUE(cmp_is_error(cmp_ret_code))
 
-
 /**
  * @brief Asserts compression error code equality
  *
  * @param expected_CMP_ERROR	expected error code
  * @param cmp_ret_code		compression library return code
  */
-
 #define TEST_ASSERT_EQUAL_CMP_ERROR(expected_CMP_ERROR, cmp_ret_code) \
 	assert_equal_cmp_error_internal(expected_CMP_ERROR, cmp_ret_code, __LINE__)
-
 
 /**
  * @brief Asserts that a compressed data header matches the expected header
@@ -66,7 +63,6 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  * @param size			size of the compressed data buffer
  * @param expected_hdr		constant pointer to the expected cmp_hdr structure
  */
-
 #define TEST_ASSERT_CMP_HDR(compressed_data, size, expected_hdr)                                   \
 	do {                                                                                       \
 		struct cmp_hdr assert_hdr;                                                         \
@@ -105,7 +101,7 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
 
 
 /**
- * @brief retrieve pointer to compressed data following the header
+ * @brief Retrieve pointer to compressed data following the header
  *
  * @warning Assumes the compressed data block starts with a valid header.
  *
@@ -114,7 +110,6 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
  * @returns a pointer to the first byte of compressed data after the header
  *
  */
-
 const void *cmp_hdr_get_cmp_data(const void *header);
 
 
@@ -122,8 +117,20 @@ const void *cmp_hdr_get_cmp_data(const void *header);
  * Wrapper around malloc() that asserts the allocation is successful.  If
  * allocation fails, the test will fail with an assertion.
  */
-
 void *t_malloc(size_t size);
+
+/**
+ * @brief Clears and returns the test arena for memory allocation
+ *
+ * The arena's state is completely reset on each call, providing a fresh scratch
+ * space for the caller. Consequently, any data allocated from the arena
+ * in previous calls becomes invalid.
+ *
+ * @warning Call it only once in a test.
+ *
+ * @returns pointer to the cleared arena instance
+ */
+struct arena *clear_test_arena(void);
 
 
 struct test_env {
@@ -190,18 +197,5 @@ extern const int16_t test_diff_i16[8];
 extern const int32_t test_diff_i16_in_i32[8];
 
 extern const int16_t g_iwt_decmp_edge_cases[9];
-
-/**
- * @brief Clears and returns the test arena for memory allocation
- *
- * The arena's state is completely reset on each call, providing a fresh scratch
- * space for the caller. Consequently, any data allocated from the arena
- * in previous calls becomes invalid.
- *
- * @warning Call it only once in a test.
- *
- * @returns Pointer to the cleared arena instance
- */
-struct arena *clear_test_arena(void);
 
 #endif /* TEST_COMMON_H */

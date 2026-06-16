@@ -44,9 +44,10 @@ static __inline uint64_t min_u64(uint64_t a, uint64_t b)
 
 /**
  * @brief Divides two numbers rounding up the result
- * @param n	Numerator
- * @param d	Denominator
+ * @param n	numerator
+ * @param d	denominator
  */
+
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 

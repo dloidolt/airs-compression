@@ -318,7 +318,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 }
 
 
-/* implements uncompressed fallback */
+/* Implements uncompressed fallback. */
 static uint32_t cmp_compress_generic(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 				     const struct sample_desc *src_desc)
 {

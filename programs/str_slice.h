@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief Lightweight string slice library for substring operations.
+ * @brief Lightweight string slice library for substring operations
  *
  * @warning A slice is a borrowed view and is only valid as long as the
  *          underlying buffer is valid. Do not return slices to stack-allocated

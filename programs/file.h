@@ -29,7 +29,7 @@ enum file_flags {
 
 
 /**
- * @brief reads a file into the arena
+ * @brief Reads a file into the arena
  *
  * @param perm	arena to read into
  * @param path	file path or STD_IN_MARK
@@ -48,7 +48,7 @@ struct os_load file_read_be16(struct arena *perm, struct s8 path, enum file_flag
 
 
 /**
- * @brief saves data to a file
+ * @brief Saves data to a file
  *
  * Does nothing and returns success when path equals NULL_MARK.
  *
@@ -79,7 +79,7 @@ int file_remove(struct arena scratch, struct s8 path);
 
 
 /**
- * @brief checks if the given stream is connected to a terminal
+ * @brief Checks if the given stream is connected to a terminal
  *
  * @param stream_mark	stream to test (e.g., STD_IN_MARK, STD_OUT_MARK, STD_ERR_MARK)
  *
