@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 	struct arena a;
 
 	if (mem == MAP_FAILED) {
-		LOG_ERROR_WITH_ERRNO("mmap failed to allocate %zu bytes", cap);
+		LOG_ERROR_WITH_ERRNO("mmap failed to allocate %llu bytes", (unsigned long long)cap);
 		return EXIT_FAILURE;
 	}
 	a.beg = mem;
