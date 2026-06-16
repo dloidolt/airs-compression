@@ -25,6 +25,19 @@
 #include <assert.h>
 #include <string.h>
 
+/* clang-format off */
+#if defined(__clang__) || defined(__GNUC__)
+#  define S8_SUPPRESS_CAST_QUAL_PUSH                   \
+     _Pragma("GCC diagnostic push")                    \
+     _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
+#  define S8_SUPPRESS_CAST_QUAL_POP \
+      _Pragma("GCC diagnostic pop")
+#else
+#  define S8_SUPPRESS_CAST_QUAL_PUSH
+#  define S8_SUPPRESS_CAST_QUAL_POP
+#endif
+/* clang-format on */
+
 
 /** String slice type (8-bit chars) */
 struct s8 {
@@ -339,7 +352,7 @@ static __inline struct s8 s8_clone(struct arena *a, struct s8 s)
 	clone = ARENA_NEW_ARRAY(a, s.len, unsigned char);
 	if (s.s)
 		memcpy(clone, s.s, (size_t)s.len);
-	r.s = (const unsigned char *)clone;
+	r.s = clone;
 	r.len = s.len;
 	return r;
 }
@@ -347,16 +360,34 @@ static __inline struct s8 s8_clone(struct arena *a, struct s8 s)
 static __inline struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail)
 {
 	struct s8 r = { 0 };
+	unsigned char *combined;
 
-	if (arena_is_resize_possible(*a, head.s, head.len))
-		r = head;
-	else
-		r = s8_clone(a, head);
+	assert(head.len >= 0);
+	assert(tail.len >= 0);
 
-	tail = s8_clone(a, tail);
-	assert(tail.s == r.s + head.len && "Arena allocation must be contiguous");
-
+	if (head.len > PTRDIFF_MAX - tail.len)
+		arena_oom();
 	r.len = head.len + tail.len;
+
+	if (arena_buf_ends_at_top(*a, head.s, head.len)) {
+		arena_grow_last(a, head.s, head.len, r.len);
+		/*
+		 * Casting away const is "safe" here: as we only write the newly
+		 * grown tail.
+		 */
+		S8_SUPPRESS_CAST_QUAL_PUSH
+		combined = (unsigned char *)head.s;
+		S8_SUPPRESS_CAST_QUAL_POP
+	} else {
+		combined = ARENA_NEW_ARRAY(a, r.len, unsigned char);
+		if (head.s)
+			memcpy(combined, head.s, (size_t)head.len);
+	}
+
+	if (tail.s)
+		memcpy(combined + head.len, tail.s, (size_t)tail.len);
+
+	r.s = combined;
 	return r;
 }
 

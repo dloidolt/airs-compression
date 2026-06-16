@@ -21,15 +21,22 @@
 #include "compiler.h"
 
 
-/** @brief Returns the maximum of two values */
+/** @brief Returns the maximum of two unsigned 32-bit */
 static __inline uint32_t max_u32(uint32_t a, uint32_t b)
 {
 	return a > b ? a : b;
 }
 
 
-/** @brief Returns the minimum of two values */
+/** @brief Returns the minimum of two unsigned 32-bit  */
 static __inline uint32_t min_u32(uint32_t a, uint32_t b)
+{
+	return a < b ? a : b;
+}
+
+
+/** @brief Returns the minimum of two unsigned 64-bit  */
+static __inline uint64_t min_u64(uint64_t a, uint64_t b)
 {
 	return a < b ? a : b;
 }

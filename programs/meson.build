@@ -2,6 +2,7 @@
 has_os_layer = host_machine.system() != 'baremetal'
 
 cli_src = files([
+  'arena.c',
   'params_parse.c',
   'log.c',
   'file.c',

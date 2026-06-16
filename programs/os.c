@@ -62,7 +62,7 @@ struct os_load os_read(const char *path, void *buf, uint32_t buf_size)
 			r.status = OS_CANTCLOSE;
 
 	r.buffer = buf;
-	assert(bytes_read <= UINT32_MAX);
+	assert(bytes_read <= INT32_MAX);
 	r.size = (uint32_t)bytes_read;
 	return r;
 }

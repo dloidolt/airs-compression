@@ -8,6 +8,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "../lib/common/compiler.h"
