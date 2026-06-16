@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief data compression header tests
+ * @brief Data compression header tests
  */
 
 #include <stdint.h>

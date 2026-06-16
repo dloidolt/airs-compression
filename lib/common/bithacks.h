@@ -37,9 +37,10 @@ static __inline uint32_t min_u32(uint32_t a, uint32_t b)
 
 /**
  * @brief Divides two numbers rounding up the result
- * @param n	Numerator
- * @param d	Denominator
+ * @param n	numerator
+ * @param d	denominator
  */
+
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 

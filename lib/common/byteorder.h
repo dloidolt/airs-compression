@@ -25,6 +25,7 @@
  * by @author Linus Torvalds et al.
  *
  */
+
 #ifndef BYTEORDER_H
 #define BYTEORDER_H
 
@@ -131,31 +132,29 @@ static __inline __attribute__((const)) uint64_t __fswab64(uint64_t val)
 }
 
 /**
- * @brief return a byteswapped 16-bit value
- * @param x value to byteswap
+ * @brief Return a byteswapped 16-bit value
+ * @param x	value to byteswap
  */
-
 #define __swab16(x) (__builtin_constant_p((uint16_t)(x)) ? ___constant_swab16(x) : __fswab16(x))
 
 
 /**
- * @brief return a byteswapped 32-bit value
- * @param x a value to byteswap
+ * @brief Return a byteswapped 32-bit value
+ * @param x	a value to byteswap
  */
-
 #define __swab32(x) (__builtin_constant_p((uint32_t)(x)) ? ___constant_swab32(x) : __fswab32(x))
 
 
 /**
- * @brief return a byteswapped 64-bit value
- * @param x a value to byteswap
+ * @brief Return a byteswapped 64-bit value
+ * @param x	a value to byteswap
  */
-
 #define __swab64(x) (__builtin_constant_p((uint64_t)(x)) ? ___constant_swab64(x) : __fswab64(x))
 
+
 /**
- * @brief return a byteswapped 16-bit value from a pointer
- * @param p a pointer to a naturally-aligned 16-bit value
+ * @brief Return a byteswapped 16-bit value from a pointer
+ * @param p	a pointer to a naturally-aligned 16-bit value
  */
 static __inline uint16_t __swab16p(const uint16_t *p)
 {
@@ -164,8 +163,8 @@ static __inline uint16_t __swab16p(const uint16_t *p)
 
 
 /**
- * @brief return a byteswapped 32-bit value from a pointer
- * @param p a pointer to a naturally-aligned 32-bit value
+ * @brief Return a byteswapped 32-bit value from a pointer
+ * @param p	a pointer to a naturally-aligned 32-bit value
  */
 static __inline uint32_t __swab32p(const uint32_t *p)
 {
@@ -174,8 +173,8 @@ static __inline uint32_t __swab32p(const uint32_t *p)
 
 
 /**
- * @brief return a byteswapped 64-bit value from a pointer
- * @param p a pointer to a naturally-aligned 64-bit value
+ * @brief Return a byteswapped 64-bit value from a pointer
+ * @param p	a pointer to a naturally-aligned 64-bit value
  */
 static __inline uint64_t __swab64p(const uint64_t *p)
 {
@@ -184,10 +183,9 @@ static __inline uint64_t __swab64p(const uint64_t *p)
 
 
 /**
- * @brief byteswap a 16-bit value in-place
- * @param p a pointer to a naturally-aligned 16-bit value
+ * @brief Byteswap a 16-bit value in-place
+ * @param p	a pointer to a naturally-aligned 16-bit value
  */
-
 static __inline void __swab16s(uint16_t *p)
 {
 	*p = __swab16p(p);
@@ -195,10 +193,9 @@ static __inline void __swab16s(uint16_t *p)
 
 
 /**
- * @brief byteswap a 32-bit value in-place
- * @param p a pointer to a naturally-aligned 32-bit value
+ * @brief Byteswap a 32-bit value in-place
+ * @param p	a pointer to a naturally-aligned 32-bit value
  */
-
 static __inline void __swab32s(uint32_t *p)
 {
 	*p = __swab32p(p);
@@ -206,10 +203,9 @@ static __inline void __swab32s(uint32_t *p)
 
 
 /**
- * @brief byteswap a 64-bit value in-place
- * @param p a pointer to a naturally-aligned 64-bit value
+ * @brief Byteswap a 64-bit value in-place
+ * @param p	a pointer to a naturally-aligned 64-bit value
  */
-
 static __inline void __swab64s(uint64_t *p)
 {
 	*p = __swab64p(p);

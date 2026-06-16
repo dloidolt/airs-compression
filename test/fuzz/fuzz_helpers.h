@@ -38,16 +38,16 @@ struct fuzz_consume {
 
 /**
  * @brief Allocate memory for fuzzing, aborting on failure
- * @param size number of bytes to allocate
+ * @param size	number of bytes to allocate
  * @returns pointer to allocated memory, or NULL if size is 0
  */
 void *fuzz_malloc(size_t size);
 
 /**
- * @brief Initialize a fuzz_consume structure
- * @param data pointer	to fuzz input data
+ * @brief Initialise a fuzz_consume structure
+ * @param data		pointer to fuzz input data
  * @param size		size of fuzz input data in bytes
- * @returns initialized fuzz_consume structure
+ * @returns initialised fuzz_consume structure
  */
 struct fuzz_consume fuzz_consume_init(const uint8_t *data, size_t size);
 

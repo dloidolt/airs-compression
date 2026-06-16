@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief Data preprocessing implementation for compression.
+ * @brief Data preprocessing implementation for compression
  *
  * This file contains functions for various data preprocessing methods
  * used in a compression algorithm.
@@ -210,7 +210,7 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
 
 
 /**
- * @brief Initializes none preprocessing
+ * @brief Initialise none preprocessing
  *
  * @param src_desc	source data descriptor pointer
  * @param work_buf	unused
@@ -278,7 +278,7 @@ static uint32_t iwt_get_work_buf_size(uint32_t input_size)
 
 
 /**
- * @brief Initializes multi level IWT preprocessing
+ * @brief Initialise multi level IWT preprocessing
  *
  * This function pre-calculates the IWT coefficient and put them in the working
  * buffer
@@ -341,7 +341,7 @@ static uint32_t model_get_work_buf_size(uint32_t input_size)
 
 
 /**
- * @brief Initializes model preprocessing
+ * @brief Initialise model preprocessing
  *
  * @param src_desc	source data descriptor pointer
  * @param work_buf	pointer to the buffer where the model to be subtracted

@@ -22,7 +22,7 @@
 /**
  * @brief Enumeration of all error codes
  *
- * @warning Error name and value are TBC
+ * @warning Error name and value are TBC.
  */
 
 enum cmp_error {

@@ -7,7 +7,6 @@
  * @brief Compression header implementation
  */
 
-
 #include "compiler.h"
 #include <stdint.h>
 #include <string.h>

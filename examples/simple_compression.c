@@ -23,7 +23,7 @@ static void print_hex_dump(const uint8_t *data, uint32_t size);
 
 
 /**
- * @brief demonstrate compression API usage
+ * @brief Demonstrate compression API usage
  */
 
 static int simple_compression(void)
@@ -306,10 +306,10 @@ static int simple_compression(void)
 
 
 /**
- * @brief print hex dump of binary data
+ * @brief Print hex dump of binary data
  *
- * @param data pointer to binary data
- * @param size number of bytes to display
+ * @param data	pointer to binary data
+ * @param size	number of bytes to display
  */
 
 static void print_hex_dump(const uint8_t *data, uint32_t size)
@@ -325,7 +325,7 @@ static void print_hex_dump(const uint8_t *data, uint32_t size)
 
 
 /**
- * @brief main function of the compression example
+ * @brief Main function of the compression example
  *
  * @returns EXIT_SUCCESS if the example succeeds, EXIT_FAILURE otherwise
  */

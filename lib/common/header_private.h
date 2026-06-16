@@ -19,7 +19,7 @@
 #include "compiler.h"
 
 
-/** Seed value used for initializing the checksum computation, arbitrarily chosen*/
+/** Seed value used for initialising the checksum computation, arbitrarily chosen */
 enum { CHECKSUM_SEED = 419764627 };
 
 
@@ -27,10 +27,10 @@ compile_time_assert(CMP_HDR_SIZE == 24, cmp_header_size_must_be_24_bytes);
 
 
 /**
- * @brief serialize compression header to a byte buffer
+ * @brief Serialize compression header to a byte buffer
  *
- * @param bs	Pointer to a initialized bitstream writer structure
- * @param hdr	Pointer to header structure to serialize
+ * @param bs	pointer to an initialised bitstream writer structure
+ * @param hdr	pointer to header structure to serialize
  *
  * @returns the compression header size or an error, which can be checked using
  *	cmp_is_error()
