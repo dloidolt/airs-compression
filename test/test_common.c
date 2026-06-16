@@ -139,9 +139,8 @@ struct arena *clear_test_arena(void)
 
 	arena_set_oom_handler(test_oom_handler);
 
-	memset(mem, 0x1D, ARRAY_SIZE(mem)); /* poison arena memory */
-	a.beg = mem;
-	a.end = mem + ARRAY_SIZE(mem);
+	memset(mem, 0x1D, sizeof(mem)); /* poison arena memory */
+	a = arena_init(mem, sizeof(mem));
 	return &a;
 }
 

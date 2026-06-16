@@ -305,8 +305,7 @@ int main(int argc, char *argv[])
 		LOG_ERROR_WITH_ERRNO("mmap failed to allocate %llu bytes", (unsigned long long)cap);
 		return EXIT_FAILURE;
 	}
-	a.beg = mem;
-	a.end = mem + cap;
+	a = arena_init(mem, cap);
 
 	assert(argv);
 	assert(argc >= 1);
