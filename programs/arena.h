@@ -63,6 +63,30 @@ static __inline void arena_set_oom_handler(void (*handler)(void))
 
 
 /**
+ * @brief Create a arena allocator
+ *
+ * @param buf	buffer backing the arena allocations
+ * @param size	size of the buf buffer in bytes
+ *
+ * @returns a arena struct
+ */
+
+static __inline struct arena arena_init(void *buf, size_t size)
+{
+	struct arena a = { 0 };
+
+	assert(size <= PTRDIFF_MAX);
+
+	if (buf) {
+		a.beg = buf;
+		a.end = (uint8_t *)buf + size;
+	}
+
+	return a;
+}
+
+
+/**
  * @brief allocates a zero-initialized block of memory from the arena with specified alignment
  *
  * @param a	pointer to the arena
