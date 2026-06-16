@@ -44,26 +44,30 @@ struct os_load file_read(struct arena *perm, struct s8 path, enum file_flags fla
 {
 	struct os_load r;
 	const char *path_as_cstr = s8_to_cstr(perm, path);
-	uint32_t *p = ARENA_NEW_ARRAY(perm, 0, uint32_t); /* peek at next aligned address */
-	ptrdiff_t cap = perm->end - (uint8_t *)p;
+	ptrdiff_t cap;
+	void *p;
 
 	assert((flags & ~(unsigned int)FILE_MISSING_OK) == 0 && "invalid flags");
-	assert(cap >= 0);
 
+	cap = arena_remaining(*perm, __alignof__(uint32_t));
 	if (cap >= UINT32_MAX)
 		cap = UINT32_MAX;
-
+	p = arena_alloc(perm, cap, 1, __alignof__(uint32_t));
 	r = os_read(path_as_cstr, p, (uint32_t)cap);
-	switch (r.status) {
-	case OS_OK:
-		LOG_DEBUG("Successful read in '%.*s'", (int)path.len, path.s);
-		perm->beg += r.size; /* commit the read bytes into the arena */
+	if (r.status == OS_OK)
+		arena_shrink_last(perm, p, cap, r.size);
+	else
+		arena_shrink_last(perm, p, cap, 0);
 
+	switch (r.status) {
+	case OS_OK: {
+		LOG_DEBUG("Successful read in '%.*s'", (int)path.len, path.s);
 		if (r.size == 0) {
 			r.status = OS_IOERR;
 			LOG_ERROR("'%.*s' is empty.", (int)path.len, path.s);
 		}
 		break;
+	}
 	case OS_CANTOPEN:
 		if (flags & FILE_MISSING_OK)
 			LOG_DEBUG("Can't open '%.*s'", (int)path.len, path.s);

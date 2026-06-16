@@ -1,4 +1,5 @@
 cli_src = files([
+  'arena.c',
   'os.c',
   'params_parse.c',
   'log.c',

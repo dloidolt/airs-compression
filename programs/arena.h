@@ -5,15 +5,21 @@
  * @copyright GPL-2.0
  *
  * @brief A simple, single-threaded, linear memory arena (bump allocator)
-
- * This arena provides fast, contiguous memory allocation with no individual
- * deallocation. All allocations are freed simultaneously when the arena
- * is reset or goes out of scope.
  *
- * Allocated memory is zero-initialized.
- * OOM behavior can be customized with arena_set_oom_handler().
+ * Memory is allocated sequentially from a caller-provided buffer. Freeing is
+ * done for a whole region at once, either by reinitialising the arena (from an
+ * older state) or by letting a (scratch) arena copy go out of scope.
  *
- * @see for more details https://nullprogram.com/blog/2023/09/27/
+ * Typical uses are short-lived scratch allocations inside a function, passed by
+ * value, and long-lived program-wide allocations, passed by reference.
+ *
+ * Use arena_zalloc() or the ARENA_NEW / ARENA_NEW_ARRAY macros to obtain
+ * zero-initialized memory. Use arena_alloc() if you do not need zeroing.
+ *
+ * Allocation failures are not reported per call, they are handled through an
+ * out-of-memory handler that aborts.
+ *
+ * @see https://nullprogram.com/blog/2023/09/27/
  */
 
 #ifndef ARENA_H
@@ -22,12 +28,25 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
-#include <stdlib.h> /* for exit */
-
 #include <assert.h>
 
-#define ARENA_NEW(a, t)          ((t *)arena_alloc(a, 1, sizeof(t), __alignof__(t)))
-#define ARENA_NEW_ARRAY(a, n, t) ((t *)arena_alloc(a, n, sizeof(t), __alignof__(t)))
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
+#  define ARENA_NORETURN [[noreturn]]
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define ARENA_NORETURN _Noreturn
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ARENA_NORETURN __attribute__((noreturn))
+#elif defined(_MSC_VER)
+#  define ARENA_NORETURN __declspec(noreturn)
+#else
+#  define ARENA_NORETURN
+#endif
+
+/** Allocate and zero-initialize a single object of type t */
+#define ARENA_NEW(a, t)          ((t *)arena_zalloc(a, 1, sizeof(t), __alignof__(t)))
+/** Allocate and zero-initialize an array of n objects of type t */
+#define ARENA_NEW_ARRAY(a, n, t) ((t *)arena_zalloc(a, n, sizeof(t), __alignof__(t)))
+
 
 struct arena {
 	uint8_t *beg;
@@ -36,65 +55,62 @@ struct arena {
 
 
 /**
- * @brief Default out of memory handler
- */
-static void __attribute__((noreturn)) default_oom(void)
-{
-	exit(3);
-}
-
-/** Global OOM handler - can be customized by user */
-static void (*arena_oom_handler)(void) = &default_oom;
-
-
-/**
- * @brief Sets a custom out-of-memory handler
+ * @brief Trigger the arena out-of-memory handler
  *
- * @param handler Function to call on out-of-memory conditions, or NULL to reset to default
+ *  The handler is expected to terminate the program.
  */
 
-static __inline void arena_set_oom_handler(void (*handler)(void))
-{
-	if (handler)
-		arena_oom_handler = handler;
-	else
-		arena_oom_handler = &default_oom;
-}
+ARENA_NORETURN void arena_oom(void);
 
 
 /**
- * @brief Create a arena allocator
+ * @brief Sets a custom out-of-memory handler for arena allocations
+ *
+ * @param handler	function to call on out-of-memory conditions, or NULL to
+ *			restore the default handler
+ *
+ * @warning The handler is expected to terminate the program. If it returns,
+ *	arena_oom() calls abort().
+ */
+
+void arena_set_oom_handler(void (*handler)(void));
+
+
+/**
+ * @brief Create an arena allocator
+ *
+ * The caller must keep the buffer alive for the lifetime of any allocations
+ * made from the arena.
  *
  * @param buf	buffer backing the arena allocations
  * @param size	size of the buf buffer in bytes
  *
- * @returns a arena struct
+ * @returns an arena struct that allocates from the provided buffer
  */
 
 static __inline struct arena arena_init(void *buf, size_t size)
 {
 	struct arena a = { 0 };
 
+	assert(buf);
 	assert(size <= PTRDIFF_MAX);
 
-	if (buf) {
-		a.beg = buf;
-		a.end = (uint8_t *)buf + size;
-	}
+	a.beg = buf;
+	a.end = (uint8_t *)buf + size;
 
 	return a;
 }
 
 
 /**
- * @brief allocates a zero-initialized block of memory from the arena with specified alignment
+ * @brief Allocate an **uninitialized** region from an arena
  *
- * @param a	pointer to the arena
- * @param count	number of elements to allocate
- * @param size	size of each element
- * @param align	the desired alignment, must be a power of two
+ * @param a	pointer to the arena to allocate from
+ * @param count	number of elements
+ * @param size	size of each element in bytes
+ * @param align	alignment; must be a power of two
  *
- * @returns a pointer to the allocated memory; calls oom() on failure.
+ * @returns pointer to the uninitialized allocation; calls arena_oom() on failure
  */
 
 static __inline void *arena_alloc(struct arena *a, ptrdiff_t count, ptrdiff_t size, ptrdiff_t align)
@@ -106,36 +122,114 @@ static __inline void *arena_alloc(struct arena *a, ptrdiff_t count, ptrdiff_t si
 	assert(size > 0);
 	assert(align > 0 && (align & (align - 1)) == 0 && "Alignment must be a power of two");
 
-	/* Calculate padding needed to align allocation to the specified boundary */
-	padding = (ptrdiff_t)-(size_t)a->beg & (align - 1);
+	padding = (ptrdiff_t)(-(uintptr_t)a->beg & (uintptr_t)(align - 1));
 	available = a->end - a->beg - padding;
 	if (available < 0 || count > available / size)
-		arena_oom_handler();
+		arena_oom();
 
 	r = a->beg + padding;
 	a->beg += padding + (count * size);
+	return r;
+}
+
+
+/**
+ * @brief Allocate a zero-initialized region from an arena
+ *
+ * @param a	pointer to the arena to allocate from
+ * @param count	number of elements
+ * @param size	size of each element in bytes
+ * @param align	alignment; must be a power of two
+ *
+ * @returns pointer to the zero-initialized allocation; calls arena_oom() on failure
+ */
+
+static __inline void *arena_zalloc(struct arena *a, ptrdiff_t count, ptrdiff_t size,
+				   ptrdiff_t align)
+{
+	void *r = arena_alloc(a, count, size, align);
+
 	memset(r, 0, (size_t)(count * size));
 	return r;
 }
 
 
 /**
- * @brief checks if a memory block can be resized
+ * @brief Bytes still available at a given alignment
  *
- * @param a	arena to check against
- * @param ptr	pointer to the memory block to check
- * @param size	the current size of the memory block at ptr
- *
- * @returns non-zero if the block can be possible resized, 0 otherwise
+ * @returns the maximum number of bytes that can still be allocated by an arena
  */
 
-static __inline int arena_is_resize_possible(struct arena a, const void *ptr, ptrdiff_t size)
+static __inline ptrdiff_t arena_remaining(struct arena a, ptrdiff_t align)
+{
+	ptrdiff_t padding, available;
+
+	assert(align > 0 && (align & (align - 1)) == 0 && "Alignment must be a power of two");
+
+	if (!a.beg || !a.end)
+		return 0;
+
+	padding = (ptrdiff_t)(-(uintptr_t)a.beg & (uintptr_t)(align - 1));
+	available = a.end - a.beg - padding;
+	return available > 0 ? available : 0;
+}
+
+
+/**
+ * @brief Check whether buf ends at the current arena top
+ *
+ * This check does not fully verify that buf was allocated from a, or that size
+ * matches the original allocation size.
+ *
+ * @returns non-zero if buf + size matches the current arena top
+ */
+
+static __inline int arena_buf_ends_at_top(struct arena a, const void *buf, ptrdiff_t size)
 {
 	assert(a.beg && a.end);
+	assert(a.beg <= a.end);
 	assert(size >= 0);
 
-	/* In a bump allocator, only the last allocation can be extended in-place */
-	return ptr && ((const uint8_t *)ptr + size) == a.beg;
+	/* ptr may not belong to the arena, so (char *)ptr + size can be UB. */
+	return buf && (uintptr_t)buf + (uintptr_t)size == (uintptr_t)a.beg;
+}
+
+
+/**
+ * @brief Shrink the last arena allocation in place
+ *
+ * @warning Undefined behaviour if alloc and alloc_size do not describe the
+ *	most recent allocation.
+ */
+
+static __inline void arena_shrink_last(struct arena *a, const void *alloc, ptrdiff_t alloc_size,
+				       ptrdiff_t shrunk_size)
+{
+	assert(alloc_size >= 0);
+	assert(shrunk_size <= alloc_size);
+	assert(arena_buf_ends_at_top(*a, alloc, alloc_size));
+
+	a->beg = a->beg - alloc_size + shrunk_size;
+}
+
+
+/**
+ * @brief Grow the last arena allocation in place
+ *
+ * Calls the out-of-memory handler if there is not enough remaining space.
+ *
+ * @warning Undefined behaviour if alloc and alloc_size do not describe the
+ *	most recent allocation.
+ */
+
+static __inline void arena_grow_last(struct arena *a, const void *alloc, ptrdiff_t alloc_size,
+				     ptrdiff_t grow_size)
+{
+	assert(grow_size >= 0);
+	assert(grow_size >= alloc_size);
+	assert(arena_buf_ends_at_top(*a, alloc, alloc_size));
+
+	(void)ARENA_NEW_ARRAY(a, grow_size - alloc_size, uint8_t);
 }
 
 #endif /* ARENA_H */

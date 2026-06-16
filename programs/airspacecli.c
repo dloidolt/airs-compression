@@ -107,7 +107,8 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 		LOG_ERROR_CMP(max_work_buf_size, "Error calculating work buffer size");
 		return EXIT_FAILURE;
 	}
-	work_buf = arena_alloc(&scratch, max_work_buf_size, sizeof(uint8_t), __alignof__(uint32_t));
+	work_buf =
+		arena_zalloc(&scratch, max_work_buf_size, sizeof(uint8_t), __alignof__(uint32_t));
 
 	return_code = cmp_initialise(ctx, params, work_buf, max_work_buf_size);
 	if (cmp_is_error(return_code)) {
@@ -143,6 +144,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 				      (int)src_paths[i].len, src_paths[i].s);
 			return EXIT_FAILURE;
 		}
+		arena_shrink_last(&loop_scratch, dst_buf, dst_capacity, dst_size);
 
 		if (dst_path.len > 0)
 			out_path = dst_path;
