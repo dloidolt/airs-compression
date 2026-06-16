@@ -12,23 +12,7 @@
 
 #include "../programs/params_parse.h"
 #include "../lib/common/compiler.h"
-
-
-/*
- * The arena's state is completely reset on each call, providing a fresh scratch
- * space for the caller. Consequently, any data allocated from the arena
- * in previous calls becomes invalid.
- */
-static struct arena *clear_test_arena(void)
-{
-	static uint8_t mem[1 << 10];
-	static struct arena a;
-
-	memset(mem, 0x1D, ARRAY_SIZE(mem)); /* poison arena memory */
-	a.beg = mem;
-	a.end = mem + ARRAY_SIZE(mem);
-	return &a;
-}
+#include "test_common.h"
 
 
 void test_parse_preprocess_enums(void)
