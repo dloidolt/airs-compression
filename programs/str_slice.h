@@ -13,17 +13,6 @@
  * @warning Encoding: this library is byte-oriented. Case-insensitive and
  *          whitespace helpers are ASCII-only (not Unicode/UTF-8 aware).
  *
- * @details To use this library, place this header file in your project.
- *          To include the implementation, define STR_SLICE_IMPLEMENTATION in
- *          file before including the header:
- *
- *          #define STR_SLICE_IMPLEMENTATION
- *          #include "str_slice.h"
- *
- *          You can optionally define STR_SLICE_API to control API visibility
- *          and linkage (e.g., static, extern).
- *          By default, functions are static.
- *
  * This library is highly inspired by the string handling done in u-config by
  * @author Christopher Wellons (skeeto)
  */
@@ -33,10 +22,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
-#ifndef STR_SLICE_API
-#  define STR_SLICE_API static
-#endif
+#include <assert.h>
+#include <string.h>
 
 
 /** String slice type (8-bit chars) */
@@ -60,39 +47,39 @@ struct s8 {
 #define S8_PARG(x) (int)(x).len, (const char *)(x).s
 
 /** Create s8 string from C string */
-STR_SLICE_API struct s8 s8_from_cstr(const char *z);
+static __inline struct s8 s8_from_cstr(const char *z);
 /** Create s8 string from C string with known length */
-STR_SLICE_API struct s8 s8_make(const char *z, ptrdiff_t len);
+static __inline struct s8 s8_make(const char *z, ptrdiff_t len);
 /** Create s8 string from a pointer range [beg, end) */
-STR_SLICE_API struct s8 s8_span(const unsigned char *beg, const unsigned char *end);
+static __inline struct s8 s8_span(const unsigned char *beg, const unsigned char *end);
 
 
 /** Check if two s8 strings are equal */
-STR_SLICE_API int s8_equals(struct s8 s1, struct s8 s2);
+static __inline int s8_equals(struct s8 s1, struct s8 s2);
 /** Check if two s8 strings are equal, differences in case are ignored, ASCII-only (not UTF-8) */
-STR_SLICE_API int s8_equals_ignore_case(struct s8 s1, struct s8 s2);
+static __inline int s8_equals_ignore_case(struct s8 s1, struct s8 s2);
 /** Check if string starts with specified substring */
-STR_SLICE_API int s8_starts_with(struct s8 s, struct s8 pre);
-STR_SLICE_API int s8_starts_with_ignore_case(struct s8 s, struct s8 pre);
+static __inline int s8_starts_with(struct s8 s, struct s8 pre);
+static __inline int s8_starts_with_ignore_case(struct s8 s, struct s8 pre);
 /** Check if string ends with specified substring */
-STR_SLICE_API int s8_ends_with(struct s8 s, struct s8 suf);
-STR_SLICE_API int s8_ends_with_ignore_case(struct s8 s, struct s8 suf);
+static __inline int s8_ends_with(struct s8 s, struct s8 suf);
+static __inline int s8_ends_with_ignore_case(struct s8 s, struct s8 suf);
 
 /** Take head portion of string */
-STR_SLICE_API struct s8 s8_prefix(struct s8 s, ptrdiff_t len);
+static __inline struct s8 s8_prefix(struct s8 s, ptrdiff_t len);
 /** Remove head portion of string */
-STR_SLICE_API struct s8 s8_skip(struct s8 s, ptrdiff_t off);
+static __inline struct s8 s8_skip(struct s8 s, ptrdiff_t off);
 
 /** Remove whitespace from the begin and the end */
-STR_SLICE_API struct s8 s8_trim(struct s8 s);
+static __inline struct s8 s8_trim(struct s8 s);
 /** Remove prefix or empty string */
-STR_SLICE_API struct s8 s8_strip_prefix(struct s8 s, struct s8 pre);
+static __inline struct s8 s8_strip_prefix(struct s8 s, struct s8 pre);
 /** Remove prefix or empty string, differences in case are ignored, ASCII-only */
-STR_SLICE_API struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre);
+static __inline struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre);
 /** Remove suffix or empty string */
-STR_SLICE_API struct s8 s8_strip_suffix(struct s8 s, struct s8 suf);
+static __inline struct s8 s8_strip_suffix(struct s8 s, struct s8 suf);
 /** Remove suffix  or empty string, differences in case are ignored, ASCII-only */
-STR_SLICE_API struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf);
+static __inline struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf);
 
 /** split_at() parsing result */
 struct s8_split_result {
@@ -101,7 +88,7 @@ struct s8_split_result {
 	int ok;
 };
 /** Split string at delimiter */
-STR_SLICE_API struct s8_split_result s8_split_at(struct s8 s, unsigned char delim);
+static __inline struct s8_split_result s8_split_at(struct s8 s, unsigned char delim);
 
 /** s8_to_u32() parsing result */
 struct s8_u32_result {
@@ -109,31 +96,20 @@ struct s8_u32_result {
 	int ok;
 };
 /** Parse unsigned 32-bit integer from string */
-STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s);
+static __inline struct s8_u32_result s8_to_u32(struct s8 s);
 
 /** Arena-based string operations (requires arena.h) */
 struct arena; /* Forward declaration */
 
 /** Return a copy of a string using arena allocation */
-STR_SLICE_API struct s8 s8_clone(struct arena *a, struct s8 s);
+static __inline struct s8 s8_clone(struct arena *a, struct s8 s);
 /** Concatenate two strings using arena allocation */
-STR_SLICE_API struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail);
+static __inline struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail);
 /** Create a null-terminated C string from s8 using arena allocation */
-STR_SLICE_API char *s8_to_cstr(struct arena *a, struct s8 s);
-
-#endif /* STR_SLICE_H_MIKG4GPN */
+static __inline char *s8_to_cstr(struct arena *a, struct s8 s);
 
 
-/* Implementation */
-#ifdef STR_SLICE_IMPLEMENTATION
-
-#include <stddef.h>
-#include <stdint.h>
-#include <assert.h>
-#include <string.h>
-
-
-STR_SLICE_API struct s8 s8_from_cstr(const char *z)
+static __inline struct s8 s8_from_cstr(const char *z)
 {
 	struct s8 r = { 0 };
 
@@ -147,7 +123,7 @@ STR_SLICE_API struct s8 s8_from_cstr(const char *z)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_make(const char *z, ptrdiff_t len)
+static __inline struct s8 s8_make(const char *z, ptrdiff_t len)
 {
 	struct s8 r = { 0 };
 
@@ -159,7 +135,7 @@ STR_SLICE_API struct s8 s8_make(const char *z, ptrdiff_t len)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_span(const unsigned char *beg, const unsigned char *end)
+static __inline struct s8 s8_span(const unsigned char *beg, const unsigned char *end)
 {
 	struct s8 r = { 0 };
 
@@ -178,19 +154,20 @@ static int u8_compare(const unsigned char *s1, const unsigned char *s2, ptrdiff_
 	return memcmp(s1, s2, (size_t)n);
 }
 
-STR_SLICE_API int s8_equals(struct s8 s1, struct s8 s2)
+static __inline int s8_equals(struct s8 s1, struct s8 s2)
 {
 	return s1.len == s2.len && !u8_compare(s1.s, s2.s, s1.len);
 }
 
 /* ASCII-only case conversion (not UTF-8) */
-static unsigned char u8_to_upper(unsigned char c)
+static __inline unsigned char u8_to_upper(unsigned char c)
 {
 	return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
 }
 
 /* Compare two byte arrays, differences in case are ignored, ASCII-only (not UTF-8) */
-static int u8_compare_ignore_case(const unsigned char *a, const unsigned char *b, ptrdiff_t n)
+static __inline int u8_compare_ignore_case(const unsigned char *a, const unsigned char *b,
+					   ptrdiff_t n)
 {
 	for (; n; n--) {
 		int d = u8_to_upper(*a++) - u8_to_upper(*b++);
@@ -201,32 +178,32 @@ static int u8_compare_ignore_case(const unsigned char *a, const unsigned char *b
 	return 0;
 }
 
-STR_SLICE_API int s8_equals_ignore_case(struct s8 a, struct s8 b)
+static __inline int s8_equals_ignore_case(struct s8 a, struct s8 b)
 {
 	return a.len == b.len && !u8_compare_ignore_case(a.s, b.s, a.len);
 }
 
-STR_SLICE_API int s8_starts_with(struct s8 s, struct s8 pre)
+static __inline int s8_starts_with(struct s8 s, struct s8 pre)
 {
 	return (s.len >= pre.len) && s8_equals(s8_prefix(s, pre.len), pre);
 }
 
-STR_SLICE_API int s8_starts_with_ignore_case(struct s8 s, struct s8 pre)
+static __inline int s8_starts_with_ignore_case(struct s8 s, struct s8 pre)
 {
 	return (s.len >= pre.len) && s8_equals_ignore_case(s8_prefix(s, pre.len), pre);
 }
 
-STR_SLICE_API int s8_ends_with(struct s8 s, struct s8 suf)
+static __inline int s8_ends_with(struct s8 s, struct s8 suf)
 {
 	return (s.len >= suf.len) && s8_equals(s8_skip(s, s.len - suf.len), suf);
 }
 
-STR_SLICE_API int s8_ends_with_ignore_case(struct s8 s, struct s8 suf)
+static __inline int s8_ends_with_ignore_case(struct s8 s, struct s8 suf)
 {
 	return (s.len >= suf.len) && s8_equals_ignore_case(s8_skip(s, s.len - suf.len), suf);
 }
 
-STR_SLICE_API struct s8 s8_prefix(struct s8 s, ptrdiff_t len)
+static __inline struct s8 s8_prefix(struct s8 s, ptrdiff_t len)
 {
 	assert(len >= 0);
 	assert(len <= s.len);
@@ -234,7 +211,7 @@ STR_SLICE_API struct s8 s8_prefix(struct s8 s, ptrdiff_t len)
 	return s;
 }
 
-STR_SLICE_API struct s8 s8_skip(struct s8 s, ptrdiff_t off)
+static __inline struct s8 s8_skip(struct s8 s, ptrdiff_t off)
 {
 	assert(off >= 0);
 	assert(off <= s.len);
@@ -248,7 +225,7 @@ static int u8_is_whitespace(unsigned char c)
 	return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' || c == '\f';
 }
 
-STR_SLICE_API struct s8 s8_trim(struct s8 s)
+static __inline struct s8 s8_trim(struct s8 s)
 {
 	const unsigned char *p, *e;
 
@@ -266,7 +243,7 @@ STR_SLICE_API struct s8 s8_trim(struct s8 s)
 	return s8_span(p, e);
 }
 
-STR_SLICE_API struct s8 s8_strip_prefix(struct s8 s, struct s8 pre)
+static __inline struct s8 s8_strip_prefix(struct s8 s, struct s8 pre)
 {
 	struct s8 r = { 0 };
 
@@ -275,7 +252,7 @@ STR_SLICE_API struct s8 s8_strip_prefix(struct s8 s, struct s8 pre)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre)
+static __inline struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre)
 {
 	struct s8 r = { 0 };
 
@@ -284,7 +261,7 @@ STR_SLICE_API struct s8 s8_strip_prefix_ignore_case(struct s8 s, struct s8 pre)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_strip_suffix(struct s8 s, struct s8 suf)
+static __inline struct s8 s8_strip_suffix(struct s8 s, struct s8 suf)
 {
 	struct s8 r = { 0 };
 
@@ -293,7 +270,7 @@ STR_SLICE_API struct s8 s8_strip_suffix(struct s8 s, struct s8 suf)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf)
+static __inline struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf)
 {
 	struct s8 r = { 0 };
 
@@ -302,7 +279,7 @@ STR_SLICE_API struct s8 s8_strip_suffix_ignore_case(struct s8 s, struct s8 suf)
 	return r;
 }
 
-STR_SLICE_API struct s8_split_result s8_split_at(struct s8 s, unsigned char delim)
+static __inline struct s8_split_result s8_split_at(struct s8 s, unsigned char delim)
 {
 	struct s8_split_result r = { 0 };
 	ptrdiff_t len = 0;
@@ -322,7 +299,7 @@ STR_SLICE_API struct s8_split_result s8_split_at(struct s8 s, unsigned char deli
 	return r;
 }
 
-STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s)
+static __inline struct s8_u32_result s8_to_u32(struct s8 s)
 {
 	struct s8_u32_result r = { 0 };
 	uint32_t value = 0;
@@ -352,10 +329,12 @@ STR_SLICE_API struct s8_u32_result s8_to_u32(struct s8 s)
 /* Arena-based string operations */
 #include "arena.h"
 
-STR_SLICE_API struct s8 s8_clone(struct arena *a, struct s8 s)
+static __inline struct s8 s8_clone(struct arena *a, struct s8 s)
 {
 	struct s8 r = { 0 };
 	unsigned char *clone;
+
+	assert(s.len >= 0);
 
 	clone = ARENA_NEW_ARRAY(a, s.len, unsigned char);
 	if (s.s)
@@ -365,7 +344,7 @@ STR_SLICE_API struct s8 s8_clone(struct arena *a, struct s8 s)
 	return r;
 }
 
-STR_SLICE_API struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail)
+static __inline struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tail)
 {
 	struct s8 r = { 0 };
 
@@ -381,7 +360,7 @@ STR_SLICE_API struct s8 s8_concat(struct arena *a, struct s8 head, struct s8 tai
 	return r;
 }
 
-STR_SLICE_API char *s8_to_cstr(struct arena *a, struct s8 s)
+static __inline char *s8_to_cstr(struct arena *a, struct s8 s)
 {
 	char *cstr;
 
@@ -392,4 +371,4 @@ STR_SLICE_API char *s8_to_cstr(struct arena *a, struct s8 s)
 	return cstr;
 }
 
-#endif /* STR_SLICE_IMPLEMENTATION */
+#endif /* STR_SLICE_H_MIKG4GPN */
