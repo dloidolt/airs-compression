@@ -261,6 +261,8 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  * @param src_size	size of the data to compress, must be the same for every
  *			source buffer until the context is reset
  *
+ * @note Performance: aligning src to 8 bytes may result in faster compression.
+ *
  * @returns the compressed size or an error, which can be checked using
  *	cmp_is_error()
  */

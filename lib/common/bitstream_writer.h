@@ -10,9 +10,9 @@
  * - Initialise the bitstream writer:
  *        error_code = bitstream_writer_init();
  * - Write bits to the bitstream:
- *        error_code = bitstream_write();
+ *        bitstream_add_XXX();
  * - Flush remaining bits to the buffer:
- *        bytes_written = bitstream_flush();
+ *        bytes_written_or_error_code = bitstream_flush();
  */
 
 #ifndef CMP_BITSTREAM_WRITER_H
@@ -26,12 +26,25 @@
 #include "../common/err_private.h"
 #include "../common/byteorder.h"
 
-#ifdef __BIG_ENDIAN
-#  define BITSTREAM_IS_CPU_BIG_ENDIAN 1
-#elif defined(__LITTLE_ENDIAN)
-#  define BITSTREAM_IS_CPU_BIG_ENDIAN 0
+#ifdef __LITTLE_ENDIAN
+#  define BITSTREAM_IS_CPU_LITTLE_ENDIAN 1
+#elif defined(__BIG_ENDIAN)
+#  define BITSTREAM_IS_CPU_LITTLE_ENDIAN 0
 #endif
 
+/*
+ * GCC/BCC on 32-bit SPARC may split these 64-bit accesses into 32-bit
+ * operations at -O2, which in turn tends to make the back end emit ld/st
+ * instead of ldd/std.
+ * Keep the aligned pointers volatile to preserve opaque 64-bit accesses
+ * and reliably get ldd/std. Remove this once the compiler handles 64-bit
+ * SPARC32 operations correctly.
+ */
+#if defined(__GNUC__) && !defined(__clang__) && defined(__sparc__) && !defined(__sparc_v9__)
+#  define SPARC_VOLATILE_GCC volatile
+#else
+#  define SPARC_VOLATILE_GCC
+#endif
 
 /**
  * @brief This structure maintains the state of the bitstream writer
@@ -39,7 +52,6 @@
  * @warning This structure MUST NOT be directly manipulated by external code.
  *	Always use the provided API functions to interact with the structure.
  */
-
 struct bitstream_writer {
 	uint64_t cache;       /**< Local bit cache  */
 	unsigned int bit_cap; /**< Bit capacity left in the cache */
@@ -91,7 +103,35 @@ static __inline uint32_t bitstream_writer_init(struct bitstream_writer *bs, void
 static __inline void put_be64_aligned(void *ptr, uint64_t val)
 {
 	val = cpu_to_be64(val);
-	*(uint64_t *)ptr = val;
+#if defined(__GNUC__) || defined(__clang__)
+	{
+		typedef uint64_t __attribute__((may_alias)) aliased_u64;
+		*(SPARC_VOLATILE_GCC aliased_u64 *)ptr = val;
+	}
+#else
+	memcpy(ptr, &val, sizeof(val));
+#endif
+}
+
+
+/**
+ * @brief Stores a 32-bit integer as big-endian bytes
+ *
+ * @param ptr	4 byte aligned address to write
+ * @param val	value to write
+ */
+
+static __inline void put_be32_aligned(void *ptr, uint32_t val)
+{
+	val = cpu_to_be32(val);
+#if defined(__GNUC__) || defined(__clang__)
+	{
+		typedef uint32_t __attribute__((may_alias)) aliased_u32;
+		*(aliased_u32 *)ptr = val;
+	}
+#else
+	memcpy(ptr, &val, sizeof(val));
+#endif
 }
 
 
@@ -105,7 +145,14 @@ static __inline void put_be64_aligned(void *ptr, uint64_t val)
 static __inline void put_be16_aligned(void *ptr, uint16_t val)
 {
 	val = cpu_to_be16(val);
-	*(uint16_t *)ptr = val;
+#if defined(__GNUC__) || defined(__clang__)
+	{
+		typedef uint16_t __attribute__((may_alias)) aliased_u16;
+		*(aliased_u16 *)ptr = val;
+	}
+#else
+	memcpy(ptr, &val, sizeof(val));
+#endif
 }
 
 
@@ -178,10 +225,25 @@ static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t 
 
 
 /**
+ * @brief Check if a pointer is aligned to a given boundary
+ *
+ * @param ptr        Pointer to check
+ * @param alignment  Alignment boundary (must be power of 2)
+ *
+ * @return 1 if aligned, 0 otherwise
+ */
+
+static __inline int bitstream_is_aligned(const void *ptr, size_t alignment)
+{
+	return ((uintptr_t)ptr & (alignment - 1)) == 0;
+}
+
+
+/**
  * @brief Write an array of 16-bit values as big-endian to the bitstream
  *
- * @note The bitstream must be 63 bit aligned before calling. Call
- *	 bitstream_flush() first if needed
+ * @note This function only works after previous bit writes ended on a 64-bit
+ *	 boundary; call bitstream_flush() first if needed
  * @note This function uses sticky error handling. Once an error occurs, subsequent
  *	 calls are ignored. Possible error conditions can be tested with
  *	 bitstream_error() or bitstream_flush().
@@ -194,7 +256,8 @@ static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t 
 static __inline void bitstream_add_be16_array(struct bitstream_writer *bs, const int16_t *src16,
 					      uint32_t nb_samples)
 {
-	uint32_t i;
+	uint32_t i = 0;
+	uint8_t *dst;
 
 	if (cmp_is_error_int(bitstream_error(bs)))
 		return;
@@ -209,32 +272,109 @@ static __inline void bitstream_add_be16_array(struct bitstream_writer *bs, const
 		return;
 	}
 
+	if (!bitstream_is_aligned(bs->ptr, CMP_DST_ALIGNMENT)) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
+
 	if (nb_samples > (size_t)(bs->end - bs->ptr) / sizeof(int16_t)) {
 		bs->error = CMP_ERROR(DST_TOO_SMALL);
 		return;
 	}
 
-	if (BITSTREAM_IS_CPU_BIG_ENDIAN) {
-		/* Fast path: no conversion needed on big-endian systems */
-		memcpy(bs->ptr, src16, nb_samples * sizeof(int16_t));
-	} else {
-		uint8_t *p = bs->ptr;
+	/*
+	 * The bulk copy below is tuned for the GR712RC (SPARC V8/LEON3).
+	 * The widest loads/stores the source alignment allows are used
+	 * (ldd/std/ld/st instead of byte or halfword accesses). Casting src16
+	 * to wider integer pointers violates C's strict aliasing rules, so the
+	 * GCC/Clang may_alias attribute is used to make the casts well-defined.
+	 */
+	dst = bs->ptr;
 
-		for (i = 0; i < nb_samples; i++) {
-			put_be16_aligned(p, (uint16_t)src16[i]);
-			p += sizeof(int16_t);
+#if defined(__GNUC__) || defined(__clang__)
+	if (bitstream_is_aligned(src16, sizeof(uint64_t))) {
+		/* 1 ldd + 1 std per 8 output bytes; ~25% faster than 2 aligned path */
+		typedef uint64_t __attribute__((may_alias)) alias_u64;
+		SPARC_VOLATILE_GCC const alias_u64 *src64 = (const alias_u64 *)(const void *)src16;
+
+		for (i = 0; i < (nb_samples & ~3U); i += 4) {
+			uint64_t s0123 = *src64++;
+
+			if (BITSTREAM_IS_CPU_LITTLE_ENDIAN)
+				s0123 = (s0123 & 0x000000000000FFFFULL) << 48 |
+					(s0123 & 0x00000000FFFF0000ULL) << 16 |
+					(s0123 & 0x0000FFFF00000000ULL) >> 16 |
+					(s0123 & 0xFFFF000000000000ULL) >> 48;
+			put_be64_aligned(dst, s0123);
+			dst += sizeof(uint64_t);
+		}
+	} else if (bitstream_is_aligned(src16, sizeof(uint32_t))) {
+		/* 2 ld + 1 std per 8 output bytes; ~13% faster than 2 aligned path*/
+		typedef uint32_t __attribute__((may_alias)) alias_u32;
+		const alias_u32 *src32 = (const alias_u32 *)(const void *)src16;
+
+		for (i = 0; i < (nb_samples & ~3U); i += 4) {
+			uint32_t s01 = *src32++;
+			uint32_t s23 = *src32++;
+
+			if (BITSTREAM_IS_CPU_LITTLE_ENDIAN) {
+				s01 = s01 << 16 | s01 >> 16;
+				s23 = s23 << 16 | s23 >> 16;
+			}
+			put_be64_aligned(dst, (uint64_t)s01 << 32 | (uint64_t)s23);
+			dst += sizeof(uint64_t);
+		}
+	} else
+#endif /* __GNUC__ || __clang__ */
+	{
+		/*
+		 * src is only 2-byte aligned: Unrolled 8 halfword loads + 4 stores
+		 * are the fastest option measured on the GR712RC dev board
+		 */
+		const uint16_t *src_u16 = (const uint16_t *)src16;
+		/* uint32_t const nb_unroll_samples = nb_bulk_samples & ~7U; */
+
+		for (i = 0; i < (nb_samples & ~7U); i += 8) {
+			uint32_t s0 = src_u16[i];
+			uint32_t s1 = src_u16[i + 1];
+			uint32_t s2 = src_u16[i + 2];
+			uint32_t s3 = src_u16[i + 3];
+			uint32_t s4 = src_u16[i + 4];
+			uint32_t s5 = src_u16[i + 5];
+			uint32_t s6 = src_u16[i + 6];
+			uint32_t s7 = src_u16[i + 7];
+
+			put_be32_aligned(dst, s0 << 16 | s1);
+			dst += sizeof(uint32_t);
+			put_be32_aligned(dst, s2 << 16 | s3);
+			dst += sizeof(uint32_t);
+			put_be32_aligned(dst, s4 << 16 | s5);
+			dst += sizeof(uint32_t);
+			put_be32_aligned(dst, s6 << 16 | s7);
+			dst += sizeof(uint32_t);
+		}
+
+		/* remaining 4-sample group */
+		for (; i < (nb_samples & ~3U); i += 4) {
+			uint32_t s0 = src_u16[i];
+			uint32_t s1 = src_u16[i + 1];
+			uint32_t s2 = src_u16[i + 2];
+			uint32_t s3 = src_u16[i + 3];
+
+			put_be32_aligned(dst, s0 << 16 | s1);
+			dst += sizeof(uint32_t);
+			put_be32_aligned(dst, s2 << 16 | s3);
+			dst += sizeof(uint32_t);
 		}
 	}
 
-	/* update the cache that a following bitstream_add_bits32() can work */
-	{
-		uint32_t aligned_samples = nb_samples & ~3U;
-		uint32_t remainder = nb_samples & 3U;
-
-		bs->ptr += aligned_samples * sizeof(int16_t);
-		for (i = 0; i < remainder; i++)
-			bitstream_add_bits32(bs, (uint16_t)src16[aligned_samples + i], 16);
-	}
+	/*
+	 * Trailing samples go through the generic bit-by-bit path, so other
+	 * bitstream operations work as expected.
+	 */
+	bs->ptr = dst;
+	for (; i < nb_samples; i++)
+		bitstream_add_bits32(bs, (uint16_t)src16[i], 16);
 }
 
 
@@ -369,5 +509,5 @@ static __inline uint32_t bitstream_rewind(struct bitstream_writer *bs)
 	return bitstream_writer_init(bs, bs->start, (uint32_t)(bs->end - bs->start));
 }
 
-
+#undef SPARC_VOLATILE_GCC
 #endif /* CMP_BITSTREAM_WRITER_H */
