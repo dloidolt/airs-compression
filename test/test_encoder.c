@@ -105,27 +105,37 @@ void test_detect_bitstream_overflow(void)
 
 void test_bitstream_write_bytes_than_bits(void)
 {
-	uint32_t size;
-	struct bitstream_writer bsw;
-	uint8_t expected_bs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-				  0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D };
-	DST_ALIGNED_U8 buffer[sizeof(expected_bs)];
-	int16_t src16[3] = { 0x0001, 0x0203, 0x0405 };
+	uint8_t expected_bs[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+				  0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+				  0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F };
+	int16_t src16_input[] = { 0x0001, 0x0203, 0x0405, 0x0607, 0x0809, 0x0A0B,
+				  0x0C0D, 0x0E0F, 0x1011, 0x1213, 0x1415, 0x1617 };
+	uint32_t o;
 
-	memset(buffer, 0xFF, sizeof(buffer));
+	for (o = 0; o < 5; o++) {
+		struct bitstream_writer bsw;
+		uint32_t size;
+		DST_ALIGNED_U8 buffer[sizeof(expected_bs)];
+		int16_t src16[ARRAY_SIZE(src16_input) + 4];
+		int16_t *src16_start = src16 + o;
 
-	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+		memset(buffer, 0xFF, sizeof(buffer));
+		memset(src16, 0xFF, sizeof(src16));
+		memcpy(src16_start, src16_input, sizeof(src16_input));
 
-	bitstream_add_be16_array(&bsw, src16, ARRAY_SIZE(src16));
-	bitstream_add_bits32(&bsw, 0x0607, 16);
-	bitstream_add_bits32(&bsw, 0x08, 8);
-	bitstream_add_bits32(&bsw, 0x09, 8);
-	bitstream_add_bits32(&bsw, 0x0A0B0C0D, 32);
-	size = bitstream_flush(&bsw);
+		TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
 
-	TEST_ASSERT_CMP_SUCCESS(size);
-	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
+		bitstream_add_be16_array(&bsw, src16_start, ARRAY_SIZE(src16_input));
+		bitstream_add_bits32(&bsw, 0x1819, 16);
+		bitstream_add_bits32(&bsw, 0x1A, 8);
+		bitstream_add_bits32(&bsw, 0x1B, 8);
+		bitstream_add_bits32(&bsw, 0x1C1D1E1F, 32);
+		size = bitstream_flush(&bsw);
+
+		TEST_ASSERT_CMP_SUCCESS(size);
+		TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
+	}
 }
 
 
@@ -147,6 +157,31 @@ void test_bitstream_write_16in32_array_than_bits(void)
 	bitstream_add_bits32(&bsw, 0x08, 8);
 	bitstream_add_bits32(&bsw, 0x09, 8);
 	bitstream_add_bits32(&bsw, 0x0A0B0C0D, 32);
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_CMP_SUCCESS(size);
+	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
+}
+
+
+void test_bitstream_write_be16_array_with_cached_bits(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	uint8_t expected_bs[] = { 0x89, 0xAB, 0xCD, 0xEF, 0xFE, 0xDC, 0xBA, 0x98,
+				  0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xD0 };
+	DST_ALIGNED_U8 buffer[sizeof(expected_bs)];
+	int16_t src16[] = { 0x1234, 0x5678, (int16_t)0x9ABC };
+
+	memset(buffer, 0xFF, sizeof(buffer));
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bits32(&bsw, 0x89ABCDEF, 32);
+	bitstream_add_bits32(&bsw, 0xFEDCBA98, 32);
+	bitstream_add_be16_array(&bsw, src16, ARRAY_SIZE(src16));
+	bitstream_add_bits32(&bsw, 0xD, 4);
 	size = bitstream_flush(&bsw);
 
 	TEST_ASSERT_CMP_SUCCESS(size);
