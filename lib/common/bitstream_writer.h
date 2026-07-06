@@ -384,8 +384,8 @@ static __inline void bitstream_add_be16_array(struct bitstream_writer *bs, const
  * Extracts the lower 16 bits from each 32-bit value and writes them in big-endian
  * byte order
  *
- * @note The bitstream must be 64 bit aligned before calling. Call
- *	 bitstream_flush() first if needed
+ * @note This function only works after previous bit writes ended on a 64-bit
+ *	 boundary; call bitstream_flush() first if needed
  * @note This function uses sticky error handling. Once an error occurs, subsequent
  *	 calls are ignored. Possible error conditions can be tested with
  *	 bitstream_error() or bitstream_flush().
@@ -399,8 +399,8 @@ static __inline void bitstream_add_be16_array(struct bitstream_writer *bs, const
 static __inline void bitstream_add_be16_in_32_array(struct bitstream_writer *bs,
 						    const int32_t *src16_in_32, uint32_t nb_samples)
 {
-	uint32_t i;
-	uint8_t *p;
+	uint32_t i = 0;
+	uint8_t *dst;
 
 	if (cmp_is_error_int(bitstream_error(bs)))
 		return;
@@ -415,26 +415,98 @@ static __inline void bitstream_add_be16_in_32_array(struct bitstream_writer *bs,
 		return;
 	}
 
+	if (!bitstream_is_aligned(bs->ptr, CMP_DST_ALIGNMENT)) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
+
 	if (nb_samples > (size_t)(bs->end - bs->ptr) / sizeof(int16_t)) {
 		bs->error = CMP_ERROR(DST_TOO_SMALL);
 		return;
 	}
 
-	p = bs->ptr;
-	for (i = 0; i < nb_samples; i++) {
-		put_be16_aligned(p, (uint16_t)(src16_in_32[i]));
-		p += sizeof(uint16_t);
+	/*
+	 * This has been tuned for the GR712RC (SPARC V8/LEON3) similarly to
+	 * bitstream_add_be16_array().
+	 */
+	dst = bs->ptr;
+
+#if defined(__GNUC__) || defined(__clang__)
+	if (bitstream_is_aligned(src16_in_32, sizeof(uint64_t))) {
+		/* On GR712RC: 15% faster as the 4 byte aligned processing */
+		typedef uint64_t __attribute__((may_alias)) alias_u64;
+		SPARC_VOLATILE_GCC const alias_u64 *src64 =
+			(const alias_u64 *)(const void *)src16_in_32;
+
+		for (; i < (nb_samples & ~3U); i += 4) {
+			uint64_t s0, s1, s2, s3;
+			uint64_t s01 = *src64++;
+			uint64_t s23 = *src64++;
+
+			if (BITSTREAM_IS_CPU_LITTLE_ENDIAN) {
+				s01 = s01 >> 32 | s01 << 32;
+				s23 = s23 >> 32 | s23 << 32;
+			}
+
+			s0 = (s01 >> 32) & 0xFFFFULL;
+			s1 = s01 & 0xFFFFULL;
+			s2 = (s23 >> 32) & 0xFFFFULL;
+			s3 = s23 & 0xFFFFULL;
+
+			put_be64_aligned(dst, s0 << 48 | s1 << 32 | s2 << 16 | s3);
+			dst += sizeof(uint64_t);
+		}
+	}
+#endif /* __GNUC__ || __clang__ */
+
+	/*
+	 * A (uint16_t *) halfword-load variant is slightly faster on the
+	 * GR712RC but non-portable (needs may_alias). As a portable variant is
+	 * needed it is not worth maintaining it.
+	 */
+	for (; i < (nb_samples & ~15U); i += 16) {
+		uint32_t const s0 = (uint16_t)src16_in_32[i];
+		uint32_t const s1 = (uint16_t)src16_in_32[i + 1];
+		uint32_t const s2 = (uint16_t)src16_in_32[i + 2];
+		uint32_t const s3 = (uint16_t)src16_in_32[i + 3];
+		uint32_t const s4 = (uint16_t)src16_in_32[i + 4];
+		uint32_t const s5 = (uint16_t)src16_in_32[i + 5];
+		uint32_t const s6 = (uint16_t)src16_in_32[i + 6];
+		uint32_t const s7 = (uint16_t)src16_in_32[i + 7];
+		uint32_t const s8 = (uint16_t)src16_in_32[i + 8];
+		uint32_t const s9 = (uint16_t)src16_in_32[i + 9];
+		uint32_t const s10 = (uint16_t)src16_in_32[i + 10];
+		uint32_t const s11 = (uint16_t)src16_in_32[i + 11];
+		uint32_t const s12 = (uint16_t)src16_in_32[i + 12];
+		uint32_t const s13 = (uint16_t)src16_in_32[i + 13];
+		uint32_t const s14 = (uint16_t)src16_in_32[i + 14];
+		uint32_t const s15 = (uint16_t)src16_in_32[i + 15];
+
+		put_be32_aligned(dst, s0 << 16 | s1);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s2 << 16 | s3);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s4 << 16 | s5);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s6 << 16 | s7);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s8 << 16 | s9);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s10 << 16 | s11);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s12 << 16 | s13);
+		dst += sizeof(uint32_t);
+		put_be32_aligned(dst, s14 << 16 | s15);
+		dst += sizeof(uint32_t);
 	}
 
-	/* update the cache that a following bitstream_add_bits32() can work */
-	{
-		uint32_t aligned_samples = nb_samples & ~3U;
-		uint32_t remainder = nb_samples & 3U;
-
-		bs->ptr += aligned_samples * sizeof(int16_t);
-		for (i = 0; i < remainder; i++)
-			bitstream_add_bits32(bs, (uint16_t)src16_in_32[aligned_samples + i], 16);
-	}
+	/*
+	 * Trailing samples go through the generic bit-by-bit path, so other
+	 * bitstream operations work as expected.
+	 */
+	bs->ptr = dst;
+	for (; i < nb_samples; i++)
+		bitstream_add_bits32(bs, (uint16_t)src16_in_32[i], 16);
 }
 
 
