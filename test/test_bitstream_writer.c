@@ -215,3 +215,176 @@ void test_bitstream_write_be16_array_with_cached_bits(void)
 	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
 	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
 }
+
+
+void test_bitstream_add_bytes_requires_byte_boundary(void)
+{
+	struct bitstream_writer bsw;
+	DST_ALIGNED_U8 buffer[2] = { 0 };
+	uint8_t src[] = { 0xAB };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bits32(&bsw, 1, 1);
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_BITSTREAM, bitstream_error(&bsw));
+}
+
+
+void test_bitstream_add_bytes_rejects_null_source(void)
+{
+	struct bitstream_writer bsw;
+	DST_ALIGNED_U8 buffer[2] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bytes(&bsw, NULL, 1);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_BITSTREAM, bitstream_error(&bsw));
+}
+
+
+void test_bitstream_add_bytes_rejects_null_source_with_zero_length(void)
+{
+	struct bitstream_writer bsw;
+	DST_ALIGNED_U8 buffer[2] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bytes(&bsw, NULL, 0);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_BITSTREAM, bitstream_error(&bsw));
+}
+
+
+void test_bitstream_add_bytes_accepts_zero_length_source(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	const uint8_t src[] = { 0xAB };
+	DST_ALIGNED_U8 buffer[1] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bytes(&bsw, src, 0);
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_CMP_SUCCESS(size);
+	TEST_ASSERT_EQUAL(0, size);
+}
+
+
+void test_bitstream_add_bytes_accepts_exact_fit(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	const uint8_t src[] = { 0xAB, 0xCD };
+	DST_ALIGNED_U8 buffer[sizeof(src)] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_CMP_SUCCESS(size);
+	TEST_ASSERT_EQUAL(sizeof(src), size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(src, buffer, sizeof(src));
+}
+
+
+void test_bitstream_add_bytes_preserves_sticky_error(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	const uint8_t src[] = { 0xAB };
+	DST_ALIGNED_U8 buffer[sizeof(src)] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	/* First call sets the sticky error. */
+	bitstream_add_bytes(&bsw, NULL, sizeof(src));
+	/* Subsequent calls must not write or replace the original error. */
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_BITSTREAM, bitstream_error(&bsw));
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_BITSTREAM, size);
+	TEST_ASSERT_EQUAL_HEX8(0, buffer[0]);
+}
+
+
+void test_bitstream_add_bytes_after_and_before_bits_added(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	const uint8_t expected_bs[] = { 0x89, 0xAB, 0xCD, 0xEF, 0xFE, 0xDC, 0xBA, 0x98,
+					0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xD0 };
+	const uint8_t src[] = { 0xAB, 0xCD, 0xEF, 0xFE, 0xDC, 0xBA, 0x98,
+				0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
+	DST_ALIGNED_U8 buffer[sizeof(expected_bs)];
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bits32(&bsw, 0x89, 8);
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+	bitstream_add_bits32(&bsw, 0xD0, 8);
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_CMP_SUCCESS(size);
+	TEST_ASSERT_EQUAL(sizeof(expected_bs), size);
+	TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_bs, buffer, sizeof(expected_bs));
+}
+
+
+void test_bitstream_add_bytes_detects_overflow(void)
+{
+	uint32_t size;
+	struct bitstream_writer bsw;
+	const uint8_t src[] = { 0xAB, 0xCD, 0xEF, 0xFE, 0xDC, 0xBA, 0x98,
+				0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC };
+	DST_ALIGNED_U8 buffer[sizeof(src) - 9];
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+	size = bitstream_flush(&bsw);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, size);
+}
+
+
+void test_bitstream_add_bytes_detects_overflow_with_cached_bytes(void)
+{
+	struct bitstream_writer bsw;
+	const uint8_t src[15] = { 0 };
+	DST_ALIGNED_U8 buffer[15];
+
+	memset(buffer, 0xA5, sizeof(buffer));
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	/* Leave 7 bytes in the cache and only 15 bytes in the destination. */
+	bitstream_add_bits32(&bsw, 0, 32);
+	bitstream_add_bits32(&bsw, 0, 24);
+	bitstream_add_bytes(&bsw, src, sizeof(src));
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, bitstream_error(&bsw));
+}
+
+
+void test_bitstream_add_bytes_detects_cached_bytes_exceeding_output_capacity(void)
+{
+	struct bitstream_writer bsw;
+	const uint8_t src = 0;
+	DST_ALIGNED_U8 buffer[4] = { 0 };
+
+	TEST_ASSERT_CMP_SUCCESS(bitstream_writer_init(&bsw, buffer, sizeof(buffer)));
+
+	/* Leave 7 bytes in the cache with only 4 bytes in the destination. */
+	bitstream_add_bits32(&bsw, 0, 32);
+	bitstream_add_bits32(&bsw, 0, 24);
+	/* The capacity check must return before iterating over the input. */
+	bitstream_add_bytes(&bsw, &src, UINT32_MAX);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_DST_TOO_SMALL, bitstream_error(&bsw));
+}

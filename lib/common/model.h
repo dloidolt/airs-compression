@@ -38,6 +38,7 @@ static __inline int16_t update_model(int16_t data, int16_t model, int model_rate
 	case CMP_I16_IN_I32:
 		return update_model_16(data, model, model_rate);
 	case CMP_U16:
+	case CMP_RAW12:
 	default:
 		return update_model_16((uint16_t)data, (uint16_t)model, model_rate);
 	}

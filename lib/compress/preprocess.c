@@ -165,27 +165,31 @@ static void iwt_multi_level_decomposition_i16(const struct sample_desc *src_desc
 {
 	const int16_t *input;
 	size_t stride;
+	uint32_t i;
 
 	if (num_samples == 1) {
 		output[0] = sample_read_i16(src_desc, 0);
 		return;
 	}
 
-	if (src_desc->dtype == CMP_I16_IN_I32) {
-		uint32_t i;
+	switch (src_desc->dtype) {
+	case CMP_I16:
+	case CMP_U16:
+		input = src_desc->data;
+		break;
+	case CMP_I16_IN_I32:
+	case CMP_RAW12:
+	default:
 		/*
-		 * For non-contiguous 16-bit samples stored in 32-bit words,
-		 * we need to pack them into a contiguous array first.
-		 * TODO: Optimize by adding a stride parameter to
-		 * iwt_single_level_i16() to process non-contiguous data
-		 * directly.
+		 * For non-contiguous 16-bit samples, extract them into a
+		 * contiguous array before applying the transform.
 		 */
 		for (i = 0; i < num_samples; i++)
 			output[i] = sample_read_i16(src_desc, i);
 		input = output;
-	} else {
-		input = src_desc->data;
+		break;
 	}
+
 
 	for (stride = 1; stride < num_samples; stride <<= 1) {
 		iwt_single_level_i16(input, output, num_samples, stride);
@@ -400,4 +404,25 @@ const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessi
 			return &preprocessing_methods[i];
 	}
 	return NULL;
+}
+
+
+unsigned int preprocessing_get_output_bits(enum cmp_preprocessing type,
+					   const struct sample_desc *src_desc)
+{
+	switch (type) {
+	case CMP_PREPROCESS_IWT:
+		/* The 16-bit IWT can expand 12-bit input up to 16-bit coefficients. */
+		return bitsizeof(int16_t);
+	case CMP_PREPROCESS_NONE:
+	case CMP_PREPROCESS_DIFF:
+	case CMP_PREPROCESS_MODEL:
+	default:
+		/*
+		 * DIFF and MODEL residuals wrap at the source bit depth. For a
+		 * 12-bit sample, a difference of 4095 is the same as -1, so the
+		 * residual fits in 12 bits rather than requiring an extra bit.
+		 */
+		return get_eff_bit_depth(src_desc);
+	}
 }

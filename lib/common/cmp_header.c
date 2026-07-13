@@ -145,6 +145,25 @@ uint32_t cmp_hdr_checksum_int(const struct sample_desc *desc)
 	uint32_t i;
 	XXH32_state_t state;
 
+	/* RAW12 is byte-packed and independent of host endianness. */
+	if (desc->dtype == CMP_RAW12) {
+		uint32_t size = get_packed_size(desc);
+		uint8_t last;
+
+		if (desc->num_samples % 2 == 0)
+			return XXH32(desc->data, size, CHECKSUM_SEED);
+
+		/* For an odd number of samples, the upper nibble of the final
+		 * byte is padding, mask it so equivalent encodings produce the
+		 * same checksum.
+		 */
+		(void)XXH32_reset(&state, CHECKSUM_SEED);
+		(void)XXH32_update(&state, desc->data, size - 1);
+		last = ((const uint8_t *)desc->data)[size - 1] & 0x0F;
+		(void)XXH32_update(&state, &last, sizeof(last));
+		return XXH32_digest(&state);
+	}
+
 	/*
 	 * Fast path: on big-endian systems with contiguous data, we can hash
 	 * directly without byte swapping.

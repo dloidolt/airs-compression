@@ -262,6 +262,12 @@ static uint32_t bench_cmp(struct arena *a, struct bench_dataset *datasets, int d
 							cur_ds->frames[frame_nb],
 							cur_ds->frame_size);
 						break;
+					case CMP_RAW12:
+						cmp_size = cmp_compress_raw12(
+							&ctx, dst_buf, dst_cap_used,
+							cur_ds->frames[frame_nb],
+							cur_ds->frame_size);
+						break;
 					default:
 						printf("error: %s: unknown data type\n",
 						       cur_ds->name);

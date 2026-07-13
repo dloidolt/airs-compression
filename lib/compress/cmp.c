@@ -53,7 +53,7 @@ uint32_t cmp_compress_bound(uint32_t src_size, enum cmp_type src_type)
 	num_samples = cal_num_samples_round_up(src_size, src_type);
 	if (cmp_is_error_int(num_samples))
 		return num_samples;
-	if (cal_packed_size(num_samples) > CMP_HDR_MAX_ORIGINAL_SIZE)
+	if (cal_packed_size(num_samples, src_type) > CMP_HDR_MAX_ORIGINAL_SIZE)
 		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
 	bound = CMP_HDR_SIZE + cmp_encoder_max_compressed_size(num_samples);
 
@@ -84,7 +84,7 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 	num_samples = cal_num_samples_round_up(src_size, src_type);
 	if (cmp_is_error_int(num_samples))
 		return num_samples;
-	if (cal_packed_size(num_samples) > CMP_HDR_MAX_ORIGINAL_SIZE)
+	if (cal_packed_size(num_samples, src_type) > CMP_HDR_MAX_ORIGINAL_SIZE)
 		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
 	primary_work_buf_size = preprocess->get_work_buf_size(num_samples);
 
@@ -163,26 +163,43 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 }
 
 
-/* fast shortcut for uncompressed data; assume model has sufficient size*/
+/* fast shortcut for uncompressed data; assume model has sufficient size */
 static void write_uncompressed(struct bitstream_writer *bs, const struct sample_desc *src_desc,
 			       int16_t *model)
 {
+	uint32_t i;
+
 	switch (src_desc->dtype) {
 	case CMP_I16:
 	case CMP_U16:
 		bitstream_add_be16_array(bs, src_desc->data, src_desc->num_samples);
-		if (model)
-			memcpy(model, src_desc->data, get_packed_size(src_desc));
 		break;
 	case CMP_I16_IN_I32:
 		bitstream_add_be16_in_32_array(bs, src_desc->data, src_desc->num_samples);
-		if (model) {
-			uint32_t i;
+		break;
+	case CMP_RAW12:
+	default:
+		/*
+		 * For the CMP_RAW12 byte format, the packed size is the actual size
+		 * and does not depend on the platform. Copy it as a byte array.
+		 */
+		bitstream_add_bytes(bs, src_desc->data, get_packed_size(src_desc));
+		break;
+	}
 
+	if (model) {
+		switch (src_desc->dtype) {
+		case CMP_I16:
+		case CMP_U16:
+			memcpy(model, src_desc->data, get_packed_size(src_desc));
+			break;
+		case CMP_I16_IN_I32:
+		case CMP_RAW12:
+		default:
 			for (i = 0; i < src_desc->num_samples; i++)
 				model[i] = sample_read_i16(src_desc, i);
+			break;
 		}
-		break;
 	}
 }
 
@@ -198,6 +215,7 @@ static enum cmp_type get_state_sample_type(const struct sample_desc *src_desc)
 {
 	switch (src_desc->dtype) {
 	case CMP_U16:
+	case CMP_RAW12:
 		return CMP_U16;
 	case CMP_I16:
 	case CMP_I16_IN_I32:
@@ -216,6 +234,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	enum cmp_encoder_type selected_encoder_type;
 	uint32_t selected_encoder_param;
 	uint32_t selected_outlier;
+	uint32_t n_bits;
 	struct bitstream_writer bs;
 	struct cmp_encoder enc;
 	const struct preprocessing_method *preprocess;
@@ -252,7 +271,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	}
 
 	if (state_is_needed(&ctx->params)) {
-		if (ctx->work_buf_size < get_packed_size(src_desc))
+		if (ctx->work_buf_size < src_desc->num_samples * sizeof(uint16_t))
 			return CMP_ERROR(WORK_BUF_TOO_SMALL);
 		model = ctx->work_buf;
 	}
@@ -261,8 +280,19 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	if (cmp_is_error_int(ret))
 		return ret;
 
+	/*
+	 * Using UNCOMPRESSED with preprocessing is mainly useful for testing
+	 * the preprocessing. Write the int16_t preprocessing output as 16-bit
+	 * big endian values to keep the output format consistent (also for
+	 * RAW12 data).
+	 */
+	if (selected_preprocessing != CMP_PREPROCESS_NONE &&
+	    selected_encoder_type == CMP_ENCODER_UNCOMPRESSED)
+		n_bits = 16;
+	else
+		n_bits = preprocessing_get_output_bits(selected_preprocessing, src_desc);
 	ret = cmp_encoder_init(&enc, selected_encoder_type, selected_encoder_param,
-			       selected_outlier);
+			       selected_outlier, n_bits);
 	if (cmp_is_error_int(ret))
 		return ret;
 
@@ -308,7 +338,7 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 		for (i = 0; i < n_values; i++) {
 			int16_t const value = preprocess->process(i, src_desc, ctx->work_buf);
 
-			cmp_encoder_encode_s16(&enc, value, &bs);
+			cmp_encoder_encode(&enc, value, &bs);
 			if (dst_capacity < compress_bound)
 				if (cmp_is_error_int(bitstream_error(&bs)))
 					break;
@@ -432,6 +462,20 @@ uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t ds
 	struct sample_desc src_desc;
 
 	error = sample_read_src_init(&src_desc, src, src_size, CMP_I16_IN_I32);
+	if (cmp_is_error(error))
+		return error;
+
+	return cmp_compress_generic(ctx, dst, dst_capacity, &src_desc);
+}
+
+
+uint32_t cmp_compress_raw12(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			    const uint8_t *src, uint32_t src_size)
+{
+	uint32_t error;
+	struct sample_desc src_desc;
+
+	error = sample_read_src_init(&src_desc, src, src_size, CMP_RAW12);
 	if (cmp_is_error(error))
 		return error;
 

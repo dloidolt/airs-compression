@@ -37,8 +37,8 @@
 
 /* ====== Version Information ====== */
 #define CMP_VERSION_MAJOR   0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR   7 /**< minor part of the version ID */
-#define CMP_VERSION_RELEASE 2 /**< release part of the version ID */
+#define CMP_VERSION_MINOR   8 /**< minor part of the version ID */
+#define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
  * @brief Complete version number
@@ -123,7 +123,8 @@ struct cmp_params {
 enum cmp_type {
 	CMP_I16,        /**< Signed 16-bit integers */
 	CMP_I16_IN_I32, /**< Signed 16-bit integers packed in 32-bit words */
-	CMP_U16         /**< Unsigned 16-bit integers */
+	CMP_U16,        /**< Unsigned 16-bit integers */
+	CMP_RAW12       /**< Two 12-bit samples packed into three bytes */
 };
 
 
@@ -169,7 +170,8 @@ uint32_t cmp_compress_bound(uint32_t src_size, enum cmp_type src_type);
  *
  * It helps prevent compression failures due to insufficient destination buffer
  * space in the following scenarios:
- * - When explicitly using uncompressed mode (CMP_ENCODER_UNCOMPRESSED)
+ * - When explicitly using uncompressed mode (CMP_PREPROCESS_NONE together with
+ *   CMP_ENCODER_UNCOMPRESSED)
  * - When uncompressed_fallback_enabled is set
  *
  * In all other compression scenarios, use cmp_compress_bound(), which provides
@@ -291,6 +293,20 @@ uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t ds
 
 uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			  const uint16_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses two 12-bit samples packed into three bytes
+ *
+ * Same as cmp_compress_i16(), but for RAW12 input.
+ * Two samples are packed into three bytes. For example:
+ *     0x012 and 0xABC -> 0x12 0xC0 0xAB
+ *
+ * An odd final sample uses two bytes. The second byte's upper nibble is ignored.
+ */
+
+uint32_t cmp_compress_raw12(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			    const uint8_t *src, uint32_t src_size);
 
 
 /**
