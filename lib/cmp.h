@@ -116,25 +116,8 @@ struct cmp_params {
 };
 
 
-/**
- * @brief Compression context
- *
- * This structure maintains the state of an ongoing compression process.
- *
- * @warning This structure MUST NOT be directly manipulated by external code.
- *	Always use the provided API functions to interact with the compression
- *	context.
- */
-
-struct cmp_context {
-	uint32_t magic;           /**< Magic number to prevent use of uninitialised contexts */
-	struct cmp_params params; /**< Compression parameters used in the current context */
-	void *work_buf;           /**< Pointer to the working buffer */
-	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
-	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
-	uint32_t identifier;      /**< Identifier for the compression model */
-	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
-};
+/* forward declaration */
+struct cmp_context;
 
 
 /* ====== Compression Helper Functions ====== */
@@ -416,5 +399,28 @@ uint32_t cmp_hdr_checksum(uint32_t *checksum, const void *src, uint32_t src_size
  */
 
 void cmp_hdr_set_identifier(uint32_t identifier);
+
+
+/* ======  Private Part ====== */
+/**
+ * @brief Compression context
+ *
+ * This structure maintains the state between compression passes.
+ *
+ * @warning This structure MUST NOT be directly manipulated by external code.
+ *	Always use the provided API functions to interact with the compression
+ *	context.
+ */
+
+struct cmp_context {
+	uint32_t magic;             /**< Magic number to prevent use of uninitialised contexts */
+	struct cmp_params params;   /**< Compression parameters used in the current context */
+	void *work_buf;             /**< Pointer to the working buffer */
+	uint32_t work_buf_size;     /**< Size of the working buffer in bytes */
+	uint32_t identifier;        /**< Identifier for the compression sequence */
+	uint32_t state_num_samples; /**< Number of samples tracked by the state */
+	enum cmp_type state_dtype;  /**< Data type used by state */
+	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
+};
 
 #endif /* CMP_H */

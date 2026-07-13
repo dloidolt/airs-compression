@@ -90,13 +90,6 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 }
 
 
-static int model_is_needed(const struct cmp_params *params)
-{
-	return params->secondary_preprocessing == CMP_PREPROCESS_MODEL &&
-	       params->secondary_iterations != 0;
-}
-
-
 uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
 			uint32_t work_buf_size)
 {
@@ -131,7 +124,9 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 			return error_code;
 	}
 
-	if (model_is_needed(params) && params->model_rate > CMP_MAX_MODEL_RATE)
+	if (params->secondary_iterations &&
+	    params->secondary_preprocessing == CMP_PREPROCESS_MODEL &&
+	    params->model_rate > CMP_MAX_MODEL_RATE)
 		return CMP_ERROR(PARAMS_INVALID);
 
 	work_buf_size_needed = cmp_cal_work_buf_size(params, min_src_size);
@@ -181,6 +176,26 @@ static void write_uncompressed(struct bitstream_writer *bs, const struct sample_
 }
 
 
+static int state_is_needed(const struct cmp_params *params)
+{
+	return params->secondary_preprocessing == CMP_PREPROCESS_MODEL &&
+	       params->secondary_iterations != 0;
+}
+
+
+static enum cmp_type get_state_sample_type(const struct sample_desc *src_desc)
+{
+	switch (src_desc->dtype) {
+	case CMP_U16:
+		return CMP_U16;
+	case CMP_I16:
+	case CMP_I16_IN_I32:
+	default:
+		return CMP_I16;
+	}
+}
+
+
 /* Main compression loop */
 static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 				const struct sample_desc *src_desc)
@@ -209,21 +224,24 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 		selected_encoder_type = ctx->params.primary_encoder_type;
 		selected_encoder_param = ctx->params.primary_encoder_param;
 		selected_outlier = ctx->params.primary_encoder_outlier;
-		ctx->model_size = get_packed_size(src_desc);
+		ctx->state_num_samples = src_desc->num_samples;
+		ctx->state_dtype = get_state_sample_type(src_desc);
 	} else {
 		selected_preprocessing = ctx->params.secondary_preprocessing;
 		selected_encoder_type = ctx->params.secondary_encoder_type;
 		selected_encoder_param = ctx->params.secondary_encoder_param;
 		selected_outlier = ctx->params.secondary_encoder_outlier;
 		/*
-		 * When using model preprocessing the size of the data to
-		 * compression is not allowed to change unit a reset.
+		 * Preprocessing state requires the original input layout to
+		 * remain unchanged until the context is reset.
 		 */
-		if (model_is_needed(&ctx->params) && get_packed_size(src_desc) != ctx->model_size)
-			return CMP_ERROR(SRC_SIZE_MISMATCH);
+		if (state_is_needed(&ctx->params) &&
+		    (src_desc->num_samples != ctx->state_num_samples ||
+		     get_state_sample_type(src_desc) != ctx->state_dtype))
+			return CMP_ERROR(SRC_MISMATCH);
 	}
 
-	if (model_is_needed(&ctx->params)) {
+	if (state_is_needed(&ctx->params)) {
 		if (ctx->work_buf_size < get_packed_size(src_desc))
 			return CMP_ERROR(WORK_BUF_TOO_SMALL);
 		model = ctx->work_buf;
@@ -429,7 +447,8 @@ uint32_t cmp_reset(struct cmp_context *ctx)
 
 	ctx->sequence_number = 0;
 	ctx->identifier = cmp_get_new_identifier();
-	ctx->model_size = 0;
+	ctx->state_num_samples = 0;
+	ctx->state_dtype = CMP_I16;
 
 	return CMP_ERROR(NO_ERROR);
 }

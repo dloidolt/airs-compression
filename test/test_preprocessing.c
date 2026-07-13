@@ -280,6 +280,45 @@ void test_model_updates_correctly(const struct cmp_test_fixture *fix, const void
 }
 
 
+void test_detect_mixed_compression_functions_in_model_preprocessing(void)
+{
+	uint32_t output_size;
+	struct test_env *e;
+	struct cmp_params params = { 0 };
+	struct cmp_hdr expected_hdr = { 0 };
+
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_preprocessing = CMP_PREPROCESS_NONE;
+	params.secondary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.model_rate = 1;
+	params.secondary_iterations = 2;
+	e = make_env(&params, sizeof(expected_out_i16));
+
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_i16_in_i32(&e->ctx, e->dst, e->dst_cap,
+							model_input1_i16_in_i32,
+							sizeof(model_input1_i16_in_i32)));
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_i16(&e->ctx, e->dst, e->dst_cap, model_input2_i16,
+						 sizeof(model_input2_i16)));
+	output_size = cmp_compress_i16_in_i32(&e->ctx, e->dst, e->dst_cap, model_input3_i16_in_i32,
+					      sizeof(model_input3_i16_in_i32));
+
+	TEST_ASSERT_CMP_SUCCESS(output_size);
+	TEST_ASSERT_EQUAL(CMP_UNCOMPRESSED_BOUND(sizeof(expected_out_i16)), output_size);
+	assert_preprocessing_data(expected_out_i16, ARRAY_SIZE(expected_out_i16), e->dst);
+	expected_hdr.compressed_size = output_size;
+	expected_hdr.original_size = sizeof(expected_out_i16);
+	expected_hdr.original_dtype = CMP_I16_IN_I32;
+	expected_hdr.encoder_type = params.primary_encoder_type;
+	expected_hdr.preprocessing = params.secondary_preprocessing;
+	expected_hdr.preprocess_param = 1;
+	expected_hdr.sequence_number = 2;
+	TEST_ASSERT_CMP_HDR(e->dst, output_size, expected_hdr);
+
+	free_env(e);
+}
+
+
 TEST_CASE(&cmp_fixture_u16, ARRAY_AND_SIZE(test_dummy_u16))
 TEST_CASE(&cmp_fixture_i16, ARRAY_AND_SIZE(test_dummy_i16))
 TEST_CASE(&cmp_fixture_i16_in_i32, ARRAY_AND_SIZE(test_dummy_i16_in_i32))
@@ -431,5 +470,29 @@ void test_detect_src_size_change_using_model_preprocessing(const struct cmp_test
 
 	return_code = fix->compress(&ctx, dst, sizeof(dst), src2, sizeof(src2));
 
-	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_MISMATCH, return_code);
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_MISMATCH, return_code);
+}
+
+
+void test_detect_model_sample_type_change_using_model_preprocessing(void)
+{
+	const uint16_t src_u16[4] = { 0 };
+	const int32_t src_i16_in_i32[4] = { 0 };
+	uint16_t work_buf[ARRAY_SIZE(src_u16) * sizeof(uint16_t)];
+	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(sizeof(src_u16))];
+	uint32_t return_code;
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_preprocessing = CMP_PREPROCESS_NONE;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.secondary_iterations = 1;
+	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
+	TEST_ASSERT_CMP_SUCCESS(cmp_compress_u16(&ctx, dst, sizeof(dst), src_u16, sizeof(src_u16)));
+
+	return_code = cmp_compress_i16_in_i32(&ctx, dst, sizeof(dst), src_i16_in_i32,
+					      sizeof(src_i16_in_i32));
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_MISMATCH, return_code);
 }
