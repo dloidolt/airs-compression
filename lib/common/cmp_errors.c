@@ -59,8 +59,8 @@ const char *cmp_get_error_string(enum cmp_error code)
 		return "Source buffer size is invalid";
 	case CMP_ERR_SRC_NULL:
 		return "Source buffer pointer is NULL";
-	case CMP_ERR_SRC_SIZE_MISMATCH:
-		return "Source data size changed using model preprocessing; not allowed until reset";
+	case CMP_ERR_SRC_MISMATCH:
+		return "Source sample count or type does not match preprocessing state; reset required";
 
 	case CMP_ERR_WORK_BUF_TOO_SMALL:
 		return "Work buffer is too small";

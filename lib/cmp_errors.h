@@ -36,9 +36,9 @@ enum cmp_error {
 	CMP_ERR_DST_NULL = 31,      /**< Destination buffer pointer is NULL */
 	CMP_ERR_DST_UNALIGNED = 32, /**< Destination buffer not correct aligned */
 
-	CMP_ERR_SRC_SIZE_WRONG = 40,    /**< Source buffer size doesn't match expected size */
-	CMP_ERR_SRC_NULL = 41,          /**< Source buffer pointer is NULL */
-	CMP_ERR_SRC_SIZE_MISMATCH = 42, /**< Source data size changed with model preprocessing */
+	CMP_ERR_SRC_SIZE_WRONG = 40, /**< Source buffer size doesn't match expected size */
+	CMP_ERR_SRC_NULL = 41,       /**< Source buffer pointer is NULL */
+	CMP_ERR_SRC_MISMATCH = 42,   /**< Source samples are incompatible with retained state */
 
 	CMP_ERR_WORK_BUF_TOO_SMALL = 50, /**< Work buffer is too small */
 	CMP_ERR_WORK_BUF_NULL = 51,      /**< Work buffer is NULL but required */

@@ -33,7 +33,7 @@ static void assert_cmp_result(uint32_t cmp_result)
 
 	case CMP_ERR_SRC_SIZE_WRONG:
 	case CMP_ERR_SRC_NULL:
-	case CMP_ERR_SRC_SIZE_MISMATCH:
+	case CMP_ERR_SRC_MISMATCH:
 
 	case CMP_ERR_WORK_BUF_TOO_SMALL:
 	case CMP_ERR_WORK_BUF_NULL:

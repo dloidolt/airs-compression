@@ -376,6 +376,22 @@ void test_ignore_invalid_model_rate_when_not_used(void)
 }
 
 
+void test_ignore_invalid_model_rate_when_secondary_pass_is_disabled(void)
+{
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	uint32_t return_value;
+
+	params.model_rate = UINT32_MAX;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.secondary_iterations = 0;
+
+	return_value = cmp_initialise(&ctx, &params, NULL, 0);
+
+	TEST_ASSERT_CMP_SUCCESS(return_value);
+}
+
+
 /*
  * Work Buffer Initialisation Tests
  */
