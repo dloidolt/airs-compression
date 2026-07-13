@@ -49,6 +49,7 @@ struct cmp_encoder {
 	uint32_t g_par;      /**< Golomb parameter */
 	uint32_t g_par_log2; /**< Precomputed log2(Golomb parameter) for performance */
 	uint32_t outlier;    /**< Threshold value for encoding outliers */
+	uint32_t n_bits;     /**< Number of bits to encode */
 };
 
 
@@ -62,16 +63,17 @@ struct cmp_encoder {
  * @param encoder_type	type of encoder to use
  * @param encoder_param	parameter specific to the chosen encoder_type
  * @param outlier	outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param n_bits	number of bits to encode
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, uint32_t outlier);
+			  uint32_t encoder_param, uint32_t outlier, uint32_t n_bits);
 
 
 /**
- * @brief Encode a 16-bit signed sample
+ * @brief Encode a signed sample
  *
  * @param enc		pointer to a successful initialised encoder structure
  * @param value		16-bit signed sample to encode
@@ -84,8 +86,7 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
  *       for this can be done with bitstream_error() or bitstream_flush().
  */
 
-void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
-			    struct bitstream_writer *bs);
+void cmp_encoder_encode(const struct cmp_encoder *enc, int16_t value, struct bitstream_writer *bs);
 
 
 /**

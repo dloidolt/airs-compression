@@ -225,6 +225,61 @@ static __inline void bitstream_add_bits32(struct bitstream_writer *bs, uint32_t 
 
 
 /**
+ * @brief Add a byte array to the bitstream
+ *
+ * @note This function only works after previous bit writes ended on a byte
+ *	 boundary
+ * @note This function uses sticky error handling. Once an error occurs, subsequent
+ *	 calls are ignored. Possible error conditions can be tested with
+ *	 bitstream_error() or bitstream_flush().
+ *
+ * @param bs		pointer to initialised bitstream_writer
+ * @param src8		source buffer of bytes
+ * @param nb_bytes	number of bytes to add
+ *
+ */
+
+static __inline void bitstream_add_bytes(struct bitstream_writer *bs, const uint8_t *src8,
+					 uint32_t nb_bytes)
+{
+	uint32_t i, l8;
+	size_t remaining, cached_bytes;
+
+	if (cmp_is_error_int(bitstream_error(bs)))
+		return;
+
+	if (bs->bit_cap % 8) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
+
+	if (!src8) {
+		bs->error = CMP_ERROR(INT_BITSTREAM);
+		return;
+	}
+
+	remaining = (size_t)(bs->end - bs->ptr);
+	cached_bytes = sizeof(bs->cache) - ((bs->bit_cap + 7) / 8);
+	if (cached_bytes > remaining || nb_bytes > remaining - cached_bytes) {
+		bs->error = CMP_ERROR(DST_TOO_SMALL);
+		return;
+	}
+
+	for (i = 0; i < nb_bytes && bs->bit_cap != 64; i++)
+		bitstream_add_bits32(bs, src8[i], 8);
+
+	/* Assume bitstream is flushed when bs->bit_cap == 64 is hit */
+	l8 = (nb_bytes - i) & ~7U;
+	memcpy(bs->ptr, &src8[i], l8);
+	i += l8;
+	bs->ptr += l8;
+
+	for (; i < nb_bytes; i++)
+		bitstream_add_bits32(bs, src8[i], 8);
+}
+
+
+/**
  * @brief Check if a pointer is aligned to a given boundary
  *
  * @param ptr        Pointer to check

@@ -67,4 +67,15 @@ struct preprocessing_method {
 const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessing type);
 
 
+/**
+ * @brief Returns the number of significant bits produced by preprocessing
+ *
+ * @param type		preprocessing method
+ * @param src_desc	description of the source samples
+ *
+ * @returns the number of bits required by the preprocessed values
+ */
+unsigned int preprocessing_get_output_bits(enum cmp_preprocessing type,
+					   const struct sample_desc *src_desc);
+
 #endif /* CMP_PREPROCESS_H */

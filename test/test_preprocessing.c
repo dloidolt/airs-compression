@@ -89,9 +89,11 @@ const int32_t t_diff[12] = {
 const int16_t t_exp_diff[12] = {
 	1, 2, -3, 4095, -4095, 2047, 1, 2043, -4091, INT16_MAX, 1, 32763,
 };
+const uint32_t t_diff_raw12_count = 9; /* number of common raw12 values */
 
 TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_diff], [t_exp_diff],
 	    [ARRAY_SIZE(t_exp_diff)])
+TEST_CASE(&t_fix_raw12, t_diff, t_exp_diff, t_diff_raw12_count)
 void test_diff_preprocessing_for_multiple_values(const struct t_fixture *fix,
 						 const int32_t *samples,
 						 const int16_t *expected_diff, uint32_t count)
@@ -136,11 +138,12 @@ const int32_t t_iwt8[8] = { -3, 2, -1, 3, -2, 5, 0, 7 };
 const int16_t t_exp_iwt8[8] = { 0, 4, 2, 5, 1, 6, 3, 7 };
 
 /* clang-format off */
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_iwt1], [t_exp_iwt1], [ARRAY_SIZE(t_exp_iwt1)])
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_iwt2], [t_exp_iwt2], [ARRAY_SIZE(t_exp_iwt2)])
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_iwt5], [t_exp_iwt5], [ARRAY_SIZE(t_exp_iwt5)])
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_iwt7], [t_exp_iwt7], [ARRAY_SIZE(t_exp_iwt7)])
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [t_iwt8], [t_exp_iwt8], [ARRAY_SIZE(t_exp_iwt8)])
+/* negative input values are out of range for RAW12 */
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12], [t_iwt1], [t_exp_iwt1], [ARRAY_SIZE(t_exp_iwt1)])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32],               [t_iwt2], [t_exp_iwt2], [ARRAY_SIZE(t_exp_iwt2)])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32],               [t_iwt5], [t_exp_iwt5], [ARRAY_SIZE(t_exp_iwt5)])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12], [t_iwt7], [t_exp_iwt7], [ARRAY_SIZE(t_exp_iwt7)])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32],               [t_iwt8], [t_exp_iwt8], [ARRAY_SIZE(t_exp_iwt8)])
 /* clang-format on */
 void test_iwt_transform(const struct t_fixture *fix, const int32_t *samples, const int16_t *exp_iwt,
 			uint32_t count)
@@ -169,7 +172,7 @@ void test_iwt_transform(const struct t_fixture *fix, const int32_t *samples, con
 }
 
 
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12])
 void test_model_preprocessing_for_multiple_values(const struct t_fixture *fix)
 {
 	const int32_t start_model_samples[] = { 0, 1, 10 };
@@ -254,6 +257,7 @@ const int32_t t_model3_u16[7] = { 0 }; /* when m=0 -> o=-m (o=v-m)  */
 const int16_t t_exp_model_u16[7] = {
 	0, -2, -6, -2047, -255, (int16_t)-61439, (uint16_t)-UINT16_MAX
 };
+const uint32_t t_model_raw12_count = 5; /* for raw we only use the first values in raw12 range */
 
 const int32_t t_model1_i16[7] = { 15, 2, 21, 0, 0, INT16_MIN, INT16_MAX };
 const int32_t t_model2_i16[7] = { -2, 3, 5, -1, 0, INT16_MIN, INT16_MAX };
@@ -262,6 +266,8 @@ const int16_t t_exp_model_i16[7] = { 1, -2, -6, 1, 0, (int16_t)-INT16_MIN, -INT1
 
 TEST_CASE(&t_fix_u16, t_model1_u16, t_model2_u16, t_model3_u16, t_exp_model_u16,
 	  ARRAY_SIZE(t_exp_model_u16))
+TEST_CASE(&t_fix_raw12, t_model1_u16, t_model2_u16, t_model3_u16, t_exp_model_u16,
+	  t_model_raw12_count)
 TEST_MATRIX([&t_fix_i16, &t_fix_i16_in_i32], [t_model1_i16], [t_model2_i16], [t_model3_i16],
 	    [t_exp_model_i16], [ARRAY_SIZE(t_exp_model_i16)])
 void test_model_updates_correctly(const struct t_fixture *fix, const void *src1_samples,
@@ -344,7 +350,49 @@ void test_can_mix_i16_in_i32_and_i16_in_model_preprocessing(void)
 }
 
 
-TEST_MATRIX([&t_fix_i16, &t_fix_i16_in_i32], [&t_fix_u16])
+void test_can_mix_raw12_and_u16_in_model_preprocessing(void)
+{
+	struct test_src const src1_raw12 =
+		make_test_src(g_a, CMP_RAW12, t_model1_u16, t_model_raw12_count);
+	struct test_src const src2_u16 =
+		make_test_src(g_a, CMP_U16, t_model2_u16, t_model_raw12_count);
+	struct test_src const src3_raw12 =
+		make_test_src(g_a, CMP_RAW12, t_model3_u16, t_model_raw12_count);
+	uint32_t dst_size;
+	struct test_env *e;
+	struct cmp_hdr expected_hdr = { 0 };
+	struct cmp_params params = { 0 };
+
+	params.primary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.primary_preprocessing = CMP_PREPROCESS_NONE;
+	params.secondary_encoder_type = CMP_ENCODER_UNCOMPRESSED;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.model_rate = 1;
+	params.secondary_iterations = 2;
+	e = make_env(g_a, &params, CMP_RAW12, src1_raw12.size, t_model_raw12_count);
+
+	TEST_ASSERT_CMP_SUCCESS(
+		cmp_compress_raw12(&e->ctx, e->dst, e->dst_cap, src1_raw12.data, src1_raw12.size));
+	TEST_ASSERT_CMP_SUCCESS(
+		cmp_compress_u16(&e->ctx, e->dst, e->dst_cap, src2_u16.data, src2_u16.size));
+	dst_size =
+		cmp_compress_raw12(&e->ctx, e->dst, e->dst_cap, src3_raw12.data, src3_raw12.size);
+
+	TEST_ASSERT_CMP_SUCCESS(dst_size);
+	TEST_ASSERT_EQUAL(CMP_UNCOMPRESSED_BOUND(t_model_raw12_count * sizeof(uint16_t)), dst_size);
+	assert_preprocessing_data(t_exp_model_u16, t_model_raw12_count, e->dst);
+	expected_hdr.compressed_size = dst_size;
+	expected_hdr.original_size = src3_raw12.packed_size;
+	expected_hdr.original_dtype = CMP_RAW12;
+	expected_hdr.encoder_type = params.primary_encoder_type;
+	expected_hdr.preprocessing = params.secondary_preprocessing;
+	expected_hdr.preprocess_param = 1;
+	expected_hdr.sequence_number = 2;
+	TEST_ASSERT_CMP_HDR(e->dst, dst_size, expected_hdr);
+}
+
+
+TEST_MATRIX([&t_fix_i16, &t_fix_i16_in_i32], [&t_fix_u16, &t_fix_raw12])
 void test_detect_model_signed_change_using_model_preprocessing(const struct t_fixture *fix_signed,
 							       const struct t_fixture *fix_unsigned)
 {
@@ -371,7 +419,7 @@ void test_detect_model_signed_change_using_model_preprocessing(const struct t_fi
 }
 
 
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12])
 void test_primary_preprocessing_after_max_secondary_iterations(const struct t_fixture *fix)
 {
 	const int32_t samples[4] = { 0, 0, 0, 0 };
@@ -420,7 +468,7 @@ void test_detect_invalid_primary_preprocessing_model_usage(void)
 }
 
 
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12])
 void test_unrelated_compressions_get_unique_identifiers_in_model_preprocessing(
 	const struct t_fixture *fix)
 {
@@ -451,7 +499,7 @@ void test_unrelated_compressions_get_unique_identifiers_in_model_preprocessing(
 }
 
 
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12])
 void test_detect_too_small_work_buffer_in_model_preprocessing(const struct t_fixture *fix)
 {
 	const int32_t samples[4] = { 0 };
@@ -477,7 +525,7 @@ void test_detect_too_small_work_buffer_in_model_preprocessing(const struct t_fix
 }
 
 
-TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32, &t_fix_raw12])
 void test_detect_src_size_change_using_model_preprocessing(const struct t_fixture *fix)
 {
 	const int32_t samples1[4] = { 0 };

@@ -69,6 +69,35 @@ struct test_src make_test_src(struct arena *a, enum cmp_type dtype, const int32_
 		r.size = sample_count * sizeof(*data);
 		break;
 	}
+	case CMP_RAW12: {
+		uint8_t *data;
+
+		r.size = (uint32_t)((((uint64_t)sample_count * 3) + 1) / 2);
+		data = ARENA_NEW_ARRAY(a, (ptrdiff_t)r.size, uint8_t);
+		r.data = data;
+		for (i = 0; i < (sample_count & ~1U); i += 2) {
+			int32_t s1 = samples[i];
+			int32_t s2 = samples[i + 1];
+
+			/* we allow negative values in range and simply cast to unsigned */
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s1);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s1);
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s2);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s2);
+			*data++ = (uint8_t)(s1 & 0x00FF);
+			*data++ = (uint8_t)(((s2 & 0x000F) << 4) | ((s1 & 0x0F00) >> 8));
+			*data++ = (uint8_t)((s2 & 0xFF0) >> 4);
+		}
+		if (sample_count & 1U) {
+			int32_t s1 = samples[sample_count - 1];
+
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s1);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s1);
+			*data++ = (uint8_t)(s1 & 0x00FF);
+			*data++ = (uint8_t)((s1 & 0x0F00) >> 8);
+		}
+		break;
+	}
 	default:
 		TEST_FAIL_MESSAGE("Unsupported sample type");
 		return r;
@@ -220,6 +249,14 @@ static uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, 
 }
 
 
+static uint32_t compress_raw12_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap,
+				       const void *src, uint32_t src_size)
+{
+	return cmp_compress_raw12(ctx, dst, cap, src, src_size);
+}
+
+
 const struct t_fixture t_fix_u16 = { compress_u16_wrapper, CMP_U16 };
 const struct t_fixture t_fix_i16 = { compress_i16_wrapper, CMP_I16 };
 const struct t_fixture t_fix_i16_in_i32 = { compress_i16_in_i32_wrapper, CMP_I16_IN_I32 };
+const struct t_fixture t_fix_raw12 = { compress_raw12_wrapper, CMP_RAW12 };

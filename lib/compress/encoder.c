@@ -162,13 +162,14 @@ static uint32_t golomb_optimal_outlier_zero(uint32_t g_par, unsigned int n_bits)
 
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, uint32_t outlier)
+			  uint32_t encoder_param, uint32_t outlier, uint32_t n_bits)
 {
 	if (!enc)
 		return CMP_ERROR(INT_ENCODER);
 
 	memset(enc, 0, sizeof(*enc));
 	enc->encoder_type = encoder_type;
+	enc->n_bits = n_bits;
 
 	switch (enc->encoder_type) {
 	case CMP_ENCODER_UNCOMPRESSED:
@@ -182,15 +183,13 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
 		enc->g_par_log2 = ilog2(encoder_param);
 
 		if (enc->encoder_type == CMP_ENCODER_GOLOMB_ZERO)
-			enc->outlier =
-				golomb_optimal_outlier_zero(enc->g_par, CMP_NUM_BITS_PER_SAMPLE);
+			enc->outlier = golomb_optimal_outlier_zero(enc->g_par, n_bits);
 		else
 			enc->outlier = outlier;
 
 		/* ensure we do not Golomb-encode too large values */
-		enc->outlier =
-			min_u32(enc->outlier, golomb_upper_bound(enc->g_par, enc->encoder_type,
-								 CMP_NUM_BITS_PER_SAMPLE));
+		enc->outlier = min_u32(enc->outlier,
+				       golomb_upper_bound(enc->g_par, enc->encoder_type, n_bits));
 		if (enc->outlier == 0)
 			return CMP_ERROR(PARAMS_INVALID);
 		break;
@@ -208,7 +207,7 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 {
 	struct cmp_encoder enc_dummy;
 
-	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, outlier);
+	return cmp_encoder_init(&enc_dummy, encoder_type, encoder_param, outlier, 16);
 }
 
 
@@ -302,16 +301,15 @@ static void golomb_encode(uint32_t value, uint32_t g_par, uint32_t g_par_log2,
 }
 
 
-void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
-			    struct bitstream_writer *bs)
+void cmp_encoder_encode(const struct cmp_encoder *enc, int16_t value, struct bitstream_writer *bs)
 {
 	switch (enc->encoder_type) {
 	case CMP_ENCODER_UNCOMPRESSED:
-		bitstream_add_bits32(bs, (uint16_t)value, bitsizeof(value));
+		bitstream_add_bits32(bs, (uint16_t)value, enc->n_bits);
 		break;
 
 	case CMP_ENCODER_GOLOMB_ZERO: {
-		uint16_t const mapped = (uint16_t)map_to_unsigned(value, bitsizeof(value));
+		uint16_t const mapped = (uint16_t)map_to_unsigned(value, enc->n_bits);
 
 		if (mapped < enc->outlier) {
 			/* add 1 for non-outlier values to make space for 0 as escape symbol */
@@ -321,15 +319,16 @@ void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 			 * Combine Golomb(0) and raw data into a single write for efficiency.
 			 */
 			compile_time_assert(CMP_MAX_BITS_ZERO_ESCAPE <= 32, zero_escape_too_large);
-			unsigned int const len = enc->g_par_log2 + 1 + bitsizeof(value);
+			/* Code word for Golomb(0) contains only zeros. */
+			unsigned int const leading_zeros = enc->g_par_log2 + 1;
 
-			bitstream_add_bits32(bs, mapped, len);
+			bitstream_add_bits32(bs, mapped, leading_zeros + enc->n_bits);
 		}
 		break;
 	}
 
 	case CMP_ENCODER_GOLOMB_MULTI: {
-		uint16_t const mapped = (uint16_t)map_to_unsigned(value, bitsizeof(value));
+		uint16_t const mapped = (uint16_t)map_to_unsigned(value, enc->n_bits);
 
 		if (mapped < enc->outlier) {
 			golomb_encode(mapped, enc->g_par, enc->g_par_log2, bs);
