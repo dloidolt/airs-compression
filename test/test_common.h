@@ -11,6 +11,7 @@
 #define TEST_COMMON_H
 
 #include <unity.h>
+#include "../lib/cmp.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/common/compiler.h"
 #include "../lib/common/header_private.h"
@@ -114,23 +115,44 @@ const void *cmp_hdr_get_cmp_data(const void *header);
 
 
 /**
- * Wrapper around malloc() that asserts the allocation is successful.  If
- * allocation fails, the test will fail with an assertion.
- */
-void *t_malloc(size_t size);
-
-/**
  * @brief Clears and returns the test arena for memory allocation
  *
  * The arena's state is completely reset on each call, providing a fresh scratch
  * space for the caller. Consequently, any data allocated from the arena
  * in previous calls becomes invalid.
  *
- * @warning Call it only once in a test.
+ * @warning Call it only once for a test. A reset invalidates every prior
+ *          allocation from the shared test arena.
  *
  * @returns pointer to the cleared arena instance
  */
 struct arena *clear_test_arena(void);
+
+
+struct test_src {
+	const void *data;
+	uint32_t size;
+	uint32_t packed_size;
+};
+
+/**
+ * @brief Converts canonical test samples to a compressor-specific format
+ *
+ * The input samples use a common int32_t representation and are converted to
+ * the representation selected by @p dtype. The resulting data is allocated
+ * from arena @p a.
+ *
+ * @param a		arena used for the converted source data
+ * @param dtype		data type to which the samples are converted
+ * @param samples	input samples represented as int32_t values
+ * @param sample_count	number of input samples
+ *
+ * @returns converted source data, its storage size, and its packed size; the
+ *	data remains valid until the arena is cleared or goes out of scope
+ */
+
+struct test_src make_test_src(struct arena *a, enum cmp_type dtype, const int32_t *samples,
+			      uint32_t sample_count);
 
 
 struct test_env {
@@ -144,23 +166,26 @@ struct test_env *make_env(struct cmp_params *params, uint32_t src_len);
 void free_env(struct test_env *e);
 
 
-/**
- * @brief Test fixture bundling compression function with its metadata
- */
+/** @brief Test fixture bundling compression function with its metadata */
 struct cmp_test_fixture {
 	uint32_t (*compress)(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			     const void *src, uint32_t src_size);
 	enum cmp_type dtype;
 };
 
+/*
+ * extern declarations needed here so the test runner can find the arguments
+ * passed to the parametrized tests.
+ */
 extern const struct cmp_test_fixture cmp_fixture_u16;
 extern const struct cmp_test_fixture cmp_fixture_i16;
 extern const struct cmp_test_fixture cmp_fixture_i16_in_i32;
 
-
 extern const uint16_t test_dummy_u16[2];
 extern const int16_t test_dummy_i16[2];
 extern const int32_t test_dummy_i16_in_i32[2];
+
+extern const uint8_t expected_uncompressed_16bit[12];
 
 extern const uint16_t model_input1_u16[5];
 extern const uint16_t model_input2_u16[5];

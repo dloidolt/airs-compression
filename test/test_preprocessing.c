@@ -18,6 +18,10 @@
 #include "../lib/cmp_header.h"
 #include "../lib/common/compiler.h"
 
+const uint16_t test_dummy_u16[2] = { 0x0001, 0x0203 };
+const int16_t test_dummy_i16[2] = { 0x0001, 0x0203 };
+const int32_t test_dummy_i16_in_i32[2] = { 0x0001, 0x0203 };
+
 
 static void assert_preprocessing_data(const int16_t *expected_output, uint32_t num_elements,
 				      const uint8_t *compressed_data)
