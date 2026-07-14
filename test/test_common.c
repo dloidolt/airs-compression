@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <unity.h>
 #include <unity_internals.h>
@@ -20,9 +21,62 @@
 #include "../programs/arena.h"
 
 
-const uint16_t test_dummy_u16[2] = { 0x0001, 0x0203 };
-const int16_t test_dummy_i16[2] = { 0x0001, 0x0203 };
-const int32_t test_dummy_i16_in_i32[2] = { 0x0001, 0x0203 };
+struct test_src make_test_src(struct arena *a, enum cmp_type dtype, const int32_t *samples,
+			      uint32_t sample_count)
+{
+	struct test_src r = { 0 };
+	uint32_t i;
+
+	TEST_ASSERT_NOT_NULL(a);
+	TEST_ASSERT_NOT_NULL(samples);
+	TEST_ASSERT_GREATER_THAN_UINT32(0, sample_count);
+
+	switch (dtype) {
+	case CMP_I16: {
+		int16_t *data = ARENA_NEW_ARRAY(a, sample_count, int16_t);
+
+		for (i = 0; i < sample_count; i++) {
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(INT16_MAX, samples[i]);
+			data[i] = (int16_t)samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	case CMP_U16: {
+		uint16_t *data = ARENA_NEW_ARRAY(a, sample_count, uint16_t);
+
+		for (i = 0; i < sample_count; i++) {
+			/* we allow negative values in range and simply cast to unsigned */
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(UINT16_MAX, samples[i]);
+			data[i] = (uint16_t)samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	case CMP_I16_IN_I32: {
+		int32_t *data = ARENA_NEW_ARRAY(a, sample_count, int32_t);
+
+		for (i = 0; i < sample_count; i++) {
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(INT16_MAX, samples[i]);
+			data[i] = samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	default:
+		TEST_FAIL_MESSAGE("Unsupported sample type");
+		return r;
+	}
+
+	r.packed_size = dtype == CMP_I16_IN_I32 ? sample_count * sizeof(uint16_t) : r.size;
+	return r;
+}
 
 
 const void *cmp_hdr_get_cmp_data(const void *header)
@@ -145,7 +199,7 @@ struct arena *clear_test_arena(void)
 }
 
 
-void *t_malloc(size_t size)
+static void *t_malloc(size_t size)
 {
 	void *p;
 
@@ -214,6 +268,7 @@ static uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, 
 {
 	return cmp_compress_i16_in_i32(ctx, dst, cap, src, src_size);
 }
+
 
 const struct cmp_test_fixture cmp_fixture_u16 = { compress_u16_wrapper, CMP_U16 };
 const struct cmp_test_fixture cmp_fixture_i16 = { compress_i16_wrapper, CMP_I16 };
