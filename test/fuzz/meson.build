@@ -31,7 +31,7 @@ foreach target : fuzz_targets
         src_common,
         src_compress,
         c_args: fuzzer_cflags,
-        include_directories: [inc_cmp, xxhash_inc],
+        include_directories: [inc_cmp],
         link_args: fuzzer_ldflags,
         link_language: fuzzing_engine == 'oss-fuzz' ? 'cpp' : 'c',
     )
