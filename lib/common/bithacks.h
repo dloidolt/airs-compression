@@ -43,12 +43,22 @@ static __inline uint64_t min_u64(uint64_t a, uint64_t b)
 
 
 /**
- * @brief Divides two numbers rounding up the result
- * @param n	numerator
- * @param d	denominator
+ * @brief Divides two unsigned 32-bit numbers rounding up
+ *
+ * The denominator must be non-zero. Unlike (n + d - 1) / d, this cannot
+ * overflow before the division.
  */
+static __inline uint32_t div_round_up_u32(uint32_t n, uint32_t d)
+{
+	return (n / d) + (n % d != 0);
+}
 
-#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
+
+/** @brief Divides two unsigned 64-bit numbers rounding up */
+static __inline uint64_t div_round_up_u64(uint64_t n, uint64_t d)
+{
+	return (n / d) + (n % d != 0);
+}
 
 
 /** @brief Returns floor(log2(x)) or UINT_MAX if x = 0 */

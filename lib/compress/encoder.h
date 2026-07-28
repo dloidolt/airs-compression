@@ -105,13 +105,13 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 /**
  * @brief Calculates the maximum worst cased compressed size
  *
- * @param size	size of the data uncompressed
+ * @param num_samples	 number of data samples to compress
  *
  * @returns maximum possible compressed size in bytes, can be larger than the
  *	maximum values that can be stored in the compressed size header field
  */
 
-uint64_t cmp_encoder_max_compressed_size(uint32_t size);
+uint64_t cmp_encoder_max_compressed_size(uint32_t num_samples);
 
 
 #endif /* CMP_ENCODER_H */

@@ -356,9 +356,9 @@ void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
 }
 
 
-uint64_t cmp_encoder_max_compressed_size(uint32_t size)
+uint64_t cmp_encoder_max_compressed_size(uint32_t num_samples)
 {
-	uint64_t const n_samples = DIV_ROUND_UP((uint64_t)size * 8, CMP_NUM_BITS_PER_SAMPLE);
+	uint64_t const max_bits = (uint64_t)num_samples * CMP_MAX_BITS_PER_SAMPLE;
 
-	return DIV_ROUND_UP(n_samples * CMP_MAX_BITS_PER_SAMPLE, 8);
+	return div_round_up_u64(max_bits, 8);
 }

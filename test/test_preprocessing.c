@@ -417,7 +417,7 @@ void test_detect_to_small_work_buffer_in_model_preprocessing(const struct cmp_te
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 1;
-	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src));
+	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src), fix->dtype);
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 
@@ -440,7 +440,7 @@ void test_detect_to_small_work_buffer_in_model_preprocessing_i16_in_i32(void)
 	params.primary_preprocessing = CMP_PREPROCESS_NONE;
 	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	params.secondary_iterations = 1;
-	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src));
+	work_buf_size = cmp_cal_work_buf_size(&params, sizeof(src), CMP_I16_IN_I32);
 	TEST_ASSERT_LESS_THAN(work_buf_size, sizeof(work_buf));
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 

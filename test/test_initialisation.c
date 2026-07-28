@@ -499,7 +499,7 @@ void test_init_fails_if_workbufer_size_is_a_propagated_error(void)
 	params_invalid.primary_preprocessing = INVALID_PREPROCESSING;
 	params_valid.primary_preprocessing = CMP_PREPROCESS_IWT;
 
-	buf_size_error_code = cmp_cal_work_buf_size(&params_invalid, 41);
+	buf_size_error_code = cmp_cal_work_buf_size(&params_invalid, 41, CMP_I16);
 	return_value = cmp_initialise(&ctx, &params_valid, work_buf_dummy, buf_size_error_code);
 
 	TEST_ASSERT_CMP_FAILURE(buf_size_error_code);

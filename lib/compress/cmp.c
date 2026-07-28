@@ -43,16 +43,19 @@ unsigned int cmp_is_error(uint32_t code)
 }
 
 
-uint32_t cmp_compress_bound(uint32_t packed_size)
+uint32_t cmp_compress_bound(uint32_t src_size, enum cmp_type src_type)
 {
 	compile_time_assert(CMP_HDR_MAX_COMPRESSED_SIZE <= UINT32_MAX,
 			    max_compressed_bound_exceeds_uint32_max);
+	uint32_t num_samples;
 	uint64_t bound;
 
-	if (packed_size > CMP_HDR_MAX_ORIGINAL_SIZE)
-		return (CMP_ERROR(HDR_ORIGINAL_TOO_LARGE));
-
-	bound = CMP_HDR_SIZE + cmp_encoder_max_compressed_size(packed_size);
+	num_samples = cal_num_samples_round_up(src_size, src_type);
+	if (cmp_is_error_int(num_samples))
+		return num_samples;
+	if (cal_packed_size(num_samples) > CMP_HDR_MAX_ORIGINAL_SIZE)
+		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
+	bound = CMP_HDR_SIZE + cmp_encoder_max_compressed_size(num_samples);
 
 	if (bound > CMP_HDR_MAX_COMPRESSED_SIZE)
 		return (CMP_ERROR(HDR_CMP_SIZE_TOO_LARGE));
@@ -61,10 +64,12 @@ uint32_t cmp_compress_bound(uint32_t packed_size)
 }
 
 
-uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size)
+uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size,
+			       enum cmp_type src_type)
 {
 	const struct preprocessing_method *preprocess;
 	uint32_t primary_work_buf_size, secondary_work_buf_size;
+	uint32_t num_samples;
 
 	if (params == NULL)
 		return CMP_ERROR(GENERIC);
@@ -75,13 +80,19 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 	preprocess = preprocessing_get_method(params->primary_preprocessing);
 	if (preprocess == NULL)
 		return CMP_ERROR(PARAMS_INVALID);
-	primary_work_buf_size = preprocess->get_work_buf_size(src_size);
+
+	num_samples = cal_num_samples_round_up(src_size, src_type);
+	if (cmp_is_error_int(num_samples))
+		return num_samples;
+	if (cal_packed_size(num_samples) > CMP_HDR_MAX_ORIGINAL_SIZE)
+		return CMP_ERROR(HDR_ORIGINAL_TOO_LARGE);
+	primary_work_buf_size = preprocess->get_work_buf_size(num_samples);
 
 	if (params->secondary_iterations) {
 		preprocess = preprocessing_get_method(params->secondary_preprocessing);
 		if (preprocess == NULL)
 			return CMP_ERROR(PARAMS_INVALID);
-		secondary_work_buf_size = preprocess->get_work_buf_size(src_size);
+		secondary_work_buf_size = preprocess->get_work_buf_size(num_samples);
 	} else {
 		secondary_work_buf_size = 0;
 	}
@@ -129,7 +140,7 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
 	    params->model_rate > CMP_MAX_MODEL_RATE)
 		return CMP_ERROR(PARAMS_INVALID);
 
-	work_buf_size_needed = cmp_cal_work_buf_size(params, min_src_size);
+	work_buf_size_needed = cmp_cal_work_buf_size(params, min_src_size, CMP_I16);
 	if (cmp_is_error_int(work_buf_size_needed))
 		return work_buf_size_needed;
 
@@ -210,7 +221,6 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	const struct preprocessing_method *preprocess;
 	int16_t *model = NULL;
 	struct cmp_hdr hdr = { 0 };
-	uint32_t compress_bound;
 
 	if (ctx->sequence_number > ctx->params.secondary_iterations) {
 		/* Note: cmp_reset() resets ctx->sequence_number to 0. */
@@ -284,9 +294,8 @@ static uint32_t compress_engine(struct cmp_context *ctx, void *dst, uint32_t dst
 	    selected_encoder_type == CMP_ENCODER_UNCOMPRESSED) {
 		write_uncompressed(&bs, src_desc, model);
 	} else {
-		compress_bound = cmp_compress_bound(get_packed_size(src_desc));
-		if (cmp_is_error_int(compress_bound))
-			compress_bound = ~0U;
+		uint32_t compress_bound = (uint32_t)min_u64(
+			UINT32_MAX, cmp_encoder_max_compressed_size(src_desc->num_samples));
 
 		preprocess = preprocessing_get_method(selected_preprocessing);
 		if (preprocess == NULL)
