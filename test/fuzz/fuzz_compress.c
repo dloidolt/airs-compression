@@ -79,7 +79,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	params = fuzz_consume_alloc_cmp_params(&f);
 
 	if (fuzz_consume_bool(&f)) {
-		work_buf_size = cmp_cal_work_buf_size(params, src_size);
+		work_buf_size = cmp_cal_work_buf_size(params, src_size, CMP_U16);
 		if (cmp_is_error(work_buf_size))
 			goto out;
 	} else {
@@ -93,7 +93,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 		goto out;
 
 	if (fuzz_consume_bool(&f)) {
-		dst_cap = cmp_compress_bound(src_size);
+		dst_cap = cmp_compress_bound(src_size, CMP_U16);
 		if (cmp_is_error(dst_cap)) {
 			if (cmp_get_error_code(dst_cap) == CMP_ERR_HDR_CMP_SIZE_TOO_LARGE) {
 				dst_cap = CMP_HDR_MAX_COMPRESSED_SIZE;

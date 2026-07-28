@@ -39,49 +39,99 @@ static struct cmp_context create_uncompressed_context(void)
 }
 
 
-void test_no_work_buf_needed_for_none_preprocessing(void)
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_no_work_buf_needed_for_none_preprocessing(enum cmp_type src_type)
 {
 	struct cmp_params par_uncompressed = { 0 };
 	uint32_t work_buf_size;
 
 	par_uncompressed.primary_preprocessing = CMP_PREPROCESS_NONE;
 
-	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
+	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42, src_type);
 
 	TEST_ASSERT_EQUAL(0, work_buf_size);
 }
 
 
-void test_calculate_work_buf_size_for_iwt_correctly(void)
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_calculate_work_buf_size_for_iwt_correctly(enum cmp_type src_type)
 {
+	struct arena *a = clear_test_arena();
+	const int32_t samples[] = { 1, 2, 3, 4 };
+	struct test_src const src = make_test_src(a, src_type, samples, ARRAY_SIZE(samples));
 	struct cmp_params par = { 0 };
 	uint32_t work_buf_size;
 
 	par.primary_preprocessing = CMP_PREPROCESS_IWT;
 
-	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+	work_buf_size = cmp_cal_work_buf_size(&par, src.size, src_type);
 
-	TEST_ASSERT_EQUAL(42, work_buf_size);
+	TEST_ASSERT_EQUAL(8, work_buf_size);
 }
 
 
-void test_calculate_work_buf_size_for_model_preprocess_correctly(void)
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_calculate_work_buf_size_rounds_up_even(enum cmp_type src_type)
 {
+	struct arena *a = clear_test_arena();
+	const int32_t samples[] = { 1, 2, 3, 4 };
+	struct test_src const src3 = make_test_src(a, src_type, samples, ARRAY_SIZE(samples) - 1);
+	struct test_src const src4 = make_test_src(a, src_type, samples, ARRAY_SIZE(samples));
+	struct cmp_params par = { 0 };
+	uint32_t s;
+	uint32_t work_buf_size;
+
+	par.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	for (s = src3.size + 1; s <= src4.size; s++) {
+		work_buf_size = cmp_cal_work_buf_size(&par, s, src_type);
+		TEST_ASSERT_EQUAL(8, work_buf_size);
+	}
+}
+
+
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_calculate_work_buf_size_rounds_up_uneven(enum cmp_type src_type)
+{
+	struct arena *a = clear_test_arena();
+	const int32_t samples[] = { 1, 2, 3, 4, 5 };
+	struct test_src const src4 = make_test_src(a, src_type, samples, ARRAY_SIZE(samples) - 1);
+	struct test_src const src5 = make_test_src(a, src_type, samples, ARRAY_SIZE(samples));
+	struct cmp_params par = { 0 };
+	uint32_t s;
+	uint32_t work_buf_size;
+
+	par.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	for (s = src4.size + 1; s <= src5.size; s++) {
+		work_buf_size = cmp_cal_work_buf_size(&par, s, src_type);
+		TEST_ASSERT_EQUAL(10, work_buf_size);
+	}
+}
+
+
+TEST_CASE(CMP_U16, CMP_HDR_MAX_ORIGINAL_SIZE - 1, CMP_HDR_MAX_ORIGINAL_SIZE - 1)
+TEST_CASE(CMP_I16, CMP_HDR_MAX_ORIGINAL_SIZE - 1, CMP_HDR_MAX_ORIGINAL_SIZE - 1)
+TEST_CASE(CMP_I16_IN_I32, (CMP_HDR_MAX_ORIGINAL_SIZE - 1) * 2, CMP_HDR_MAX_ORIGINAL_SIZE - 1)
+void test_calculate_work_buf_size_rounds_up_maximum_allowed_size(enum cmp_type src_type,
+								 uint32_t max_size,
+								 uint32_t exp_size)
+{
+	/* In this case we have a large work_buf as ever needed */
 	struct cmp_params par = { 0 };
 	uint32_t work_buf_size;
 
-	par.primary_preprocessing = CMP_PREPROCESS_NONE;
-	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
-	par.secondary_iterations = 1;
+	par.primary_preprocessing = CMP_PREPROCESS_IWT;
 
-	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+	work_buf_size = cmp_cal_work_buf_size(&par, max_size, src_type);
 
 	TEST_ASSERT_CMP_SUCCESS(work_buf_size);
-	TEST_ASSERT_EQUAL(42, work_buf_size);
+	TEST_ASSERT_EQUAL(exp_size, work_buf_size);
 }
 
 
-void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(void)
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(enum cmp_type src_type)
 {
 	struct cmp_params par = { 0 };
 	uint32_t work_buf_size;
@@ -90,7 +140,7 @@ void test_calculate_work_buf_size_ignore_secondary_preprocessing_if_disabled(voi
 	par.secondary_preprocessing = CMP_PREPROCESS_MODEL;
 	par.secondary_iterations = 0;
 
-	work_buf_size = cmp_cal_work_buf_size(&par, 41);
+	work_buf_size = cmp_cal_work_buf_size(&par, 41, src_type);
 
 	TEST_ASSERT_CMP_SUCCESS(work_buf_size);
 	TEST_ASSERT_EQUAL(0, work_buf_size);
@@ -101,7 +151,7 @@ void test_work_buf_size_calculation_detects_missing_parameters_struct(void)
 {
 	uint32_t work_buf_size;
 
-	work_buf_size = cmp_cal_work_buf_size(NULL, 42);
+	work_buf_size = cmp_cal_work_buf_size(NULL, 42, CMP_I16);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_GENERIC, work_buf_size);
 }
@@ -114,7 +164,7 @@ void test_work_buf_size_calculation_detects_invalid_primary_preprocessing(void)
 
 	par_uncompressed.primary_preprocessing = -1U;
 
-	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
+	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42, CMP_I16);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
 }
@@ -128,10 +178,55 @@ void test_work_buf_size_calculation_detects_invalid_secondary_preprocessing(void
 	par_uncompressed.secondary_preprocessing = -1U;
 	par_uncompressed.secondary_iterations = 1;
 
-	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42);
+	work_buf_size = cmp_cal_work_buf_size(&par_uncompressed, 42, CMP_I16);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
 }
+
+
+void test_work_buf_size_calculation_detects_invalid_source_type(void)
+{
+	struct cmp_params params = { 0 };
+	uint32_t work_buf_size;
+
+	params.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	work_buf_size = cmp_cal_work_buf_size(&params, 42, (enum cmp_type) - 1);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_PARAMS_INVALID, work_buf_size);
+}
+
+
+TEST_CASE(CMP_U16, CMP_HDR_MAX_ORIGINAL_SIZE)
+TEST_CASE(CMP_I16, CMP_HDR_MAX_ORIGINAL_SIZE)
+TEST_CASE(CMP_I16_IN_I32, CMP_HDR_MAX_ORIGINAL_SIZE * 2)
+void test_work_buf_size_calculation_detects_too_large_src_size(enum cmp_type src_type,
+							       uint32_t too_large_src_size)
+{
+	struct cmp_params params = { 0 };
+	uint32_t work_buf_size;
+
+	params.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	work_buf_size = cmp_cal_work_buf_size(&params, too_large_src_size, src_type);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, work_buf_size);
+}
+
+
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_work_buf_size_calculation_rejects_max_src_size(enum cmp_type src_type)
+{
+	struct cmp_params params = { 0 };
+	uint32_t work_buf_size;
+
+	params.primary_preprocessing = CMP_PREPROCESS_IWT;
+
+	work_buf_size = cmp_cal_work_buf_size(&params, UINT32_MAX, src_type);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, work_buf_size);
+}
+
 
 /* uncompressed 16-bit data should be in big endian */
 const uint8_t expected_uncompressed_16bit[12] = { 0x00, 0x00, 0x0A, 0xBC, 0x0D, 0xEF,
@@ -304,7 +399,8 @@ void test_compression_detects_src_size_too_large_for_header(const struct cmp_tes
 
 TEST_CASE(&cmp_fixture_u16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) /* must be a multiple of 2 */
 TEST_CASE(&cmp_fixture_i16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL)
-TEST_CASE(&cmp_fixture_i16_in_i32, (CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) * sizeof(int16_t))
+TEST_CASE(&cmp_fixture_i16_in_i32,
+	  (CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) * (sizeof(int32_t) / sizeof(int16_t)))
 void test_compression_detects_dst_size_too_large_for_header(const struct cmp_test_fixture *fix,
 							    uint32_t src_size)
 {
@@ -384,7 +480,7 @@ void test_compression_detects_too_small_work_buffer(const struct cmp_test_fixtur
 	struct arena *a = clear_test_arena();
 	struct test_src src =
 		make_test_src(a, fix->dtype, dummy_samples, ARRAY_SIZE(dummy_samples));
-	uint32_t dst_cap = cmp_compress_bound(src.packed_size);
+	uint32_t dst_cap = cmp_compress_bound(src.size, fix->dtype);
 	void *dst = arena_alloc(a, dst_cap, 1, CMP_DST_ALIGNMENT);
 	struct cmp_context ctx;
 	uint32_t work_buf_size, small_work_buf_size;
@@ -392,7 +488,7 @@ void test_compression_detects_too_small_work_buffer(const struct cmp_test_fixtur
 	uint32_t dst_size;
 
 	params.primary_preprocessing = CMP_PREPROCESS_IWT;
-	work_buf_size = cmp_cal_work_buf_size(&params, src.packed_size);
+	work_buf_size = cmp_cal_work_buf_size(&params, src.size, fix->dtype);
 	TEST_ASSERT(work_buf_size > 0);
 	small_work_buf_size = work_buf_size - 1;
 	small_work_buf = arena_alloc(a, small_work_buf_size, 1, sizeof(uint16_t));
@@ -413,7 +509,8 @@ void test_non_model_preprocessing_src_size_change_allowed(const struct cmp_test_
 	struct arena *a = clear_test_arena();
 	struct test_src src1 = make_test_src(a, fix->dtype, samples_4, ARRAY_SIZE(samples_4));
 	struct test_src src2 = make_test_src(a, fix->dtype, samples_2, ARRAY_SIZE(samples_2));
-	uint8_t *dst = arena_alloc(a, cmp_compress_bound(src1.packed_size), 1, CMP_DST_ALIGNMENT);
+	uint8_t *dst =
+		arena_alloc(a, cmp_compress_bound(src1.size, fix->dtype), 1, CMP_DST_ALIGNMENT);
 	uint16_t work_buf[ARRAY_SIZE(samples_4) * sizeof(int16_t)];
 	uint32_t dst_size;
 	struct cmp_context ctx;
@@ -423,9 +520,9 @@ void test_non_model_preprocessing_src_size_change_allowed(const struct cmp_test_
 	params.secondary_iterations = 10;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, work_buf, sizeof(work_buf)));
 
-	TEST_ASSERT_CMP_SUCCESS(fix->compress(&ctx, dst, cmp_compress_bound(src1.packed_size),
+	TEST_ASSERT_CMP_SUCCESS(fix->compress(&ctx, dst, cmp_compress_bound(src1.size, fix->dtype),
 					      src1.data, src1.size));
-	dst_size = fix->compress(&ctx, dst, cmp_compress_bound(src1.packed_size), src2.data,
+	dst_size = fix->compress(&ctx, dst, cmp_compress_bound(src1.size, fix->dtype), src2.data,
 				 src2.size);
 
 	TEST_ASSERT_CMP_SUCCESS(dst_size);
@@ -438,20 +535,48 @@ void test_deinitialise_NULL_context_gracefully(void)
 }
 
 
-void test_bound_size_is_enough_for_uncompressed_mode_with_checksum(void)
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_compress_bound_rounds_up_partial_samples(enum cmp_type src_type)
 {
-	uint32_t const bound = cmp_compress_bound(3);
+	struct arena *a = clear_test_arena();
+	const int32_t samples[] = { 1, 2, 3, 4 };
+	struct test_src const src3 = make_test_src(a, src_type, samples, 3);
+	struct test_src const src4 = make_test_src(a, src_type, samples, 4);
+	uint32_t s;
 
-	TEST_ASSERT_CMP_SUCCESS(bound);
-	/* round size up to next multiple of 2 */
-	TEST_ASSERT_GREATER_OR_EQUAL_UINT32(CMP_HDR_SIZE + 4, bound);
+	uint32_t const bound_unround = cmp_compress_bound(src4.size, src_type);
+	for (s = src3.size + 1; s <= src4.size; s++) {
+		uint32_t const bound = cmp_compress_bound(s, src_type);
+
+		TEST_ASSERT_CMP_SUCCESS(bound);
+		TEST_ASSERT_EQUAL(bound_unround, bound);
+	}
+}
+
+
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_compress_bound_rounds_up_partial_uneven_samples(enum cmp_type src_type)
+{
+	struct arena *a = clear_test_arena();
+	const int32_t samples[] = { 1, 2, 3, 4, 5 };
+	struct test_src const src4 = make_test_src(a, src_type, samples, 4);
+	struct test_src const src5 = make_test_src(a, src_type, samples, 5);
+	uint32_t s;
+
+	uint32_t const bound_unround = cmp_compress_bound(src5.size, src_type);
+	for (s = src4.size + 1; s <= src5.size; s++) {
+		uint32_t const bound = cmp_compress_bound(s, src_type);
+
+		TEST_ASSERT_CMP_SUCCESS(bound);
+		TEST_ASSERT_EQUAL(bound_unround, bound);
+	}
 }
 
 
 void test_compress_bound_provides_sufficient_buffer_size(void)
 {
 	const uint16_t worst_case_src[2] = { 0xAAAA, 0xBBBB };
-	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + 2 * (4 + 2)];
+	DST_ALIGNED_U8 dst[CMP_HDR_SIZE + (2 * (4 + 2))];
 	struct cmp_context ctx;
 	struct cmp_params worst_case_params = { 0 };
 	uint32_t bound;
@@ -461,7 +586,7 @@ void test_compress_bound_provides_sufficient_buffer_size(void)
 	worst_case_params.primary_encoder_outlier = 32;
 	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &worst_case_params, NULL, 0));
 
-	bound = cmp_compress_bound(sizeof(worst_case_src));
+	bound = cmp_compress_bound(sizeof(worst_case_src), CMP_U16);
 
 	TEST_ASSERT_CMP_SUCCESS(bound);
 	TEST_ASSERT_LESS_OR_EQUAL(sizeof(dst), bound);
@@ -474,9 +599,22 @@ void test_compress_bound_provides_sufficient_buffer_size(void)
 }
 
 
-void test_bound_size_calculation_detects_too_large_src_size(void)
+TEST_CASE(CMP_U16, CMP_HDR_MAX_ORIGINAL_SIZE)
+TEST_CASE(CMP_I16, CMP_HDR_MAX_ORIGINAL_SIZE)
+TEST_CASE(CMP_I16_IN_I32, CMP_HDR_MAX_ORIGINAL_SIZE * 2)
+void test_bound_size_calculation_detects_too_large_src_size(enum cmp_type src_type,
+							    uint32_t too_large_src_size)
 {
-	uint32_t const bound = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
+	uint32_t const bound = cmp_compress_bound(too_large_src_size, src_type);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, bound);
+}
+
+
+TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
+void test_bound_size_calculation_detects_too_large_max_src_size(enum cmp_type src_type)
+{
+	uint32_t const bound = cmp_compress_bound(UINT32_MAX, src_type);
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_ORIGINAL_TOO_LARGE, bound);
 }
@@ -744,7 +882,7 @@ void test_checksum_is_same_for_same_inputs_of_every_compression_function(void)
 		TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&ctx, &params, NULL, 0));
 		src = make_test_src(a, test_cases[i].fix->dtype, dummy_samples,
 				    ARRAY_SIZE(dummy_samples));
-		dst_cap = cmp_compress_bound(src.packed_size);
+		dst_cap = cmp_compress_bound(src.size, test_cases[i].fix->dtype);
 		dst = arena_alloc(a, dst_cap, 1, CMP_DST_ALIGNMENT);
 
 		dst_size = test_cases[i].fix->compress(&ctx, dst, dst_cap, src.data, src.size);
@@ -837,7 +975,7 @@ void test_compression_fails_when_capacity_is_an_error(const struct cmp_test_fixt
 		make_test_src(clear_test_arena(), fix->dtype, samples, ARRAY_SIZE(samples));
 	DST_ALIGNED_U8 dst_dummy[CMP_UNCOMPRESSED_BOUND(42)] = { 0 };
 
-	uint32_t const bound_error = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1);
+	uint32_t const bound_error = cmp_compress_bound(CMP_HDR_MAX_ORIGINAL_SIZE + 1, fix->dtype);
 	uint32_t const return_val =
 		fix->compress(&ctx_uncompressed, dst_dummy, bound_error, src.data, src.size);
 

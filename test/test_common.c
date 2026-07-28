@@ -220,7 +220,7 @@ struct test_env *make_env(struct cmp_params *params, uint32_t src_len)
 
 	memset(e, 0, sizeof(*e));
 
-	work_len = cmp_cal_work_buf_size(params, src_len);
+	work_len = cmp_cal_work_buf_size(params, src_len, CMP_U16);
 	TEST_ASSERT_CMP_SUCCESS(work_len);
 	if (work_len)
 		e->work = t_malloc(work_len);
@@ -230,7 +230,7 @@ struct test_env *make_env(struct cmp_params *params, uint32_t src_len)
 	if (params->primary_encoder_type != CMP_ENCODER_UNCOMPRESSED ||
 	    (params->secondary_iterations > 0 &&
 	     params->secondary_encoder_type != CMP_ENCODER_UNCOMPRESSED)) {
-		e->dst_cap = cmp_compress_bound(src_len);
+		e->dst_cap = cmp_compress_bound(src_len, CMP_U16);
 	} else {
 		e->dst_cap = (uint32_t)CMP_UNCOMPRESSED_BOUND(src_len);
 	}

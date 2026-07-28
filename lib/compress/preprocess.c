@@ -266,14 +266,14 @@ static int16_t diff_process(uint32_t i, const struct sample_desc *src_desc, void
 /**
  * @brief Calculates the required work buffer size for IWT preprocessing
  *
- * @param input_size	size of the data to perform the IWT on
+ * @param num_samples	number of data samples to perform the IWT on
  *
  * @returns the minimum required work buffer size
  */
 
-static uint32_t iwt_get_work_buf_size(uint32_t input_size)
+static uint32_t iwt_get_work_buf_size(uint32_t num_samples)
 {
-	return ROUND_UP_TO_NEXT_2(input_size);
+	return num_samples * sizeof(int16_t);
 }
 
 
@@ -297,7 +297,7 @@ static uint32_t iwt_init(const struct sample_desc *src_desc, void *work_buf, uin
 
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < iwt_get_work_buf_size(get_packed_size(src_desc)))
+	if (work_buf_size < iwt_get_work_buf_size(src_desc->num_samples))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(*pre_cal_coefficient) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);
@@ -329,14 +329,14 @@ static int16_t iwt_process(uint32_t i, const struct sample_desc *src_desc UNUSED
 /**
  * @brief Calculates the required work buffer size for model preprocessing
  *
- * @param input_size	size of the data to perform the preprocessing
+ * @param num_samples	number of data samples to perform the model preprocessing
  *
  * @returns the minimum required work buffer size
  */
 
-static uint32_t model_get_work_buf_size(uint32_t input_size)
+static uint32_t model_get_work_buf_size(uint32_t num_samples)
 {
-	return ROUND_UP_TO_NEXT_2(input_size);
+	return num_samples * sizeof(int16_t);
 }
 
 
@@ -357,7 +357,7 @@ static uint32_t model_init(const struct sample_desc *src_desc, void *work_buf,
 {
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < model_get_work_buf_size(get_packed_size(src_desc)))
+	if (work_buf_size < model_get_work_buf_size(src_desc->num_samples))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);

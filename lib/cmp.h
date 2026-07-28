@@ -116,6 +116,17 @@ struct cmp_params {
 };
 
 
+/**
+ * @brief Data type of the original uncompressed data
+ */
+
+enum cmp_type {
+	CMP_I16,        /**< Signed 16-bit integers */
+	CMP_I16_IN_I32, /**< Signed 16-bit integers packed in 32-bit words */
+	CMP_U16         /**< Unsigned 16-bit integers */
+};
+
+
 /* forward declaration */
 struct cmp_context;
 
@@ -139,15 +150,15 @@ unsigned int cmp_is_error(uint32_t code);
  * primarily useful for memory allocation purposes (destination buffer size).
  * Assumes a worst case configuration.
  *
- * @param packed_size	packed size of the data in bytes (same as src_size,
- *			except for cmp_compress_i16_in_i32() where it's half)
+ * @param src_size	size of a source data buffer in bytes
+ * @param src_type	data type of the source data
  *
  * @returns the compressed size in the worst-case scenario or an error if the
  *	bound size is larger than the maximum compressed size
  *	(CMP_HDR_MAX_COMPRESSED_SIZE), which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_compress_bound(uint32_t packed_size);
+uint32_t cmp_compress_bound(uint32_t src_size, enum cmp_type src_type);
 
 
 /**
@@ -187,13 +198,15 @@ uint32_t cmp_compress_bound(uint32_t packed_size);
  * @param params	pointer to a compression parameters struct used to
  *			compress the data
  * @param src_size	size of a source data buffer in bytes
+ * @param src_type	data type of the source data
  *
  * @returns the minimum size in bytes needed for a compression working buffer
  *	(can be 0 if no working buffer is needed) or an error, which can be
  *	checked using cmp_is_error()
  */
 
-uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size);
+uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size,
+			       enum cmp_type src_type);
 
 
 /* ======   Compression Functions   ====== */
@@ -211,7 +224,8 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
  * @param work_buf	pointer to a working buffer (can be NULL if
  *			work_buf_size is 0)
  * @param work_buf_size	size of the working buffer in bytes; needed size can be
- *			calculated with cmp_cal_work_buf_size(params, src_size)
+ *			calculated with cmp_cal_work_buf_size(params, src_size,
+ *			src_type)
  *
  * @warning The caller is responsible for managing the memory of the working
  *	buffer. It must remain valid for the entire lifetime of the context, as
@@ -238,8 +252,8 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  * @param dst		the buffer to compress the src buffer into, MUST be
  *			CMP_DST_ALIGNMENT-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
- *			cmp_compress_bound(src_size) is guaranteed to be large
- *			enough
+ *			cmp_compress_bound(src_size, CMP_I16) is guaranteed to
+ *			be large enough
  * @param src		pointer to the data to compress
  * @param src_size	size of the data to compress, must be the same for every
  *			source buffer until the context is reset
@@ -314,17 +328,6 @@ void cmp_deinitialise(struct cmp_context *ctx);
 
 
 /* ======  Compression Header Functions   ====== */
-/**
- * @brief Data type of the original uncompressed data
- */
-
-enum cmp_type {
-	CMP_I16,        /**< Signed 16-bit integers */
-	CMP_I16_IN_I32, /**< Signed 16-bit integers packed in 32-bit words */
-	CMP_U16         /**< Unsigned 16-bit integers */
-};
-
-
 /**
  * @brief Compression header fields
  *

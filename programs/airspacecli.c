@@ -102,7 +102,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 	assert(params);
 
 	/* For allocating the work buffer, we assume data has the maximal size, just to be safe */
-	max_work_buf_size = cmp_cal_work_buf_size(params, CMP_HDR_MAX_ORIGINAL_SIZE);
+	max_work_buf_size = cmp_cal_work_buf_size(params, CMP_HDR_MAX_ORIGINAL_SIZE & ~1U, CMP_U16);
 	if (cmp_is_error(max_work_buf_size)) {
 		LOG_ERROR_CMP(max_work_buf_size, "Error calculating work buffer size");
 		return EXIT_FAILURE;
@@ -130,7 +130,7 @@ static int compress_file_list(struct arena scratch, struct s8 dst_path, const st
 		if (src.status != OS_OK)
 			return EXIT_FAILURE;
 
-		dst_capacity = cmp_compress_bound(src.size);
+		dst_capacity = cmp_compress_bound(src.size, CMP_U16);
 		if (cmp_is_error(dst_capacity)) {
 			LOG_WARNING(
 				"Can't calculate compressed data buffer size upper bound, using maximum size");

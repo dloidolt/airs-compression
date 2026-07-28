@@ -124,7 +124,7 @@ static int simple_compression(void)
 	 * buffer. It must remain valid for the entire lifetime of the context,
 	 * as the library only stores a pointer to it.
 	 */
-	work_buf_size = cmp_cal_work_buf_size(&params, DATA_SRC_SIZE_EXAMPLE);
+	work_buf_size = cmp_cal_work_buf_size(&params, DATA_SRC_SIZE_EXAMPLE, CMP_U16);
 	/* NOTE: All return values of compression functions must be checked
 	 * with cmp_is_error() to check if they were successful.
 	 */
@@ -150,7 +150,7 @@ static int simple_compression(void)
 	 * provides a function to calculate the maximum possible compressed
 	 * size, ensuring we have enough space even in worst-case scenarios.
 	 */
-	dst_capacity = cmp_compress_bound(DATA_SRC_SIZE_EXAMPLE);
+	dst_capacity = cmp_compress_bound(DATA_SRC_SIZE_EXAMPLE, CMP_U16);
 	if (cmp_is_error(dst_capacity)) {
 		if (cmp_get_error_code(dst_capacity) == CMP_ERR_HDR_CMP_SIZE_TOO_LARGE) {
 			/* Fallback: Use maximum allowed compressed size when source is too large */

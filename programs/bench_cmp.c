@@ -112,15 +112,23 @@ static void bench_stats_print(struct bench_dataset const *ds, struct bench_cfg c
 }
 
 
-static uint32_t get_max_frame_size_in_ds(struct bench_dataset *datasets, int dataset_count)
+static uint32_t get_max_work_buf_size(const struct cmp_params *params,
+				      const struct bench_dataset *datasets, int dataset_count)
 {
 	int ds_nb;
-	uint32_t max_src_size = 0;
+	uint32_t max_work_buf_size = 0;
 
-	for (ds_nb = 0; ds_nb < dataset_count; ds_nb++)
-		if (max_src_size < datasets[ds_nb].frame_size)
-			max_src_size = datasets[ds_nb].frame_size;
-	return max_src_size;
+	for (ds_nb = 0; ds_nb < dataset_count; ds_nb++) {
+		uint32_t work_buf_size = cmp_cal_work_buf_size(params, datasets[ds_nb].frame_size,
+							       datasets[ds_nb].dtype);
+
+		if (cmp_is_error(work_buf_size))
+			return work_buf_size;
+		if (max_work_buf_size < work_buf_size)
+			max_work_buf_size = work_buf_size;
+	}
+
+	return max_work_buf_size;
 }
 
 
@@ -133,7 +141,7 @@ static uint32_t cal_dst_cap(uint32_t src_size, enum cmp_type src_dtype,
 	if (uncompressed_fallback_enabled)
 		dst_capacity = (uint32_t)CMP_UNCOMPRESSED_BOUND(packed_size);
 	else
-		dst_capacity = cmp_compress_bound(packed_size);
+		dst_capacity = cmp_compress_bound(src_size, src_dtype);
 
 	if (cmp_is_error(dst_capacity)) {
 		dst_capacity = CMP_HDR_MAX_COMPRESSED_SIZE;
@@ -177,8 +185,7 @@ static uint32_t bench_cmp(struct arena *a, struct bench_dataset *datasets, int d
 
 		printf("\n=== %s ===\n", cur_cfg->name);
 
-		work_buf_size = cmp_cal_work_buf_size(
-			&cur_cfg->params, get_max_frame_size_in_ds(datasets, dataset_count));
+		work_buf_size = get_max_work_buf_size(&cur_cfg->params, datasets, dataset_count);
 		if (cmp_is_error(work_buf_size)) {
 			printf("cfg[%d]: cmp_cal_work_buf_size() failed: %s\n", cfg_nb,
 			       cmp_get_error_message(work_buf_size));
