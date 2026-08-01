@@ -85,6 +85,7 @@ if ruby.found()
     'test_cmp_errors.c',
     'test_preprocessing.c',
     'test_encoder.c',
+    'test_bitstream_writer.c',
     'test_params_parse.c',
     'test_buildsetup.c'])
 
