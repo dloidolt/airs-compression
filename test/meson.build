@@ -85,6 +85,7 @@ if ruby.found()
     'test_cmp_errors.c',
     'test_preprocessing.c',
     'test_encoder.c',
+    'test_bitstream_writer.c',
     'test_buildsetup.c'])
   if has_os_layer
     unit_test_src += files('test_params_parse.c')
