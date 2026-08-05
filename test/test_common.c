@@ -199,56 +199,6 @@ struct arena *clear_test_arena(void)
 }
 
 
-static void *t_malloc(size_t size)
-{
-	void *p;
-
-	TEST_ASSERT(size > 0);
-
-	p = malloc(size);
-	TEST_ASSERT_NOT_NULL(p);
-
-	return p;
-}
-
-
-/* Create and initialize a test environment with compression context and buffers */
-struct test_env *make_env(struct cmp_params *params, uint32_t src_len)
-{
-	struct test_env *e = t_malloc(sizeof(*e));
-	uint32_t work_len;
-
-	memset(e, 0, sizeof(*e));
-
-	work_len = cmp_cal_work_buf_size(params, src_len, CMP_U16);
-	TEST_ASSERT_CMP_SUCCESS(work_len);
-	if (work_len)
-		e->work = t_malloc(work_len);
-
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&e->ctx, params, e->work, work_len));
-
-	if (params->primary_encoder_type != CMP_ENCODER_UNCOMPRESSED ||
-	    (params->secondary_iterations > 0 &&
-	     params->secondary_encoder_type != CMP_ENCODER_UNCOMPRESSED)) {
-		e->dst_cap = cmp_compress_bound(src_len, CMP_U16);
-	} else {
-		e->dst_cap = (uint32_t)CMP_UNCOMPRESSED_BOUND(src_len);
-	}
-	TEST_ASSERT_CMP_SUCCESS(e->dst_cap);
-	e->dst = t_malloc(e->dst_cap);
-
-	return e;
-}
-
-
-void free_env(struct test_env *e)
-{
-	free(e->dst);
-	free(e->work);
-	free(e);
-}
-
-
 static uint32_t compress_u16_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap,
 				     const void *src, uint32_t src_size)
 {
@@ -270,7 +220,6 @@ static uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, 
 }
 
 
-const struct cmp_test_fixture cmp_fixture_u16 = { compress_u16_wrapper, CMP_U16 };
-const struct cmp_test_fixture cmp_fixture_i16 = { compress_i16_wrapper, CMP_I16 };
-const struct cmp_test_fixture cmp_fixture_i16_in_i32 = { compress_i16_in_i32_wrapper,
-							 CMP_I16_IN_I32 };
+const struct t_fixture t_fix_u16 = { compress_u16_wrapper, CMP_U16 };
+const struct t_fixture t_fix_i16 = { compress_i16_wrapper, CMP_I16 };
+const struct t_fixture t_fix_i16_in_i32 = { compress_i16_in_i32_wrapper, CMP_I16_IN_I32 };

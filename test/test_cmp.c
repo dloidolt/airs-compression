@@ -232,10 +232,10 @@ void test_work_buf_size_calculation_rejects_max_src_size(enum cmp_type src_type)
 const uint8_t expected_uncompressed_16bit[12] = { 0x00, 0x00, 0x0A, 0xBC, 0x0D, 0xEF,
 						  0x01, 0x23, 0x04, 0x56, 0x0F, 0xF0 };
 
-TEST_CASE(&cmp_fixture_u16, ARRAY_AND_SIZE(expected_uncompressed_16bit))
-TEST_CASE(&cmp_fixture_i16, ARRAY_AND_SIZE(expected_uncompressed_16bit))
-TEST_CASE(&cmp_fixture_i16_in_i32, ARRAY_AND_SIZE(expected_uncompressed_16bit))
-void test_compression_in_uncompressed_mode(const struct cmp_test_fixture *fix,
+TEST_CASE(&t_fix_u16, ARRAY_AND_SIZE(expected_uncompressed_16bit))
+TEST_CASE(&t_fix_i16, ARRAY_AND_SIZE(expected_uncompressed_16bit))
+TEST_CASE(&t_fix_i16_in_i32, ARRAY_AND_SIZE(expected_uncompressed_16bit))
+void test_compression_in_uncompressed_mode(const struct t_fixture *fix,
 					   const uint8_t *exp_uncompressed, uint32_t expected_size)
 {
 	struct arena *a = clear_test_arena();
@@ -259,13 +259,13 @@ void test_compression_in_uncompressed_mode(const struct cmp_test_fixture *fix,
 }
 
 
-TEST_CASE(&cmp_fixture_u16, expected_uncompressed_16bit,
+TEST_CASE(&t_fix_u16, expected_uncompressed_16bit,
 	  sizeof(expected_uncompressed_16bit) - sizeof(uint16_t))
-TEST_CASE(&cmp_fixture_i16, expected_uncompressed_16bit,
+TEST_CASE(&t_fix_i16, expected_uncompressed_16bit,
 	  sizeof(expected_uncompressed_16bit) - sizeof(int16_t))
-TEST_CASE(&cmp_fixture_i16_in_i32, expected_uncompressed_16bit,
+TEST_CASE(&t_fix_i16_in_i32, expected_uncompressed_16bit,
 	  sizeof(expected_uncompressed_16bit) - sizeof(int16_t))
-void test_compression_in_uncompressed_mode_with_uneven_samples(const struct cmp_test_fixture *fix,
+void test_compression_in_uncompressed_mode_with_uneven_samples(const struct t_fixture *fix,
 							       const uint8_t *exp_uncompressed,
 							       uint32_t expected_size)
 {
@@ -290,8 +290,8 @@ void test_compression_in_uncompressed_mode_with_uneven_samples(const struct cmp_
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_too_small_dst_buffer(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_too_small_dst_buffer(const struct t_fixture *fix)
 {
 	struct arena *a = clear_test_arena();
 	struct test_src src =
@@ -307,8 +307,8 @@ void test_compression_detects_too_small_dst_buffer(const struct cmp_test_fixture
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_missing_context(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_missing_context(const struct t_fixture *fix)
 {
 	struct arena *a = clear_test_arena();
 	struct test_src src =
@@ -322,8 +322,8 @@ void test_compression_detects_missing_context(const struct cmp_test_fixture *fix
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_missing_dst_buffer(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_missing_dst_buffer(const struct t_fixture *fix)
 {
 	struct arena *a = clear_test_arena();
 	struct test_src src =
@@ -336,8 +336,8 @@ void test_compression_detects_missing_dst_buffer(const struct cmp_test_fixture *
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_missing_src_data(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_missing_src_data(const struct t_fixture *fix)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	DST_ALIGNED_U8 dst[CMP_UNCOMPRESSED_BOUND(4)];
@@ -350,8 +350,8 @@ void test_compression_detects_missing_src_data(const struct cmp_test_fixture *fi
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_src_size_is_0(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_src_size_is_0(const struct t_fixture *fix)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[2] = { 0x0001, 0x0203 };
@@ -363,8 +363,8 @@ void test_compression_detects_src_size_is_0(const struct cmp_test_fixture *fix)
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_invalid_src_size(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_invalid_src_size(const struct t_fixture *fix)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const uint16_t src[4] = { 0 };
@@ -377,10 +377,10 @@ void test_compression_detects_invalid_src_size(const struct cmp_test_fixture *fi
 }
 
 
-TEST_CASE(&cmp_fixture_u16, 1 << CMP_HDR_BITS_ORIGINAL_SIZE)
-TEST_CASE(&cmp_fixture_i16, 1 << CMP_HDR_BITS_ORIGINAL_SIZE)
-TEST_CASE(&cmp_fixture_i16_in_i32, (1U << CMP_HDR_BITS_ORIGINAL_SIZE) * sizeof(int16_t))
-void test_compression_detects_src_size_too_large_for_header(const struct cmp_test_fixture *fix,
+TEST_CASE(&t_fix_u16, 1 << CMP_HDR_BITS_ORIGINAL_SIZE)
+TEST_CASE(&t_fix_i16, 1 << CMP_HDR_BITS_ORIGINAL_SIZE)
+TEST_CASE(&t_fix_i16_in_i32, (1U << CMP_HDR_BITS_ORIGINAL_SIZE) * sizeof(int16_t))
+void test_compression_detects_src_size_too_large_for_header(const struct t_fixture *fix,
 							    uint32_t src_size_too_large)
 {
 	struct arena *a = clear_test_arena();
@@ -397,11 +397,11 @@ void test_compression_detects_src_size_too_large_for_header(const struct cmp_tes
 }
 
 
-TEST_CASE(&cmp_fixture_u16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) /* must be a multiple of 2 */
-TEST_CASE(&cmp_fixture_i16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL)
-TEST_CASE(&cmp_fixture_i16_in_i32,
+TEST_CASE(&t_fix_u16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) /* must be a multiple of 2 */
+TEST_CASE(&t_fix_i16, CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL)
+TEST_CASE(&t_fix_i16_in_i32,
 	  (CMP_HDR_MAX_COMPRESSED_SIZE & ~1UL) * (sizeof(int32_t) / sizeof(int16_t)))
-void test_compression_detects_dst_size_too_large_for_header(const struct cmp_test_fixture *fix,
+void test_compression_detects_dst_size_too_large_for_header(const struct t_fixture *fix,
 							    uint32_t src_size)
 {
 	uint32_t const dst_cap = CMP_HDR_MAX_COMPRESSED_SIZE + 100;
@@ -425,8 +425,8 @@ void test_compression_detects_dst_size_too_large_for_header(const struct cmp_tes
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_unaligned_dst(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_unaligned_dst(const struct t_fixture *fix)
 {
 	struct arena *a = clear_test_arena();
 	struct test_src src =
@@ -473,8 +473,8 @@ void test_deinitialise_a_compression_context(void)
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_detects_too_small_work_buffer(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_detects_too_small_work_buffer(const struct t_fixture *fix)
 {
 	struct cmp_params params = { 0 };
 	struct arena *a = clear_test_arena();
@@ -501,8 +501,8 @@ void test_compression_detects_too_small_work_buffer(const struct cmp_test_fixtur
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_non_model_preprocessing_src_size_change_allowed(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_non_model_preprocessing_src_size_change_allowed(const struct t_fixture *fix)
 {
 	const int32_t samples_4[4] = { 0, 0, 0, 0 };
 	const int32_t samples_2[2] = { 0, 0 };
@@ -536,7 +536,7 @@ void test_deinitialise_NULL_context_gracefully(void)
 
 
 TEST_MATRIX([CMP_U16, CMP_I16, CMP_I16_IN_I32])
-void test_compress_bound_rounds_up_partial_samples(enum cmp_type src_type)
+void test_compress_bound_rounds_up_partial_even_samples(enum cmp_type src_type)
 {
 	struct arena *a = clear_test_arena();
 	const int32_t samples[] = { 1, 2, 3, 4 };
@@ -620,8 +620,8 @@ void test_bound_size_calculation_detects_too_large_max_src_size(enum cmp_type sr
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_set_hdr_identifier(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_set_hdr_identifier(const struct t_fixture *fix)
 {
 	const int32_t samples[2] = { 0 };
 	struct arena *a = clear_test_arena();
@@ -642,8 +642,8 @@ void test_set_hdr_identifier(const struct cmp_test_fixture *fix)
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_primary_compression_fallback_for_incompressible_data(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_primary_compression_fallback_for_incompressible_data(const struct t_fixture *fix)
 {
 	static const int32_t samples[] = { 0xAAA, 0xBBB, 0xCCC, 0xDDD };
 	struct arena *a = clear_test_arena();
@@ -680,8 +680,8 @@ void test_primary_compression_fallback_for_incompressible_data(const struct cmp_
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_secondary_compression_fallback_for_incompressible_data(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_secondary_compression_fallback_for_incompressible_data(const struct t_fixture *fix)
 {
 	static const int32_t primary_samples[] = { 0, 0, 0, 0 };
 	static const int32_t samples[] = { 0xAAA, 0xBBB, 0xCCC, 0xDDD };
@@ -731,8 +731,8 @@ void test_secondary_compression_fallback_for_incompressible_data(const struct cm
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_primary_compression_is_used_for_compressible_data(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_primary_compression_is_used_for_compressible_data(const struct t_fixture *fix)
 {
 	static const int32_t samples[] = { 0, 0, 0, 0 };
 	static const uint8_t expected_compressed[] = { 0xAA };
@@ -767,8 +767,8 @@ void test_primary_compression_is_used_for_compressible_data(const struct cmp_tes
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_secondary_compression_is_used_for_compressible_data(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_secondary_compression_is_used_for_compressible_data(const struct t_fixture *fix)
 {
 	static const int32_t primary_samples[] = { 0, 0, 0, 0 };
 	static const int32_t samples[] = { 0xAAA, 0xBBB, 0xCCC, 0xDDD };
@@ -819,8 +819,8 @@ void test_secondary_compression_is_used_for_compressible_data(const struct cmp_t
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32], [0xBE3FC74C])
-void test_write_checksum_into_header_when_enabled(const struct cmp_test_fixture *fix,
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32], [0xBE3FC74C])
+void test_write_checksum_into_header_when_enabled(const struct t_fixture *fix,
 						  uint32_t exp_checksum)
 {
 	const int32_t samples[] = { 0xCA, 0xFF, 0xEE, 0x123 };
@@ -852,14 +852,12 @@ void test_write_checksum_into_header_when_enabled(const struct cmp_test_fixture 
 }
 
 
-void test_checksum_is_same_for_same_inputs_of_every_compression_function(void)
+void test_checksum_is_same_for_same_inputs_of_16_bit_compression_function(void)
 {
 	struct arena *a = clear_test_arena();
 	struct {
-		const struct cmp_test_fixture *fix;
-	} test_cases[] = { { &cmp_fixture_i16 },
-			   { &cmp_fixture_u16 },
-			   { &cmp_fixture_i16_in_i32 } };
+		const struct t_fixture *fix;
+	} test_cases[] = { { &t_fix_i16 }, { &t_fix_u16 }, { &t_fix_i16_in_i32 } };
 	uint32_t checksum_i16;
 	uint32_t dst_size;
 	struct test_src src;
@@ -894,8 +892,8 @@ void test_checksum_is_same_for_same_inputs_of_every_compression_function(void)
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_checksum_is_different_for_different_inputs(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_checksum_is_different_for_different_inputs(const struct t_fixture *fix)
 {
 	const int32_t samples1[] = { 0xC0, 0xFF, 0xEE };
 	const int32_t samples2[] = { 0xC0, 0xFF, 0xEF };
@@ -925,8 +923,8 @@ void test_checksum_is_different_for_different_inputs(const struct cmp_test_fixtu
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_works_with_checksum_enabled(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_works_with_checksum_enabled(const struct t_fixture *fix)
 {
 	const int32_t samples[] = { 0, 0, 0, 0 };
 	const uint8_t expected_compressible[] = { 0xAA };
@@ -966,8 +964,8 @@ void test_compression_works_with_checksum_enabled(const struct cmp_test_fixture 
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_compression_fails_when_capacity_is_an_error(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_compression_fails_when_capacity_is_an_error(const struct t_fixture *fix)
 {
 	struct cmp_context ctx_uncompressed = create_uncompressed_context();
 	const int32_t samples[2] = { 0, 0 };
@@ -983,8 +981,8 @@ void test_compression_fails_when_capacity_is_an_error(const struct cmp_test_fixt
 }
 
 
-TEST_MATRIX([&cmp_fixture_u16, &cmp_fixture_i16, &cmp_fixture_i16_in_i32])
-void test_detect_uninitialise_context_in_compression(const struct cmp_test_fixture *fix)
+TEST_MATRIX([&t_fix_u16, &t_fix_i16, &t_fix_i16_in_i32])
+void test_detect_uninitialise_context_in_compression(const struct t_fixture *fix)
 {
 	const int32_t samples[2] = { 0, 0 };
 	struct arena *a = clear_test_arena();
