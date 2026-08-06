@@ -296,7 +296,7 @@ uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capac
 
 
 /**
- * @brief Compresses two 12-bit samples packed into three bytes
+ * @brief Compresses 12-bit samples packed as two samples per three bytes
  *
  * Same as cmp_compress_i16(), but for RAW12 input.
  * Two samples are packed into three bytes. For example:

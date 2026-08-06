@@ -1,7 +1,93 @@
 [![AIRSPACE Logo](docs/AIRSPACE_Logo.svg)](https://github.com/uviespace/airs-compression)
 
 
-## [0.7.0](https://github.com/uviespace/airs-compression/compare/v0.6.0..v0.7.0) - 2026-02-18
+## [0.8.0](https://github.com/uviespace/airs-compression/compare/v0.7.2..v0.8.0) - 2026-08-10
+
+### 🚀 Features
+
+- *(cli)* Use mmap-backed arena - ([541b1ee](https://github.com/uviespace/airs-compression/commit/541b1eec3e7b5f0249db7fc9a4431832f0e68a02))
+- *(cli)* Add file operation flags - ([e6d39a0](https://github.com/uviespace/airs-compression/commit/e6d39a0d4510f45b442526a01f9d683e14a03b96))
+- *(cli)* Add directory creation function - ([195e4bd](https://github.com/uviespace/airs-compression/commit/195e4bd87e1c2e57ccadf76c43fd45ec9f1448e3))
+- *(cli)* Add file and directory removal function - ([e22e6aa](https://github.com/uviespace/airs-compression/commit/e22e6aa32f9b2143a127086a5502e44176699b65))
+- *(cli)* Add empty directory detection - ([34c00a0](https://github.com/uviespace/airs-compression/commit/34c00a0de11ca64f7339be1b27f89b6a88c97bce))
+- *(cli)* Add --identifier flag to set sequence identifier - ([7dc85bc](https://github.com/uviespace/airs-compression/commit/7dc85bc88cba0055c74949475e0ebda34ad78e53))
+- *(cmp)* Add RAW12 compression support - ([e9a5c6e](https://github.com/uviespace/airs-compression/commit/e9a5c6e71a436d3fbd5103b4bc5bfa37db7e77cf))
+- *(str\_slice)* Add ends\_with and strip\_suffix functions to string slice library - ([9a3f2f6](https://github.com/uviespace/airs-compression/commit/9a3f2f658fdda92cea95660b0c99deffe6cdf076))
+- Add .clang-tidy configuration file for static analysis - ([926fdcc](https://github.com/uviespace/airs-compression/commit/926fdcc32e303f4ef585bd9acc281fb2347c29f6))
+
+### 🐛 Bug Fixes
+
+- *(cli)* Increase arena size - ([3df1e21](https://github.com/uviespace/airs-compression/commit/3df1e21fa2ff0520c35bf927316a8829c244aabc))
+- *(cli)* Use %llu instead of %zu for ANSI C compatibility - ([519ac3d](https://github.com/uviespace/airs-compression/commit/519ac3dd1516149cae1739c9a775354aa51698e3))
+- *(cmp)* Prevent skipping of explicitly set starting identifiers - ([b5d929c](https://github.com/uviespace/airs-compression/commit/b5d929c4cba07321ab9472f2b2517de0fe2ada44))
+- *(cmp)* [**breaking**] Check sample count and type between passes - ([3bb3922](https://github.com/uviespace/airs-compression/commit/3bb39225b99250f085effcf610618443fb436014))
+- Add pkg-config program for BCC2 toolchain - ([341545a](https://github.com/uviespace/airs-compression/commit/341545a1453f5d6ad163eb5b0b8041cb7ee34e1d))
+- Add version check to reject unsupported compression header versions - ([e9c8014](https://github.com/uviespace/airs-compression/commit/e9c8014d072ab6d2a3c839d0b2c71f6327eee1ad))
+- Use explicit casts for 16-bit truncation in IWT coefficients - ([e475ca2](https://github.com/uviespace/airs-compression/commit/e475ca2ce2409d4136dcc7a2c9e2f4ae35562a0f))
+- Add FALLTHROUGH macro and enable -Wimplicit-fallthrough compiler warning - ([d3d25d8](https://github.com/uviespace/airs-compression/commit/d3d25d88fcbb4f04f5d594e2fff04df50bcfa32c))
+
+### ✨ Refactor
+
+- *(arena)* Add arena\_init() and use at call sites - ([24e94aa](https://github.com/uviespace/airs-compression/commit/24e94aa7fa4b38f404ff10195b4aa26400c12d31))
+- *(arena)* Seal arena API from internals - ([c857327](https://github.com/uviespace/airs-compression/commit/c8573273a7b0c4e6ba1ed15c404c52c5a0b2bcd7))
+- *(cli)* Migrate to arena allocation and string slices - ([834e804](https://github.com/uviespace/airs-compression/commit/834e8044ee7b841412613a919758bc993ba56ea5))
+- *(cli)* Minor clean up - ([a054c4b](https://github.com/uviespace/airs-compression/commit/a054c4b6b3dd908b0fc6eb22c3ed8357880546b3))
+- *(cli)* Introduce platform abstraction layer and arena-based file I/O - ([48812fd](https://github.com/uviespace/airs-compression/commit/48812fdfc98ca8cdd336b6ab921bb1ecf8c17e0c))
+- *(cmp.h)* Relocate CMP\_DST\_ALIGNMENT to cmp.h - ([6322035](https://github.com/uviespace/airs-compression/commit/6322035b6f2b6d88240adca7e2fe7111fa5e826f))
+- *(compress)* [**breaking**] Make source types explicit in sizing APIs - ([5d08094](https://github.com/uviespace/airs-compression/commit/5d080942561c3e419b3eb79361c1fbb452933a17))
+- *(str\_slice)* Consolidate arena-based string operations in str\_slice.h - ([5b1ad22](https://github.com/uviespace/airs-compression/commit/5b1ad22c0cac0e2784e4734654e7e69a130f34a5))
+- *(str\_slice)* Make string slice library header-only - ([a92682e](https://github.com/uviespace/airs-compression/commit/a92682ea50764c757c59865753163b7fe17559dd))
+- *(test)* Share test arena setup and make arena OOM handling configurable - ([2541e44](https://github.com/uviespace/airs-compression/commit/2541e44035af0c195003eedafad814ae9a700912))
+- *(test)* Use shared clear\_test\_arena from test\_common.h - ([1087ace](https://github.com/uviespace/airs-compression/commit/1087ace53f38ba58179fe0f3626eed891e4963f1))
+- *(tests)* Move bitstream writer tests to dedicated file - ([1524a29](https://github.com/uviespace/airs-compression/commit/1524a29be75e39224beef0513d24f9f07768057c))
+- Move ilog2 and floor division helpers to bithacks.h - ([7d9cc93](https://github.com/uviespace/airs-compression/commit/7d9cc93c5eca8bfbaa2f2c7c38a9a3a2fad5503b))
+- Extract shared model preprocessing update calculation to common header - ([d0c905e](https://github.com/uviespace/airs-compression/commit/d0c905ea107269f3198e40c8165f852d11a2e9b7))
+
+### 📚 Documentation
+
+- Fix IWT coefficient terminology - ([cea7264](https://github.com/uviespace/airs-compression/commit/cea726417b81bb8e51a8069251c606eb387e0077))
+
+### ⚡ Performance
+
+- *(bitstream\_writer)* Speed up uncompressed mode for u16/i16 data - ([43f724b](https://github.com/uviespace/airs-compression/commit/43f724b41fbcb809cd8b81a2fe02ba3423b0fc32))
+- *(bitstream\_writer)* Speed up uncompressed mode i16\_in\_i32 data - ([de2043e](https://github.com/uviespace/airs-compression/commit/de2043e466cefd92086cb59dee39055a52427100))
+
+### 🎨 Styling
+
+- Normalize doxygen comment formatting across codebase - ([9fbf850](https://github.com/uviespace/airs-compression/commit/9fbf850859075aac03784bf3730e0da8e75fbc07))
+
+### 🧪 Testing
+
+- *(bench)* Add compression speed benchmark program - ([a371600](https://github.com/uviespace/airs-compression/commit/a371600400a8c705f45f468c7c6108ee00356fe7))
+- Add compression fuzzer - ([a208823](https://github.com/uviespace/airs-compression/commit/a20882343d2103538d6a927e30efdee1f7fc6b89))
+- Parametrize cmp\_tests.c - ([a4949f8](https://github.com/uviespace/airs-compression/commit/a4949f840fc6e5c2ed5095edeae1071ddb52b085))
+- Parametrize encoder and preprocessing tests - ([d1a378d](https://github.com/uviespace/airs-compression/commit/d1a378d94e93c792457e8063c4383d5c8820ee24))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(meson)* Make CLI optional on baremetal targets - ([2f2eaa4](https://github.com/uviespace/airs-compression/commit/2f2eaa4c987e30fb352866bf4b2c9e55acd22071))
+- Convert examples to proper meson subproject - ([546a305](https://github.com/uviespace/airs-compression/commit/546a3051ebfaa6e3e1ed6f75c621f138839e4de4))
+- Bump GitHub actions versions - ([c23b6ed](https://github.com/uviespace/airs-compression/commit/c23b6ed703777c131982d07acd7c9d731ab0f4b8))
+- Add integration tests for installed library via pkg-config - ([03dc881](https://github.com/uviespace/airs-compression/commit/03dc881cbcdcf81c8af0d0e814b7ef909087e908))
+- Vendor xxhash and remove subproject dependency - ([b4e6140](https://github.com/uviespace/airs-compression/commit/b4e6140b944d89390f344360c28db903feb06287))
+
+## [0.7.2](https://github.com/uviespace/airs-compression/compare/v0.7.1..v0.7.2) - 2026-02-23
+
+### 🐛 Bug Fixes
+
+- *(cmp\_header)* Move compile\_time\_assert to private header - ([ede2355](https://github.com/uviespace/airs-compression/commit/ede2355a94841c6f1ce18ae1dcac52efea13a2d8))
+
+## [0.7.1](https://github.com/uviespace/airs-compression/compare/v0.7.0..v0.7.1) - 2026-02-19
+
+### ✨ Refactor
+
+- Rename sample\_desc.type to dtype - ([c0d7500](https://github.com/uviespace/airs-compression/commit/c0d7500615a8744e73798fc04b0bbd3173556610))
+
+### ⚡ Performance
+
+- *(cmp)* Add fast path for uncompressed data writing - ([e5e6e06](https://github.com/uviespace/airs-compression/commit/e5e6e063726826d342f661f9e85c3d2d4c5e69d4))
+
+## [0.7.0](https://github.com/uviespace/airs-compression/compare/v0.6.0..v0.7.0) - 2026-02-19
 
 ### 🚀 Features
 
