@@ -1,9 +1,14 @@
+# Currently there is no OS layer implementation for baremetal"
+has_os_layer = host_machine.system() != 'baremetal'
+
 cli_src = files([
-  'os.c',
   'params_parse.c',
   'log.c',
   'file.c',
 ])
+if has_os_layer
+  cli_src += files('os.c')
+endif
 
 cli_c_args = ['-D_POSIX_C_SOURCE=200809L']
 if host_machine.system() == 'darwin'
@@ -17,17 +22,21 @@ cli_lib = static_library('airspace_cli',
   # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
   # see feature_test_macros(7)
   c_args: cli_c_args,
-  install: false)
+  install: false
+)
 
-airspacecli = executable('airspace',
-  'airspacecli.c',
-  include_directories : inc_cmp,
-  implicit_include_directories: false,
-  link_with : [cli_lib, cmp_lib],
-  # glibc hides prototypes (e.g., snprintf(3)) from <stdio.h> under strict C89,
-  # see feature_test_macros(7)
-  c_args : cli_c_args,
-  install: true)
+airspacecli = disabler()
+if has_os_layer
+  airspacecli = executable(
+    'airspace',
+    'airspacecli.c',
+    include_directories: inc_cmp,
+    implicit_include_directories: false,
+    link_with: [cli_lib, cmp_lib],
+    c_args: cli_c_args,
+    install: true,
+  )
+endif
 
 if asciidoctor.found()
   custom_target(

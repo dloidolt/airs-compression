@@ -85,8 +85,10 @@ if ruby.found()
     'test_cmp_errors.c',
     'test_preprocessing.c',
     'test_encoder.c',
-    'test_params_parse.c',
     'test_buildsetup.c'])
+  if has_os_layer
+    unit_test_src += files('test_params_parse.c')
+  endif
 
   foreach test_file : unit_test_src
     test_name = fs.name(test_file).split('.')[0]
@@ -109,22 +111,23 @@ else
 endif
 
 
-cli_tests = files([
-  'cli_basic_test.py',
-  'cli_compression_test.py'
-  ])
+if airspacecli.found()
+  cli_tests = files([
+    'cli_basic_test.py',
+    'cli_compression_test.py'
+    ])
 
-foreach test : cli_tests
-  test_name = fs.name(test).split('.')[0]
+  foreach test : cli_tests
+    test_name = fs.name(test).split('.')[0]
 
-  # test('CLI Basic Test',
-  test(test_name,
-    find_program(test),
-    args : ['--cli', airspacecli.full_path(),
-            '--test-root',  meson.current_build_dir()],
-    depends : airspacecli,
-    env : test_env)
-endforeach
-
+    # test('CLI Basic Test',
+    test(test_name,
+      find_program(test),
+      args : ['--cli', airspacecli.full_path(),
+              '--test-root',  meson.current_build_dir()],
+      depends : airspacecli,
+      env : test_env)
+  endforeach
+endif
 
 subdir('fuzz')
