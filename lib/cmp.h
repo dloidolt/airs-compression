@@ -37,14 +37,14 @@
 
 /* ====== Version Information ====== */
 #define CMP_VERSION_MAJOR   0 /**< major part of the version ID */
-#define CMP_VERSION_MINOR   7 /**< minor part of the version ID */
-#define CMP_VERSION_RELEASE 2 /**< release part of the version ID */
+#define CMP_VERSION_MINOR   8 /**< minor part of the version ID */
+#define CMP_VERSION_RELEASE 0 /**< release part of the version ID */
 
 /**
  * @brief Complete version number
  */
 #define CMP_VERSION_NUMBER \
-	(CMP_VERSION_MAJOR * 100 * 100 + CMP_VERSION_MINOR * 100 + CMP_VERSION_RELEASE)
+	((CMP_VERSION_MAJOR * 100 * 100) + (CMP_VERSION_MINOR * 100) + CMP_VERSION_RELEASE)
 
 /**
  * @brief Complete version string
@@ -117,24 +117,19 @@ struct cmp_params {
 
 
 /**
- * @brief Compression context
- *
- * This structure maintains the state of an ongoing compression process.
- *
- * @warning This structure MUST NOT be directly manipulated by external code.
- *	Always use the provided API functions to interact with the compression
- *	context.
+ * @brief Data type of the original uncompressed data
  */
 
-struct cmp_context {
-	uint32_t magic;           /**< Magic number to prevent use of uninitialised contexts */
-	struct cmp_params params; /**< Compression parameters used in the current context */
-	void *work_buf;           /**< Pointer to the working buffer */
-	uint32_t work_buf_size;   /**< Size of the working buffer in bytes */
-	uint32_t model_size;      /**< Size of the model used in the model-based preprocessing */
-	uint32_t identifier;      /**< Identifier for the compression model */
-	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
+enum cmp_type {
+	CMP_I16,        /**< Signed 16-bit integers */
+	CMP_I16_IN_I32, /**< Signed 16-bit integers packed in 32-bit words */
+	CMP_U16,        /**< Unsigned 16-bit integers */
+	CMP_RAW12       /**< Two 12-bit samples packed into three bytes */
 };
+
+
+/* forward declaration */
+struct cmp_context;
 
 
 /* ====== Compression Helper Functions ====== */
@@ -156,15 +151,15 @@ unsigned int cmp_is_error(uint32_t code);
  * primarily useful for memory allocation purposes (destination buffer size).
  * Assumes a worst case configuration.
  *
- * @param packed_size	packed size of the data in bytes (same as src_size,
- *			except for cmp_compress_i16_in_i32() where it's half)
+ * @param src_size	size of a source data buffer in bytes
+ * @param src_type	data type of the source data
  *
  * @returns the compressed size in the worst-case scenario or an error if the
  *	bound size is larger than the maximum compressed size
  *	(CMP_HDR_MAX_COMPRESSED_SIZE), which can be checked using cmp_is_error()
  */
 
-uint32_t cmp_compress_bound(uint32_t packed_size);
+uint32_t cmp_compress_bound(uint32_t src_size, enum cmp_type src_type);
 
 
 /**
@@ -175,7 +170,8 @@ uint32_t cmp_compress_bound(uint32_t packed_size);
  *
  * It helps prevent compression failures due to insufficient destination buffer
  * space in the following scenarios:
- * - When explicitly using uncompressed mode (CMP_ENCODER_UNCOMPRESSED)
+ * - When explicitly using uncompressed mode (CMP_PREPROCESS_NONE together with
+ *   CMP_ENCODER_UNCOMPRESSED)
  * - When uncompressed_fallback_enabled is set
  *
  * In all other compression scenarios, use cmp_compress_bound(), which provides
@@ -204,13 +200,15 @@ uint32_t cmp_compress_bound(uint32_t packed_size);
  * @param params	pointer to a compression parameters struct used to
  *			compress the data
  * @param src_size	size of a source data buffer in bytes
+ * @param src_type	data type of the source data
  *
  * @returns the minimum size in bytes needed for a compression working buffer
  *	(can be 0 if no working buffer is needed) or an error, which can be
  *	checked using cmp_is_error()
  */
 
-uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size);
+uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_size,
+			       enum cmp_type src_type);
 
 
 /* ======   Compression Functions   ====== */
@@ -228,7 +226,8 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
  * @param work_buf	pointer to a working buffer (can be NULL if
  *			work_buf_size is 0)
  * @param work_buf_size	size of the working buffer in bytes; needed size can be
- *			calculated with cmp_cal_work_buf_size(params, src_size)
+ *			calculated with cmp_cal_work_buf_size(params, src_size,
+ *			src_type)
  *
  * @warning The caller is responsible for managing the memory of the working
  *	buffer. It must remain valid for the entire lifetime of the context, as
@@ -240,6 +239,11 @@ uint32_t cmp_cal_work_buf_size(const struct cmp_params *params, uint32_t src_siz
 uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params, void *work_buf,
 			uint32_t work_buf_size);
 
+
+/** Required alignment for the compression destination buffers */
+#define CMP_DST_ALIGNMENT sizeof(uint64_t)
+
+
 /**
  * @brief Compresses a signed 16-bit data buffer
  *
@@ -248,13 +252,15 @@ uint32_t cmp_initialise(struct cmp_context *ctx, const struct cmp_params *params
  * @param ctx		pointer to a compression context; must have been
  *			initialised once with cmp_initialise()
  * @param dst		the buffer to compress the src buffer into, MUST be
- *			8-byte aligned
+ *			CMP_DST_ALIGNMENT-byte aligned
  * @param dst_capacity	size of the dst buffer; may be any size, but
- *			cmp_compress_bound(src_size) is guaranteed to be large
- *			enough
+ *			cmp_compress_bound(src_size, CMP_I16) is guaranteed to
+ *			be large enough
  * @param src		pointer to the data to compress
  * @param src_size	size of the data to compress, must be the same for every
  *			source buffer until the context is reset
+ *
+ * @note Performance: aligning src to 8 bytes may result in faster compression.
  *
  * @returns the compressed size or an error, which can be checked using
  *	cmp_is_error()
@@ -287,6 +293,20 @@ uint32_t cmp_compress_i16_in_i32(struct cmp_context *ctx, void *dst, uint32_t ds
 
 uint32_t cmp_compress_u16(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
 			  const uint16_t *src, uint32_t src_size);
+
+
+/**
+ * @brief Compresses 12-bit samples packed as two samples per three bytes
+ *
+ * Same as cmp_compress_i16(), but for RAW12 input.
+ * Two samples are packed into three bytes. For example:
+ *     0x012 and 0xABC -> 0x12 0xC0 0xAB
+ *
+ * An odd final sample uses two bytes. The second byte's upper nibble is ignored.
+ */
+
+uint32_t cmp_compress_raw12(struct cmp_context *ctx, void *dst, uint32_t dst_capacity,
+			    const uint8_t *src, uint32_t src_size);
 
 
 /**
@@ -325,17 +345,6 @@ void cmp_deinitialise(struct cmp_context *ctx);
 
 /* ======  Compression Header Functions   ====== */
 /**
- * @brief Data type of the original uncompressed data
- */
-
-enum cmp_type {
-	CMP_I16,        /**< Signed 16-bit integers */
-	CMP_I16_IN_I32, /**< Signed 16-bit integers packed in 32-bit words */
-	CMP_U16         /**< Unsigned 16-bit integers */
-};
-
-
-/**
  * @brief Compression header fields
  *
  * @note This is not the on-disk format - use cmp_hdr_serialize() and
@@ -361,9 +370,9 @@ struct cmp_hdr {
 /**
  * @brief Deserialize compression header
  *
- * @param buf		buffer containing the serialized header (may be a
+ * @param src		buffer containing the serialized header (may be a
  *			compressed data buffer)
- * @param buf_size	size of buffer
+ * @param src_size	size of buffer
  * @param hdr		pointer to header structure to fill
  *
  * @note Only the version field is valid for headers with version 0.6 and earlier.
@@ -372,7 +381,7 @@ struct cmp_hdr {
  *	cmp_is_error()
  */
 
-uint32_t cmp_hdr_deserialize(const void *buf, uint32_t buf_size, struct cmp_hdr *hdr);
+uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr *hdr);
 
 
 /**
@@ -402,11 +411,35 @@ uint32_t cmp_hdr_checksum(uint32_t *checksum, const void *src, uint32_t src_size
  * Default start value is 0. When a program restarts, the identifier counter
  * starts at 0 again, so identifiers can repeat across independent program
  * executions. Use this function to choose a non-zero start value when you
- * need to avoid collisions across independent executions.
+ * need to avoid collisions across independent executions. This must be called
+ * before cmp_initialise() or cmp_reset() for the new value to be picked up.
  *
  * @param identifier	value to set the identifier counter
  */
 
 void cmp_hdr_set_identifier(uint32_t identifier);
+
+
+/* ======  Private Part ====== */
+/**
+ * @brief Compression context
+ *
+ * This structure maintains the state between compression passes.
+ *
+ * @warning This structure MUST NOT be directly manipulated by external code.
+ *	Always use the provided API functions to interact with the compression
+ *	context.
+ */
+
+struct cmp_context {
+	uint32_t magic;             /**< Magic number to prevent use of uninitialised contexts */
+	struct cmp_params params;   /**< Compression parameters used in the current context */
+	void *work_buf;             /**< Pointer to the working buffer */
+	uint32_t work_buf_size;     /**< Size of the working buffer in bytes */
+	uint32_t identifier;        /**< Identifier for the compression sequence */
+	uint32_t state_num_samples; /**< Number of samples tracked by the state */
+	enum cmp_type state_dtype;  /**< Data type used by state */
+	uint8_t sequence_number; /**< Number of compression passes performed since the last reset */
+};
 
 #endif /* CMP_H */

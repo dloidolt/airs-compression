@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief build environment tests
+ * @brief Build environment tests
  */
 
 #include <stdio.h>

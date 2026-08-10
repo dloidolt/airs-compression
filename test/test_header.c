@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief data compression header tests
+ * @brief Data compression header tests
  */
 
 #include <stdint.h>
@@ -91,7 +91,7 @@ void test_deserialize_compression_header(void)
 	uint32_t hdr_size;
 	int i;
 
-	expected_hdr.version = 0x0001;
+	expected_hdr.version = CMP_VERSION_NUMBER;
 	expected_hdr.compressed_size = 0x020304;
 	expected_hdr.original_size = 0x050607;
 	expected_hdr.checksum = 0x08090A0B;
@@ -103,7 +103,9 @@ void test_deserialize_compression_header(void)
 	expected_hdr.encoder_param = 0x1213;
 	expected_hdr.encoder_outlier = 0x141516;
 	expected_hdr.preprocess_param = 0x17;
-	for (i = 0; i < CMP_HDR_SIZE; i++)
+	buf[0] = (CMP_VERSION_NUMBER >> 8) & 0xFF;
+	buf[1] = CMP_VERSION_NUMBER & 0xFF;
+	for (i = CMP_HDR_BITS_VERSION / 8; i < CMP_HDR_SIZE; i++)
 		buf[i] = (uint8_t)i;
 
 	hdr_size = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
@@ -202,7 +204,8 @@ void test_hdr_serialize_detects_when_a_field_is_too_big(void)
 	TEST_HDR_FIELD_TOO_BIG(encoder_outlier, CMP_HDR_BITS_ENCODER_OUTLIER,
 			       CMP_ERR_INT_BITSTREAM);
 	TEST_HDR_FIELD_TOO_BIG(original_dtype, CMP_HDR_BITS_ORIGINAL_DTYPE, CMP_ERR_INT_BITSTREAM);
-	TEST_HDR_FIELD_TOO_BIG(preprocess_param, CMP_HDR_BITS_PREPROCESS_PARAM, CMP_ERR_INT_BITSTREAM);
+	TEST_HDR_FIELD_TOO_BIG(preprocess_param, CMP_HDR_BITS_PREPROCESS_PARAM,
+			       CMP_ERR_INT_BITSTREAM);
 #undef TEST_HDR_FIELD_TOO_BIG
 }
 
@@ -221,7 +224,18 @@ void test_detect_null_hdr_during_serialize(void)
 }
 
 
-void test_detect_null_hdr_during_deserialize(void)
+void test_deserialize_detects_null_src(void)
+{
+	struct cmp_hdr hdr;
+	uint32_t ret;
+
+	ret = cmp_hdr_deserialize(NULL, CMP_HDR_SIZE, &hdr);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_NULL, ret);
+}
+
+
+void test_deserialize_detects_null_hdr(void)
 {
 	DST_ALIGNED_U8 buf[CMP_HDR_SIZE] = { 0 };
 	uint32_t ret;
@@ -230,5 +244,65 @@ void test_detect_null_hdr_during_deserialize(void)
 
 	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_INT_HDR, ret);
 }
+
+
+void test_deserialize_detects_src_size_too_small_for_version_check(void)
+{
+	DST_ALIGNED_U8 buf[1] = { 0 };
+	struct cmp_hdr hdr;
+	uint32_t ret;
+
+	ret = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, ret);
+}
+
+
+void test_deserialize_detects_src_size_too_small_for_full_header(void)
+{
+	DST_ALIGNED_U8 buf[5] = { 0 };
+	struct cmp_hdr hdr;
+	uint32_t ret;
+
+	buf[0] = (CMP_VERSION_NUMBER >> 8) & 0xFF;
+	buf[1] = CMP_VERSION_NUMBER & 0xFF;
+
+	ret = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_SRC_SIZE_WRONG, ret);
+}
+
+
+void test_deserialize_detects_unsupported_header_version(void)
+{
+	DST_ALIGNED_U8 buf[CMP_HDR_SIZE] = { 0 };
+	struct cmp_hdr hdr;
+	uint32_t ret;
+
+	buf[0] = 0x00;
+	buf[1] = 0x01;
+
+	ret = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_UNSUPPORTED, ret);
+	TEST_ASSERT_EQUAL_HEX(0x0001, hdr.version);
+}
+
+
+void test_deserialize_detects_unsupported_version_even_when_buffer_too_small_for_full_header(void)
+{
+	DST_ALIGNED_U8 buf[2] = { 0 };
+	struct cmp_hdr hdr;
+	uint32_t ret;
+
+	buf[0] = 0x00;
+	buf[1] = 0x01;
+
+	ret = cmp_hdr_deserialize(buf, sizeof(buf), &hdr);
+
+	TEST_ASSERT_EQUAL_CMP_ERROR(CMP_ERR_HDR_UNSUPPORTED, ret);
+	TEST_ASSERT_EQUAL_HEX(0x0001, hdr.version);
+}
+
 
 #undef MAX_VALUE

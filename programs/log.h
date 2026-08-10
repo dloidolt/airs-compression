@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief Logging functions for various log levels with color support.
+ * @brief Logging functions for various log levels with color support
  *
  * A flexible logging interface with configurable verbosity levels and optional
  * color support for terminal output. It is designed to be lightweight and easy
@@ -13,7 +13,7 @@
  * Color support can be enabled or disabled at runtime. When enabled, different
  * log levels will be displayed with distinct colors to improve readability.
  *
- * @warning this is not thread safe
+ * @warning This is not thread safe.
  */
 
 #ifndef LOG_H
@@ -89,7 +89,7 @@ __extension__
 #define LOG_TRACE(...)   LOG_MSG(LOG_LEVEL_MAX, "trace", LOG_COLOR_TRACE, __VA_ARGS__)
 
 /**
- * @brief logs an error message with errno information
+ * @brief Logs an error message with errno information
  * @param ... format string and arguments for the message
  */
 #define LOG_ERROR_WITH_ERRNO(...)                                                            \
@@ -99,7 +99,7 @@ __extension__
 	} while (0)
 
 /**
- * @brief logs an error with CMP library error information
+ * @brief Logs an error with CMP library error information
  * @param cmp_ret_val	return value from a (de)compression library function
  * @param ...		format string and arguments for the message
  */
@@ -111,8 +111,8 @@ __extension__
 	} while (0)
 
 
-/** @brief increases the verbosity level by one step */
-void log_increase_verbosity(void);
+	/** @brief increases the verbosity level by one step */
+	void log_increase_verbosity(void);
 
 /** @brief decreases the verbosity level by one step */
 void log_decrease_verbosity(void);
@@ -125,14 +125,14 @@ void log_decrease_verbosity(void);
 void log_set_level(enum log_level level);
 
 /**
- * @brief get the current log verbosity level
+ * @brief Get the current log verbosity level
  *
  * @returns the current log level
  */
 enum log_level log_get_level(void);
 
 /**
- * @brief configure color output based on environment
+ * @brief Configure color output based on environment
  *
  * Detects terminal capabilities and environment variables to determine whether
  * to enable colored output.
@@ -140,9 +140,9 @@ enum log_level log_get_level(void);
 void log_setup_color(void);
 
 /**
- * @brief enable or disable colored log output
+ * @brief Enable or disable colored log output
  *
- * @param status LOG_COLOR_ENABLED or LOG_COLOR_DISABLED
+ * @param status	LOG_COLOR_ENABLED or LOG_COLOR_DISABLED
  */
 void log_set_color(enum log_color_status status);
 
@@ -152,5 +152,36 @@ void log_set_color(enum log_color_status status);
  * @return enum log_color_status The current color status
  */
 enum log_color_status log_get_color(void);
+
+
+/**
+ * @brief Represents a human-readable formatted value
+ */
+struct hr_fmt {
+	double value;       /**< Numeric value */
+	int precision;      /**< Precision for displaying the value */
+	const char *suffix; /**< Unit suffix (e.g., "KB", "MB") */
+};
+
+/**
+ * @brief Converts a size in bytes into a human-readable format
+ *
+ * This function takes a size in bytes and prepares components for
+ * pretty-printing it in a scaled way. The returned components are meant to be
+ * passed in precision, value, and suffix order to a "%.*f%s" format string.
+ * Example:
+ *   struct hr_fmt hrs = log_make_human_readable(1<<10, 0);
+ *   printf("%.*f%s\n", hrs.precision, hrs.value, hrs.suffix);
+ *   >>> 1.000 KiB
+ *
+ * @param size		size in bytes to be converted
+ * @param verbose	if non-zero, the function outputs a detailed verbose
+ *			format without scaling down the size, except for very
+ *			large values
+ *
+ * @returns a struct containing the scaled value, precision, and the suffix
+ *	string for the size.
+ */
+struct hr_fmt log_make_human_readable(uint64_t size, int verbose);
 
 #endif /* LOG_H */

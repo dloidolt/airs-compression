@@ -13,7 +13,6 @@
  *	external code.
  */
 
-
 #ifndef CMP_ERR_PRIVATE_H
 #define CMP_ERR_PRIVATE_H
 
@@ -32,7 +31,7 @@
 
 
 /**
- * @brief tells if a internal result is an error code
+ * @brief Tells if a internal result is an error code
  *
  * Intended for internal use only.
  *

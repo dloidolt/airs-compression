@@ -40,7 +40,8 @@
 #define CMP_HDR_OFFSET_CHECKSUM         8
 #define CMP_HDR_OFFSET_IDENTIFIER       12
 #define CMP_HDR_OFFSET_SEQUENCE_NUMBER  16
-#define CMP_HDR_OFFSET_PED_FIELDS       17 /* combined: preprocessing, encoder type, original dtype  */
+/* PED: preprocessing, encoder type, original dtype  */
+#define CMP_HDR_OFFSET_PED_FIELDS       17
 #define CMP_HDR_OFFSET_ENCODER_PARAM    18
 #define CMP_HDR_OFFSET_OUTLIER_PARAM    20
 #define CMP_HDR_OFFSET_PREPROCESS_PARAM 23
@@ -61,5 +62,14 @@
 	  CMP_HDR_BITS_ENCODER_OUTLIER + CMP_HDR_BITS_ORIGINAL_DTYPE +                          \
 	  CMP_HDR_BITS_PREPROCESS_PARAM) /                                                      \
 	 8)
+
+
+/* Minimum supported header version  */
+#define CMP_MIN_SUPPORTED_VERSION_MAJOR   0
+#define CMP_MIN_SUPPORTED_VERSION_MINOR   7
+#define CMP_MIN_SUPPORTED_VERSION_RELEASE 0
+#define CMP_MIN_SUPPORTED_VERSION                                                              \
+	((CMP_MIN_SUPPORTED_VERSION_MAJOR * 10000) + (CMP_MIN_SUPPORTED_VERSION_MINOR * 100) + \
+	 CMP_MIN_SUPPORTED_VERSION_RELEASE)
 
 #endif /* CMP_HEADER_H */

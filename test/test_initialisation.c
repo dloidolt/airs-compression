@@ -72,7 +72,7 @@ void test_detect_null_parameters_initialisation(void)
 
 
 #define INVALID_PREPROCESSING ((enum cmp_preprocessing)0xFFFF)
-void test_detect_invalid_primary_preprocessing_initialization(void)
+void test_detect_invalid_primary_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
@@ -86,7 +86,7 @@ void test_detect_invalid_primary_preprocessing_initialization(void)
 }
 
 
-void test_detect_invalid_primary_model_preprocessing_initialization(void)
+void test_detect_invalid_primary_model_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
@@ -100,7 +100,7 @@ void test_detect_invalid_primary_model_preprocessing_initialization(void)
 }
 
 
-void test_detect_invalid_secondary_preprocessing_initialization(void)
+void test_detect_invalid_secondary_preprocessing_initialisation(void)
 {
 	struct cmp_params par = { 0 };
 	struct cmp_context ctx;
@@ -376,6 +376,22 @@ void test_ignore_invalid_model_rate_when_not_used(void)
 }
 
 
+void test_ignore_invalid_model_rate_when_secondary_pass_is_disabled(void)
+{
+	struct cmp_context ctx;
+	struct cmp_params params = { 0 };
+	uint32_t return_value;
+
+	params.model_rate = UINT32_MAX;
+	params.secondary_preprocessing = CMP_PREPROCESS_MODEL;
+	params.secondary_iterations = 0;
+
+	return_value = cmp_initialise(&ctx, &params, NULL, 0);
+
+	TEST_ASSERT_CMP_SUCCESS(return_value);
+}
+
+
 /*
  * Work Buffer Initialisation Tests
  */
@@ -483,7 +499,7 @@ void test_init_fails_if_workbufer_size_is_a_propagated_error(void)
 	params_invalid.primary_preprocessing = INVALID_PREPROCESSING;
 	params_valid.primary_preprocessing = CMP_PREPROCESS_IWT;
 
-	buf_size_error_code = cmp_cal_work_buf_size(&params_invalid, 41);
+	buf_size_error_code = cmp_cal_work_buf_size(&params_invalid, 41, CMP_I16);
 	return_value = cmp_initialise(&ctx, &params_valid, work_buf_dummy, buf_size_error_code);
 
 	TEST_ASSERT_CMP_FAILURE(buf_size_error_code);

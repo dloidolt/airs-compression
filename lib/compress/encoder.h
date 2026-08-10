@@ -13,21 +13,26 @@
 #include <stdint.h>
 #include "../cmp.h"
 #include "../common/bitstream_writer.h"
+#include "../common/compiler.h"
 
-#define CMP_MIN_GOLOMB_PAR 1
-#define CMP_MAX_GOLOMB_PAR UINT16_MAX
+#define CMP_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-#define CMP_MAX_BITS_GOLOMB_CW 32
+enum {
+	CMP_MIN_GOLOMB_PAR = 1,
+	CMP_MAX_GOLOMB_PAR = UINT16_MAX,
 
-/* The current plan is to only encode uint16_t values */
-#define CMP_NUM_BITS_PER_SAMPLE bitsizeof(uint16_t)
+	CMP_MAX_BITS_GOLOMB_CW = 32,
 
-/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
-#define CMP_MAX_BITS_ZERO_ESCAPE_CW \
-	(31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE)
-#define CMP_MAX_BITS_MULTI_ESCAPE_CW (CMP_MAX_BITS_GOLOMB_CW + CMP_NUM_BITS_PER_SAMPLE)
+	/* The current plan is to only encode uint16_t values */
+	CMP_NUM_BITS_PER_SAMPLE = bitsizeof(uint16_t),
 
-#define CMP_MAX_BITS_CODEWORD MAX(CMP_MAX_BITS_ZERO_ESCAPE_CW, CMP_MAX_BITS_MULTI_ESCAPE_CW)
+	/* In the worst case, each sample is encoded as an escape (max codeword + raw sample bits) */
+	CMP_MAX_BITS_ZERO_ESCAPE_CW =
+		31 - __builtin_clz((uint32_t)CMP_MAX_GOLOMB_PAR) + 1 + CMP_NUM_BITS_PER_SAMPLE,
+	CMP_MAX_BITS_MULTI_ESCAPE_CW = CMP_MAX_BITS_GOLOMB_CW + CMP_NUM_BITS_PER_SAMPLE,
+
+	CMP_MAX_BITS_CODEWORD = CMP_MAX(CMP_MAX_BITS_ZERO_ESCAPE_CW, CMP_MAX_BITS_MULTI_ESCAPE_CW)
+};
 
 
 /**
@@ -44,33 +49,35 @@ struct cmp_encoder {
 	uint32_t g_par;      /**< Golomb parameter */
 	uint32_t g_par_log2; /**< Precomputed log2(Golomb parameter) for performance */
 	uint32_t outlier;    /**< Threshold value for encoding outliers */
+	uint32_t n_bits;     /**< Number of bits to encode */
 };
 
 
 /**
- * @brief Initialize a compression encoder
+ * @brief Initialise a compression encoder
  *
  * Sets up the encoder structure with the provided compression parameters and
  * bitstream writer.
  *
- * @param enc		Pointer to the encoder structure to initialize
- * @param encoder_type	Type of encoder to use
- * @param encoder_param	Parameter specific to the chosen encoder_type
- * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param enc		pointer to the encoder structure to initialise
+ * @param encoder_type	type of encoder to use
+ * @param encoder_param	parameter specific to the chosen encoder_type
+ * @param outlier	outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param n_bits	number of bits to encode
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
 
 uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder_type,
-			  uint32_t encoder_param, uint32_t outlier);
+			  uint32_t encoder_param, uint32_t outlier, uint32_t n_bits);
 
 
 /**
- * @brief Encode a 16-bit signed sample
+ * @brief Encode a signed sample
  *
- * @param enc		Pointer to a successful initialised encoder structure
+ * @param enc		pointer to a successful initialised encoder structure
  * @param value		16-bit signed sample to encode
- * @param bs		Pointer to a bitstream writer; must be initialised and
+ * @param bs		pointer to a bitstream writer; must be initialised and
  *			provided by the caller
  *
  * @note The caller is responsible for flushing the bitstream when encoding is
@@ -79,16 +86,15 @@ uint32_t cmp_encoder_init(struct cmp_encoder *enc, enum cmp_encoder_type encoder
  *       for this can be done with bitstream_error() or bitstream_flush().
  */
 
-void cmp_encoder_encode_s16(const struct cmp_encoder *enc, int16_t value,
-			    struct bitstream_writer *bs);
+void cmp_encoder_encode(const struct cmp_encoder *enc, int16_t value, struct bitstream_writer *bs);
 
 
 /**
  * @brief Checks if the given encoder type and parameter are valid
  *
- * @param encoder_type	Encoder type to check
- * @param encoder_param	Parameter for the encoder
- * @param outlier	Outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
+ * @param encoder_type	encoder type to check
+ * @param encoder_param	parameter for the encoder
+ * @param outlier	outlier parameter needed for CMP_ENCODER_GOLOMB_MULTI
  *
  * @returns an error code, which can be checked using cmp_is_error()
  */
@@ -100,13 +106,13 @@ uint32_t cmp_encoder_params_check(enum cmp_encoder_type encoder_type, uint32_t e
 /**
  * @brief Calculates the maximum worst cased compressed size
  *
- * @param size	Size of the data uncompressed
+ * @param num_samples	 number of data samples to compress
  *
  * @returns maximum possible compressed size in bytes, can be larger than the
  *	maximum values that can be stored in the compressed size header field
  */
 
-uint64_t cmp_encoder_max_compressed_size(uint32_t size);
+uint64_t cmp_encoder_max_compressed_size(uint32_t num_samples);
 
 
 #endif /* CMP_ENCODER_H */

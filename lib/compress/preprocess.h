@@ -14,7 +14,7 @@
  *	return -1; /1* Handle error: Preprocessing method not found *1/
  *
  * uint32_t n_values = preprocess->init(src, work_buf, work_buf_size);
- * if (cmp_is_error_int(n_values))  /1* Handle error: Preprocessing initialization failed *1/
+ * if (cmp_is_error_int(n_values))  /1* Handle error: Preprocessing initialisation failed *1/
  *	return n_values;
  *
  * for (uint32_t i = 0; i < n_values; i++) {
@@ -35,7 +35,7 @@
 
 
 /**
- * @brief rounds up a number to the next multiple of 2
+ * @brief Rounds up a number to the next multiple of 2
  *
  * @param n	integer to be rounded
  *
@@ -46,7 +46,7 @@
 
 
 /**
- * @brief Preprocessing method structure.
+ * @brief Preprocessing method structure
  */
 struct preprocessing_method {
 	enum cmp_preprocessing type;
@@ -64,8 +64,18 @@ struct preprocessing_method {
  *
  * @returns a pointer to the cmp_preprocessing structure, or NULL if not found
  */
-
 const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessing type);
 
+
+/**
+ * @brief Returns the number of significant bits produced by preprocessing
+ *
+ * @param type		preprocessing method
+ * @param src_desc	description of the source samples
+ *
+ * @returns the number of bits required by the preprocessed values
+ */
+unsigned int preprocessing_get_output_bits(enum cmp_preprocessing type,
+					   const struct sample_desc *src_desc);
 
 #endif /* CMP_PREPROCESS_H */

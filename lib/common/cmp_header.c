@@ -7,10 +7,11 @@
  * @brief Compression header implementation
  */
 
-
+#include "compiler.h"
 #include <stdint.h>
 #include <string.h>
 
+#include "../cmp.h"
 #include "../cmp_header.h"
 #include "header_private.h"
 #include "err_private.h"
@@ -93,16 +94,31 @@ uint32_t cmp_hdr_deserialize(const void *src, uint32_t src_size, struct cmp_hdr 
 {
 	const uint8_t *start = src;
 	uint8_t prepros_enc_type_odt;
+	compile_time_assert(CMP_HDR_OFFSET_VERSION == 0, expext_hdr_to_be_first_field);
+	compile_time_assert(CMP_HDR_BITS_VERSION == 16, expext_hdr_to_be_2_bytes_large);
 
 	if (!hdr)
 		return CMP_ERROR(INT_HDR);
-	if (!src)
-		return CMP_ERROR(INT_HDR);
-	if (src_size < CMP_HDR_SIZE)
-		return CMP_ERROR(INT_HDR);
 	memset(hdr, 0x00, sizeof(*hdr));
 
+	if (!src)
+		return CMP_ERROR(SRC_NULL);
+
+	if (src_size < CMP_HDR_BITS_VERSION / 8)
+		return CMP_ERROR(SRC_SIZE_WRONG);
+
 	hdr->version = extract_u16be(start + CMP_HDR_OFFSET_VERSION);
+	/*
+	 * In early versions the first bit was used to indicate that the
+	 * compression library was used to create the header.
+	 * Let's ignore it and mask it out.
+	 */
+	if ((hdr->version & 0x7FFF) < CMP_MIN_SUPPORTED_VERSION)
+		return CMP_ERROR(HDR_UNSUPPORTED);
+
+	if (src_size < CMP_HDR_SIZE)
+		return CMP_ERROR(SRC_SIZE_WRONG);
+
 	hdr->compressed_size = extract_u24be(start + CMP_HDR_OFFSET_COMPRESSED_SIZE);
 	hdr->original_size = extract_u24be(start + CMP_HDR_OFFSET_ORIGINAL_SIZE);
 
@@ -128,6 +144,25 @@ uint32_t cmp_hdr_checksum_int(const struct sample_desc *desc)
 {
 	uint32_t i;
 	XXH32_state_t state;
+
+	/* RAW12 is byte-packed and independent of host endianness. */
+	if (desc->dtype == CMP_RAW12) {
+		uint32_t size = get_packed_size(desc);
+		uint8_t last;
+
+		if (desc->num_samples % 2 == 0)
+			return XXH32(desc->data, size, CHECKSUM_SEED);
+
+		/* For an odd number of samples, the upper nibble of the final
+		 * byte is padding, mask it so equivalent encodings produce the
+		 * same checksum.
+		 */
+		(void)XXH32_reset(&state, CHECKSUM_SEED);
+		(void)XXH32_update(&state, desc->data, size - 1);
+		last = ((const uint8_t *)desc->data)[size - 1] & 0x0F;
+		(void)XXH32_update(&state, &last, sizeof(last));
+		return XXH32_digest(&state);
+	}
 
 	/*
 	 * Fast path: on big-endian systems with contiguous data, we can hash

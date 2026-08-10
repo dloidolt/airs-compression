@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-#include "util.h"
+#include "file.h"
 #include "log.h"
 
 /**
@@ -25,7 +25,7 @@ void log_setup_color(void)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	/* Windows gets no color! */
-	log_state.color_status = LOG_COLOR_DISABLED;
+	g_log_state.color_status = LOG_COLOR_DISABLED;
 #else
 	const char *no_color = getenv("NO_COLOR");
 	const char *force_color = getenv("CLICOLOR_FORCE");
@@ -46,7 +46,7 @@ void log_setup_color(void)
 		return;
 	}
 
-	if (util_is_console(LOG_STREAM))
+	if (file_is_console(STD_ERR_MARK_S8))
 		g_log_state.color_status = LOG_COLOR_ENABLED;
 	else
 		g_log_state.color_status = LOG_COLOR_DISABLED;
@@ -89,4 +89,65 @@ void log_set_color(enum log_color_status status)
 enum log_color_status log_get_color(void)
 {
 	return g_log_state.color_status;
+}
+
+
+struct hr_fmt log_make_human_readable(uint64_t size, int verbose)
+{
+	struct hr_fmt hrs;
+
+	if (verbose) {
+		/*
+		 * In verbose mode, do not scale sizes down, except in the case of
+		 * values that exceed the integral precision of a double.
+		 */
+		if (size >= (1ULL << 53)) {
+			hrs.value = (double)size / (1ULL << 20);
+			hrs.suffix = " MiB";
+			/*
+			 * At worst, a double representation of a maximal size will be
+			 * accurate to better than tens of kilobytes.
+			 */
+			hrs.precision = 2;
+		} else {
+			hrs.value = (double)size;
+			hrs.suffix = " B";
+			hrs.precision = 0;
+		}
+	} else {
+		/* In regular mode, scale sizes down and use suffixes. */
+		if (size >= (1ULL << 60)) {
+			hrs.value = (double)size / (double)(1ULL << 60);
+			hrs.suffix = " EiB";
+		} else if (size >= (1ULL << 50)) {
+			hrs.value = (double)size / (1ULL << 50);
+			hrs.suffix = " PiB";
+		} else if (size >= (1ULL << 40)) {
+			hrs.value = (double)size / (1ULL << 40);
+			hrs.suffix = " TiB";
+		} else if (size >= (1ULL << 30)) {
+			hrs.value = (double)size / (1ULL << 30);
+			hrs.suffix = " GiB";
+		} else if (size >= (1ULL << 20)) {
+			hrs.value = (double)size / (1ULL << 20);
+			hrs.suffix = " MiB";
+		} else if (size >= (1ULL << 10)) {
+			hrs.value = (double)size / (1ULL << 10);
+			hrs.suffix = " KiB";
+		} else {
+			hrs.value = (double)size;
+			hrs.suffix = " B";
+		}
+
+		if (hrs.value >= 100 || (uint64_t)hrs.value == size)
+			hrs.precision = 0;
+		else if (hrs.value >= 10)
+			hrs.precision = 1;
+		else if (hrs.value > 1)
+			hrs.precision = 2;
+		else
+			hrs.precision = 3;
+	}
+
+	return hrs;
 }

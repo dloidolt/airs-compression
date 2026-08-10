@@ -4,7 +4,7 @@
  * @date   2025
  * @copyright GPL-2.0
  *
- * @brief Data preprocessing implementation for compression.
+ * @brief Data preprocessing implementation for compression
  *
  * This file contains functions for various data preprocessing methods
  * used in a compression algorithm.
@@ -15,105 +15,78 @@
  *
  */
 
-#include "common/sample_reader.h"
 #include <stdint.h>
 #include <stddef.h>
 
 #include "preprocess.h"
 #include "../cmp.h"
+#include "../common/sample_reader.h"
 #include "../common/compiler.h"
+#include "../common/bithacks.h"
 #include "../common/err_private.h"
 
 
 /* ====== Helper Functions for Integer Wavelet Transform (IWT) ===== */
 /**
- * @brief Calculates the floor of division by 2
- *
- * @param dividend	the value to divide
- *
- * @returns the result of the division
- */
-
-static __inline int16_t floor_division_by_2(int32_t dividend)
-{
-	return (int16_t)(dividend >> 1);
-}
-
-
-/**
- * @brief Calculates the floor of division by 4
- *
- * @param dividend	the value to divide
- *
- * @returns the result of the division
- */
-
-static __inline int16_t floor_division_by_4(int32_t dividend)
-{
-	return (int16_t)(dividend >> 2);
-}
-
-
-/**
- * @brief Calculates the odd (low frequency) transform coefficient of the IWT
+ * @brief Calculates the odd detail (high frequency) transform coefficient of the IWT
  *
  * @param centre	centre value of the kernel
  * @param left		left neighbour value
  * @param right		right neighbour value
  *
- * @returns the odd (low frequency) coefficient
+ * @returns the odd detail (high frequency) coefficient
  */
 
 static __inline int16_t iwt_odd_coefficient(int16_t centre, int16_t left, int16_t right)
 {
-	return centre - floor_division_by_2(left + right);
+	return (int16_t)(centre - floor_division_by_2(left + right));
 }
 
 
 /**
- * @brief Calculates the last odd (low frequency) transform coefficient of the IWT
+ * @brief Calculates the last odd detail (high frequency) transform coefficient of the IWT
  *
  * @param centre	centre value of the kernel
  * @param left		left neighbour value
  *
- * @returns the last odd (low frequency) coefficient
+ * @returns the last odd detail (high frequency) coefficient
  */
 
 static __inline int16_t iwt_last_odd_coefficient(int16_t centre, int16_t left)
 {
-	return centre - left;
+	return (int16_t)(centre - left);
 }
 
 
 /**
- * @brief Calculates the even (high frequency) transform coefficient of the IWT
+ * @brief Calculates the even approximation (low frequency) transform coefficient of the IWT
  *
  * @param centre		centre value of the kernel
- * @param odd_coef_left		left neighbour odd (low frequency) coefficient
- * @param odd_coef_right	right neighbour odd (low frequency) coefficient
+ * @param odd_coef_left		left neighbour odd detail (high frequency) coefficient
+ * @param odd_coef_right	right neighbour odd detail (high frequency) coefficient
  *
- * @returns the even (high frequency) coefficient
+ * @returns the even approximation (low frequency) coefficient
  */
 
 static __inline int16_t iwt_even_coefficient(int16_t centre, int16_t odd_coef_left,
 					     int16_t odd_coef_right)
 {
-	return centre + floor_division_by_4(odd_coef_left + odd_coef_right);
+	return (int16_t)(centre + floor_division_by_4(odd_coef_left + odd_coef_right));
 }
 
 
 /**
- * @brief Calculates an edge even (high frequency) transform coefficient of the IWT
+ * @brief Calculates an edge even approximation (low frequency) transform coefficient of the IWT
  *
  * @param centre		centre value of the kernel
- * @param odd_coef_neighbour	neighbouring odd (low frequency) coefficient
+ * @param odd_coef_neighbour	neighbouring odd detail (high frequency) coefficient
  *
- * @returns the calculated edge even (high frequency) coefficient
+ * @returns the calculated edge even approximation (low frequency) coefficient
  */
 
 static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_coef_neighbour)
 {
-	return centre + floor_division_by_2(odd_coef_neighbour);
+	return (int16_t)(centre + floor_division_by_2(odd_coef_neighbour));
 }
 
 
@@ -129,11 +102,11 @@ static __inline int16_t iwt_edge_even_coefficient(int16_t centre, int16_t odd_co
  *		(starts at 1, doubles each level in multi-level decomposition)
  *
  * @see implementation is based on equation (5.24) from
- *	D. Solomon, Data Compression, 4th ed, 2007, Springer, pp. 609-607
+ *	D. Solomon, Data Compression, 4th ed, 2007, Springer, pp. 608-610
  *
  * Coefficient Arrangement:
- * - approximation (high frequency) coefficient are stored on odd indexes
- * - detail (low frequency) coefficient are stored on even indexes
+ * - detail (high frequency) coefficients are stored on odd indexes
+ * - approximation (low frequency) coefficients are stored on even indexes
  *
  */
 
@@ -162,8 +135,8 @@ static void iwt_single_level_i16(const int16_t *x, int16_t *y, size_t n, size_t 
 	y[0] = iwt_edge_even_coefficient(x[0], y[s]);
 
 	/* Process the coefficients in the middle */
-	for (i = 2 * s; i < n - 2 * s; i += 2 * s) {
-		y[i + s] = iwt_odd_coefficient(x[i + s], x[i], x[i + 2 * s]);
+	for (i = 2 * s; i < n - (2 * s); i += 2 * s) {
+		y[i + s] = iwt_odd_coefficient(x[i + s], x[i], x[i + (2 * s)]);
 		y[i] = iwt_even_coefficient(x[i], y[i - s], y[i + s]);
 	}
 
@@ -192,27 +165,31 @@ static void iwt_multi_level_decomposition_i16(const struct sample_desc *src_desc
 {
 	const int16_t *input;
 	size_t stride;
+	uint32_t i;
 
 	if (num_samples == 1) {
 		output[0] = sample_read_i16(src_desc, 0);
 		return;
 	}
 
-	if (src_desc->dtype == CMP_I16_IN_I32) {
-		uint32_t i;
+	switch (src_desc->dtype) {
+	case CMP_I16:
+	case CMP_U16:
+		input = src_desc->data;
+		break;
+	case CMP_I16_IN_I32:
+	case CMP_RAW12:
+	default:
 		/*
-		 * For non-contiguous 16-bit samples stored in 32-bit words,
-		 * we need to pack them into a contiguous array first.
-		 * TODO: Optimize by adding a stride parameter to
-		 * iwt_single_level_i16() to process non-contiguous data
-		 * directly.
+		 * For non-contiguous 16-bit samples, extract them into a
+		 * contiguous array before applying the transform.
 		 */
 		for (i = 0; i < num_samples; i++)
 			output[i] = sample_read_i16(src_desc, i);
 		input = output;
-	} else {
-		input = src_desc->data;
+		break;
 	}
+
 
 	for (stride = 1; stride < num_samples; stride <<= 1) {
 		iwt_single_level_i16(input, output, num_samples, stride);
@@ -237,7 +214,7 @@ static uint32_t none_get_work_buf_size(uint32_t input_size UNUSED)
 
 
 /**
- * @brief Initializes none preprocessing
+ * @brief Initialise none preprocessing
  *
  * @param src_desc	source data descriptor pointer
  * @param work_buf	unused
@@ -285,27 +262,27 @@ static int16_t diff_process(uint32_t i, const struct sample_desc *src_desc, void
 {
 	if (i == 0)
 		return sample_read_i16(src_desc, i);
-	else
-		return (int16_t)(sample_read_i16(src_desc, i) - sample_read_i16(src_desc, i - 1));
+
+	return (int16_t)(sample_read_i16(src_desc, i) - sample_read_i16(src_desc, i - 1));
 }
 
 
 /**
  * @brief Calculates the required work buffer size for IWT preprocessing
  *
- * @param input_size	size of the data to perform the IWT on
+ * @param num_samples	number of data samples to perform the IWT on
  *
  * @returns the minimum required work buffer size
  */
 
-static uint32_t iwt_get_work_buf_size(uint32_t input_size)
+static uint32_t iwt_get_work_buf_size(uint32_t num_samples)
 {
-	return ROUND_UP_TO_NEXT_2(input_size);
+	return num_samples * sizeof(int16_t);
 }
 
 
 /**
- * @brief Initializes multi level IWT preprocessing
+ * @brief Initialise multi level IWT preprocessing
  *
  * This function pre-calculates the IWT coefficient and put them in the working
  * buffer
@@ -324,7 +301,7 @@ static uint32_t iwt_init(const struct sample_desc *src_desc, void *work_buf, uin
 
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < iwt_get_work_buf_size(get_packed_size(src_desc)))
+	if (work_buf_size < iwt_get_work_buf_size(src_desc->num_samples))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(*pre_cal_coefficient) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);
@@ -356,19 +333,19 @@ static int16_t iwt_process(uint32_t i, const struct sample_desc *src_desc UNUSED
 /**
  * @brief Calculates the required work buffer size for model preprocessing
  *
- * @param input_size	size of the data to perform the preprocessing
+ * @param num_samples	number of data samples to perform the model preprocessing
  *
  * @returns the minimum required work buffer size
  */
 
-static uint32_t model_get_work_buf_size(uint32_t input_size)
+static uint32_t model_get_work_buf_size(uint32_t num_samples)
 {
-	return ROUND_UP_TO_NEXT_2(input_size);
+	return num_samples * sizeof(int16_t);
 }
 
 
 /**
- * @brief Initializes model preprocessing
+ * @brief Initialise model preprocessing
  *
  * @param src_desc	source data descriptor pointer
  * @param work_buf	pointer to the buffer where the model to be subtracted
@@ -384,7 +361,7 @@ static uint32_t model_init(const struct sample_desc *src_desc, void *work_buf,
 {
 	if (!work_buf)
 		return CMP_ERROR(WORK_BUF_NULL);
-	if (work_buf_size < model_get_work_buf_size(get_packed_size(src_desc)))
+	if (work_buf_size < model_get_work_buf_size(src_desc->num_samples))
 		return CMP_ERROR(WORK_BUF_TOO_SMALL);
 	if ((uintptr_t)work_buf & (sizeof(uint16_t) - 1))
 		return CMP_ERROR(WORK_BUF_UNALIGNED);
@@ -427,4 +404,25 @@ const struct preprocessing_method *preprocessing_get_method(enum cmp_preprocessi
 			return &preprocessing_methods[i];
 	}
 	return NULL;
+}
+
+
+unsigned int preprocessing_get_output_bits(enum cmp_preprocessing type,
+					   const struct sample_desc *src_desc)
+{
+	switch (type) {
+	case CMP_PREPROCESS_IWT:
+		/* The 16-bit IWT can expand 12-bit input up to 16-bit coefficients. */
+		return bitsizeof(int16_t);
+	case CMP_PREPROCESS_NONE:
+	case CMP_PREPROCESS_DIFF:
+	case CMP_PREPROCESS_MODEL:
+	default:
+		/*
+		 * DIFF and MODEL residuals wrap at the source bit depth. For a
+		 * 12-bit sample, a difference of 4095 is the same as -1, so the
+		 * residual fits in 12 bits rather than requiring an extra bit.
+		 */
+		return get_eff_bit_depth(src_desc);
+	}
 }

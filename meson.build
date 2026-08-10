@@ -49,6 +49,7 @@ if use_debug
     '-Wformat-security',
     '-Woverflow',
     '-Wflex-array-member-not-at-end',
+    '-Wimplicit-fallthrough',
     '-Wdocumentation',
     '-Wmissing-declarations',
     '-Wmissing-prototypes',
@@ -85,12 +86,12 @@ if asciidoctor.found()
   )
 endif
 
-
 subdir('lib')
 subdir('programs')
-subdir('examples')
 subdir('test')
 subdir('docs')
+
+subproject('examples')
 
 summary({
   'Ruby found' : ruby.found(),

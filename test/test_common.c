@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <unity.h>
 #include <unity_internals.h>
@@ -17,11 +18,94 @@
 #include "test_common.h"
 #include "../lib/cmp_errors.h"
 #include "../lib/cmp_header.h"
+#include "../programs/arena.h"
 
 
-const uint16_t test_dummy_u16[2] = { 0x0001, 0x0203 };
-const int16_t test_dummy_i16[2] = { 0x0001, 0x0203 };
-const int32_t test_dummy_i16_in_i32[2] = { 0x0001, 0x0203 };
+struct test_src make_test_src(struct arena *a, enum cmp_type dtype, const int32_t *samples,
+			      uint32_t sample_count)
+{
+	struct test_src r = { 0 };
+	uint32_t i;
+
+	TEST_ASSERT_NOT_NULL(a);
+	TEST_ASSERT_NOT_NULL(samples);
+	TEST_ASSERT_GREATER_THAN_UINT32(0, sample_count);
+
+	switch (dtype) {
+	case CMP_I16: {
+		int16_t *data = ARENA_NEW_ARRAY(a, (ptrdiff_t)sample_count, int16_t);
+
+		for (i = 0; i < sample_count; i++) {
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(INT16_MAX, samples[i]);
+			data[i] = (int16_t)samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	case CMP_U16: {
+		uint16_t *data = ARENA_NEW_ARRAY(a, (ptrdiff_t)sample_count, uint16_t);
+
+		for (i = 0; i < sample_count; i++) {
+			/* we allow negative values in range and simply cast to unsigned */
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(UINT16_MAX, samples[i]);
+			data[i] = (uint16_t)samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	case CMP_I16_IN_I32: {
+		int32_t *data = ARENA_NEW_ARRAY(a, (ptrdiff_t)sample_count, int32_t);
+
+		for (i = 0; i < sample_count; i++) {
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(INT16_MIN, samples[i]);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(INT16_MAX, samples[i]);
+			data[i] = samples[i];
+		}
+		r.data = data;
+		r.size = sample_count * sizeof(*data);
+		break;
+	}
+	case CMP_RAW12: {
+		uint8_t *data;
+
+		r.size = (uint32_t)((((uint64_t)sample_count * 3) + 1) / 2);
+		data = ARENA_NEW_ARRAY(a, (ptrdiff_t)r.size, uint8_t);
+		r.data = data;
+		for (i = 0; i < (sample_count & ~1U); i += 2) {
+			int32_t s1 = samples[i];
+			int32_t s2 = samples[i + 1];
+
+			/* we allow negative values in range and simply cast to unsigned */
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s1);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s1);
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s2);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s2);
+			*data++ = (uint8_t)(s1 & 0x00FF);
+			*data++ = (uint8_t)(((s2 & 0x000F) << 4) | ((s1 & 0x0F00) >> 8));
+			*data++ = (uint8_t)((s2 & 0xFF0) >> 4);
+		}
+		if (sample_count & 1U) {
+			int32_t s1 = samples[sample_count - 1];
+
+			TEST_ASSERT_GREATER_OR_EQUAL_INT32(-0x800, s1);
+			TEST_ASSERT_LESS_OR_EQUAL_INT32(0xFFF, s1);
+			*data++ = (uint8_t)(s1 & 0x00FF);
+			*data++ = (uint8_t)((s1 & 0x0F00) >> 8);
+		}
+		break;
+	}
+	default:
+		TEST_FAIL_MESSAGE("Unsupported sample type");
+		return r;
+	}
+
+	r.packed_size = dtype == CMP_I16_IN_I32 ? sample_count * sizeof(uint16_t) : r.size;
+	return r;
+}
 
 
 const void *cmp_hdr_get_cmp_data(const void *header)
@@ -34,7 +118,7 @@ const void *cmp_hdr_get_cmp_data(const void *header)
 /**
  * @brief Converts compression error enum to string
  *
- * @param error		Compression error code
+ * @param error	compression error code
  *
  * @returns error code string
  */
@@ -66,8 +150,8 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_SRC_SIZE_WRONG";
 	case CMP_ERR_DST_TOO_SMALL:
 		return "CMP_ERR_DST_TOO_SMALL";
-	case CMP_ERR_SRC_SIZE_MISMATCH:
-		return "CMP_ERR_SRC_SIZE_MISMATCH";
+	case CMP_ERR_SRC_MISMATCH:
+		return "CMP_ERR_SRC_MISMATCH";
 	case CMP_ERR_INT_HDR:
 		return "CMP_ERR_INT_HDR";
 	case CMP_ERR_INT_ENCODER:
@@ -78,6 +162,8 @@ static const char *cmp_error_enum_to_str(enum cmp_error error)
 		return "CMP_ERR_HDR_CMP_SIZE_TOO_LARGE";
 	case CMP_ERR_HDR_ORIGINAL_TOO_LARGE:
 		return "CMP_ERR_HDR_ORIGINAL_TOO_LARGE";
+	case CMP_ERR_HDR_UNSUPPORTED:
+		return "CMP_ERR_HDR_UNSUPPORTED";
 	case CMP_ERR_MAX_CODE:
 	default:
 		TEST_FAIL_MESSAGE("Missing error name");
@@ -122,53 +208,23 @@ void assert_equal_cmp_error_internal(enum cmp_error expected_error, uint32_t cmp
 }
 
 
-void *t_malloc(size_t size)
+/* Test-specific OOM handler that fails the test instead of exiting */
+static void test_oom_handler(void)
 {
-	void *p;
-
-	TEST_ASSERT(size > 0);
-
-	p = malloc(size);
-	TEST_ASSERT_NOT_NULL(p);
-
-	return p;
+	TEST_FAIL_MESSAGE("Arena allocation failed: out of memory");
 }
 
 
-/* Create and initialize a test environment with compression context and buffers */
-struct test_env *make_env(struct cmp_params *params, uint32_t src_len)
+struct arena *clear_test_arena(void)
 {
-	struct test_env *e = t_malloc(sizeof(*e));
-	uint32_t work_len;
+	static uint8_t mem[1 << 10];
+	static struct arena a;
 
-	memset(e, 0, sizeof(*e));
+	arena_set_oom_handler(test_oom_handler);
 
-	work_len = cmp_cal_work_buf_size(params, src_len);
-	TEST_ASSERT_CMP_SUCCESS(work_len);
-	if (work_len)
-		e->work = t_malloc(work_len);
-
-	TEST_ASSERT_CMP_SUCCESS(cmp_initialise(&e->ctx, params, e->work, work_len));
-
-	if (params->primary_encoder_type != CMP_ENCODER_UNCOMPRESSED ||
-	    (params->secondary_iterations > 0 &&
-	     params->secondary_encoder_type != CMP_ENCODER_UNCOMPRESSED)) {
-		e->dst_cap = cmp_compress_bound(src_len);
-	} else {
-		e->dst_cap = (uint32_t)CMP_UNCOMPRESSED_BOUND(src_len);
-	}
-	TEST_ASSERT_CMP_SUCCESS(e->dst_cap);
-	e->dst = t_malloc(e->dst_cap);
-
-	return e;
-}
-
-
-void free_env(struct test_env *e)
-{
-	free(e->dst);
-	free(e->work);
-	free(e);
+	memset(mem, 0x1D, sizeof(mem)); /* poison arena memory */
+	a = arena_init(mem, sizeof(mem));
+	return &a;
 }
 
 
@@ -192,7 +248,15 @@ static uint32_t compress_i16_in_i32_wrapper(struct cmp_context *ctx, void *dst, 
 	return cmp_compress_i16_in_i32(ctx, dst, cap, src, src_size);
 }
 
-const struct cmp_test_fixture cmp_fixture_u16 = { compress_u16_wrapper, CMP_U16 };
-const struct cmp_test_fixture cmp_fixture_i16 = { compress_i16_wrapper, CMP_I16 };
-const struct cmp_test_fixture cmp_fixture_i16_in_i32 = { compress_i16_in_i32_wrapper,
-							 CMP_I16_IN_I32 };
+
+static uint32_t compress_raw12_wrapper(struct cmp_context *ctx, void *dst, uint32_t cap,
+				       const void *src, uint32_t src_size)
+{
+	return cmp_compress_raw12(ctx, dst, cap, src, src_size);
+}
+
+
+const struct t_fixture t_fix_u16 = { compress_u16_wrapper, CMP_U16 };
+const struct t_fixture t_fix_i16 = { compress_i16_wrapper, CMP_I16 };
+const struct t_fixture t_fix_i16_in_i32 = { compress_i16_in_i32_wrapper, CMP_I16_IN_I32 };
+const struct t_fixture t_fix_raw12 = { compress_raw12_wrapper, CMP_RAW12 };

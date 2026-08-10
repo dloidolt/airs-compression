@@ -12,23 +12,7 @@
 
 #include "../programs/params_parse.h"
 #include "../lib/common/compiler.h"
-
-
-/*
- * The arena's state is completely reset on each call, providing a fresh scratch
- * space for the caller. Consequently, any data allocated from the arena
- * in previous calls becomes invalid.
- */
-static struct arena *create_test_arena(void)
-{
-	static uint8_t mem[1 << 10];
-	static struct arena a;
-
-	memset(mem, 0x1D, ARRAY_SIZE(mem)); /* poison arena memory */
-	a.beg = mem;
-	a.end = mem + ARRAY_SIZE(mem);
-	return &a;
-}
+#include "test_common.h"
 
 
 void test_parse_preprocess_enums(void)
@@ -49,7 +33,7 @@ void test_parse_preprocess_enums(void)
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -97,7 +81,7 @@ void test_parse_encoder_types_enums(void)
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -136,17 +120,17 @@ void test_parse_boolean_types(void)
 		uint8_t value;
 	} boolean_cases[] = {
 		{ "TRUE",      1 },
-		{ "FALSE",     0 },
-		{ "1",         1 },
-		{ "0",         0 },
+                { "FALSE",     0 },
+                { "1",         1 },
+                { "0",         0 },
 		{ "CMP_TRUE",  1 },
-		{ "CMP_FALSE", 0 },
-		{ "Cmp_True",  1 },
-		{ "Cmp_False", 0 }
+                { "CMP_FALSE", 0 },
+                { "Cmp_True",  1 },
+                { "Cmp_False", 0 }
 	};
 
 	size_t i;
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	unsigned int const s_size = 64;
 	char *s = ARENA_NEW_ARRAY(a, s_size, char);
 	struct cmp_params par, par_exp;
@@ -279,22 +263,20 @@ void test_parse_all_compression_parameters(void)
 	enum cmp_parse_status status;
 	struct cmp_params par = { 0 };
 	struct cmp_params par_exp = { 0 };
-	static const char *str = {
-		"primary_preprocessing = IWT,"
-		"primary_encoder_type = GOLOMB_MULTI,"
-		"primary_encoder_param = 12,"
-		"primary_encoder_outlier = 0,"
+	static const char *str = { "primary_preprocessing = IWT,"
+				   "primary_encoder_type = GOLOMB_MULTI,"
+				   "primary_encoder_param = 12,"
+				   "primary_encoder_outlier = 0,"
 
-		"secondary_iterations = 4294967295,"
-		"secondary_preprocessing = DIFF,"
-		"secondary_encoder_type = GOLOMB_ZERO,"
-		"secondary_encoder_param = 42,"
-		"secondary_encoder_outlier = 1,"
-		"model_rate = 16,"
+				   "secondary_iterations = 4294967295,"
+				   "secondary_preprocessing = DIFF,"
+				   "secondary_encoder_type = GOLOMB_ZERO,"
+				   "secondary_encoder_param = 42,"
+				   "secondary_encoder_outlier = 1,"
+				   "model_rate = 16,"
 
-		"checksum_enabled = FALSE,"
-		"uncompressed_fallback_enabled = TRUE,"
-	};
+				   "checksum_enabled = FALSE,"
+				   "uncompressed_fallback_enabled = TRUE," };
 
 	par_exp.primary_preprocessing = CMP_PREPROCESS_IWT;
 	par_exp.primary_encoder_type = CMP_ENCODER_GOLOMB_MULTI;
@@ -323,7 +305,7 @@ void test_parse_all_compression_parameters(void)
 void test_detect_empty_string(void)
 {
 	size_t i;
-	static const char * const str[] = {
+	static const char *const str[] = {
 		"", " ", "\t", "\r", "\n", ",", ", ,",
 	};
 
@@ -350,7 +332,7 @@ void test_detect_str_is_NULL(void)
 void test_detects_invalid_syntax_missing_equals(void)
 {
 	size_t i;
-	static const char * const str[] = {
+	static const char *const str[] = {
 		"primary_preprocessing CMP_PREPROCESS_MODEL",
 		"primary_preprocessing CMP_PREPROCESS_MODEL,",
 		"primary_preprocessingCMP_PREPROCESS_MODEL",
@@ -368,7 +350,7 @@ void test_detects_invalid_syntax_missing_equals(void)
 void test_detect_invalid_numeric_values(void)
 {
 	size_t i;
-	static const char * const str[] = {
+	static const char *const str[] = {
 		"primary_encoder_param=4294967296", /* UINT32_MAX + 1 */
 		"primary_encoder_param=02",         "primary_encoder_param=000000000002",
 		"primary_encoder_param=2.2",        "primary_encoder_param=2.",
@@ -390,7 +372,7 @@ void test_detect_invalid_numeric_values(void)
 void test_detect_invalid_enum_keys(void)
 {
 	size_t i;
-	static const char * const str[] = {
+	static const char *const str[] = {
 		"primary_preprocessing=",      "primary_preprocessing=,",
 		"primary_preprocessing=1",     "primary_preprocessing=DIF",
 		"primary_preprocessing==DIFF", "primary_preprocessing=DIF F",
@@ -427,7 +409,7 @@ void test_detect_no_keys(void)
 
 void test_stringify_all_parameters(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *str;
 
@@ -470,7 +452,7 @@ void test_stringify_all_parameters(void)
 
 void test_to_string_bools_are_normalized(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *s;
 
@@ -484,7 +466,7 @@ void test_to_string_bools_are_normalized(void)
 
 void test_stringify_invalid_enum_values(void)
 {
-	struct arena *a = create_test_arena();
+	struct arena *a = clear_test_arena();
 	struct cmp_params par = { 0 };
 	const char *str;
 
@@ -504,7 +486,7 @@ void test_stringify_invalid_enum_values(void)
 
 void test_to_string_parse_roundtrip(void)
 {
-	struct arena *arena = create_test_arena();
+	struct arena *arena = clear_test_arena();
 	struct cmp_params a = { 0 };
 	struct cmp_params b = { 0 };
 	const char *str;

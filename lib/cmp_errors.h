@@ -22,7 +22,7 @@
 /**
  * @brief Enumeration of all error codes
  *
- * @warning Error name and value are TBC
+ * @warning Error name and value are TBC.
  */
 
 enum cmp_error {
@@ -36,9 +36,9 @@ enum cmp_error {
 	CMP_ERR_DST_NULL = 31,      /**< Destination buffer pointer is NULL */
 	CMP_ERR_DST_UNALIGNED = 32, /**< Destination buffer not correct aligned */
 
-	CMP_ERR_SRC_SIZE_WRONG = 40,    /**< Source buffer size doesn't match expected size */
-	CMP_ERR_SRC_NULL = 41,          /**< Source buffer pointer is NULL */
-	CMP_ERR_SRC_SIZE_MISMATCH = 42, /**< Source data size changed with model preprocessing */
+	CMP_ERR_SRC_SIZE_WRONG = 40, /**< Source buffer size doesn't match expected size */
+	CMP_ERR_SRC_NULL = 41,       /**< Source buffer pointer is NULL */
+	CMP_ERR_SRC_MISMATCH = 42,   /**< Source samples are incompatible with retained state */
 
 	CMP_ERR_WORK_BUF_TOO_SMALL = 50, /**< Work buffer is too small */
 	CMP_ERR_WORK_BUF_NULL = 51,      /**< Work buffer is NULL but required */
@@ -46,8 +46,9 @@ enum cmp_error {
 
 	CMP_ERR_HDR_CMP_SIZE_TOO_LARGE = 60, /**< Compressed size exceeds header field limit */
 	CMP_ERR_HDR_ORIGINAL_TOO_LARGE = 61, /**< Original size exceeds header field limit */
+	CMP_ERR_HDR_UNSUPPORTED = 62,        /**< Unsupported compression version */
 
-	CMP_ERR_CONTEXT_INVALID = 70,   /**< Invalid compression context */
+	CMP_ERR_CONTEXT_INVALID = 70, /**< Invalid compression context */
 
 	CMP_ERR_INT_HDR = 100,       /**< Internal header processing error */
 	CMP_ERR_INT_ENCODER = 101,   /**< Internal data encoder error */
